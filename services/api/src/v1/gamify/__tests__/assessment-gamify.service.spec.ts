@@ -15,7 +15,10 @@ const streakOutcome = (overrides: Record<string, unknown> = {}) => ({
 const build = (overrides: { stars?: number; streak?: Record<string, unknown>; unlocked?: Array<{ code: string; title: string; iconName: string | null }> } = {}) => {
   const calls: string[] = [];
   const nodes = { onAssessment: jest.fn(async () => { calls.push('nodes'); return { stars: overrides.stars ?? 0 }; }) };
-  const streaks = { onQualified: jest.fn(async () => { calls.push('streak'); return streakOutcome(overrides.streak); }) };
+  const streaks = {
+    onQualified: jest.fn(async () => { calls.push('streak'); return streakOutcome(overrides.streak); }),
+    standing: jest.fn(async () => { calls.push('standing'); return streakOutcome({ extended: false, freezeEarned: false, freezesUsed: 0, bonusPoints: 0, ...overrides.streak }); }),
+  };
   const achievements = { evaluate: jest.fn(async () => { calls.push('achievements'); return overrides.unlocked ?? []; }) };
   const service = new AssessmentGamifyService(nodes as never, streaks as never, achievements as never);
   return { service, nodes, streaks, achievements, calls };
@@ -28,7 +31,7 @@ describe('AssessmentGamifyService.afterAssessment', () => {
   it('runs node stars, then the streak, then achievements, all in the callers transaction', async () => {
     const { service, nodes, streaks, achievements, calls } = build();
 
-    await service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 12 }, tx);
+    await service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 12, passed: true }, tx);
 
     expect(calls).toEqual(['nodes', 'streak', 'achievements']);
     expect(nodes.onAssessment).toHaveBeenCalledWith({ userId: 'u1', subTopicId: 'sub-1' }, tx);
@@ -43,7 +46,7 @@ describe('AssessmentGamifyService.afterAssessment', () => {
       unlocked: [{ code: 'streak-7', title: 'Tujuh hari', iconName: 'streak' }],
     });
 
-    const outcome = await service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 12 }, tx);
+    const outcome = await service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 12, passed: true }, tx);
 
     expect(outcome).toEqual({
       xpGained: 62,
@@ -56,7 +59,7 @@ describe('AssessmentGamifyService.afterAssessment', () => {
   it('asks the achievements last, so a streak or a star of this very assessment can unlock one', async () => {
     const { service, calls } = build();
 
-    await service.afterAssessment({ userId: 'u1', subTopicId: null, at, xpGained: 0 }, tx);
+    await service.afterAssessment({ userId: 'u1', subTopicId: null, at, xpGained: 0, passed: true }, tx);
 
     expect(calls[calls.length - 1]).toBe('achievements');
   });
@@ -65,7 +68,22 @@ describe('AssessmentGamifyService.afterAssessment', () => {
     const { service, streaks, achievements } = build();
     streaks.onQualified.mockRejectedValueOnce(new Error('streak down'));
 
-    await expect(service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 1 }, tx)).rejects.toThrow('streak down');
+    await expect(service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 1, passed: true }, tx)).rejects.toThrow('streak down');
     expect(achievements.evaluate).not.toHaveBeenCalled();
+  });
+
+  it('leaves the streak where it stands when the assessment was not passed, and still counts stars and achievements', async () => {
+    const { service, streaks, nodes, achievements, calls } = build({ stars: 1, unlocked: [{ code: 'first-assessment', title: 'Langkah Pertama', iconName: 'badge' }] });
+
+    const outcome = await service.afterAssessment({ userId: 'u1', subTopicId: 'sub-1', at, xpGained: 9, passed: false }, tx);
+
+    expect(streaks.onQualified).not.toHaveBeenCalled();
+    expect(streaks.standing).toHaveBeenCalledWith('u1', tx);
+    expect(calls).toEqual(['nodes', 'standing', 'achievements']);
+    expect(nodes.onAssessment).toHaveBeenCalledTimes(1);
+    expect(achievements.evaluate).toHaveBeenCalledTimes(1);
+    expect(outcome.xpGained).toBe(9);
+    expect(outcome.streak).toEqual({ current: 3, longest: 5, freezes: 1, extended: false, freezeEarned: false, freezesUsed: 0, bonusPoints: 0 });
+    expect(outcome.starsGained).toBe(1);
   });
 });

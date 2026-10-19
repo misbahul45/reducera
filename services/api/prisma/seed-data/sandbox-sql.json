@@ -1,0 +1,389 @@
+{
+  "version": 1,
+  "datasets": [
+    {
+      "id": "toko-online",
+      "title": "Toko Online",
+      "engine": "PostgreSQL 15",
+      "description": "Basis data sebuah toko pakaian dan aksesori: pelanggan, produk, pesanan, dan rincian pesanan.",
+      "setupSql": "CREATE TABLE pelanggan (id integer PRIMARY KEY, nama text NOT NULL, kota text NOT NULL, tanggal_daftar date NOT NULL);\nCREATE TABLE produk (id integer PRIMARY KEY, nama text NOT NULL, kategori text NOT NULL, harga integer NOT NULL, stok integer NOT NULL);\nCREATE TABLE pesanan (id integer PRIMARY KEY, pelanggan_id integer NOT NULL REFERENCES pelanggan (id), tanggal date NOT NULL, status text NOT NULL);\nCREATE TABLE detail_pesanan (pesanan_id integer NOT NULL REFERENCES pesanan (id), produk_id integer NOT NULL REFERENCES produk (id), jumlah integer NOT NULL, PRIMARY KEY (pesanan_id, produk_id));\nINSERT INTO pelanggan (id, nama, kota, tanggal_daftar) VALUES\n(1, 'Sari Wulandari', 'Bandung', '2025-01-05'),\n(2, 'Budi Santoso', 'Jakarta', '2025-01-12'),\n(3, 'Dewi Lestari', 'Bandung', '2025-01-20'),\n(4, 'Agus Prasetyo', 'Surabaya', '2025-02-02'),\n(5, 'Rina Marlina', 'Jakarta', '2025-02-14'),\n(6, 'Eko Nugroho', 'Yogyakarta', '2025-02-27'),\n(7, 'Siti Aminah', 'Surabaya', '2025-03-08'),\n(8, 'Hendra Gunawan', 'Bandung', '2025-03-19'),\n(9, 'Maya Puspita', 'Jakarta', '2025-04-01'),\n(10, 'Rizky Ramadhan', 'Medan', '2025-04-15'),\n(11, 'Nur Hidayah', 'Yogyakarta', '2025-05-03'),\n(12, 'Tono Wijaya', 'Medan', '2025-05-21');\nINSERT INTO produk (id, nama, kategori, harga, stok) VALUES\n(1, 'Kemeja Batik Pria', 'Pakaian', 185000, 40),\n(2, 'Blus Katun Wanita', 'Pakaian', 135000, 35),\n(3, 'Celana Chino', 'Pakaian', 220000, 28),\n(4, 'Sepatu Kets Putih', 'Sepatu', 349000, 18),\n(5, 'Sandal Jepit', 'Sepatu', 45000, 120),\n(6, 'Tas Ransel', 'Aksesori', 275000, 22),\n(7, 'Dompet Kulit', 'Aksesori', 120000, 50),\n(8, 'Topi Baseball', 'Aksesori', 65000, 75),\n(9, 'Jam Tangan Digital', 'Elektronik', 450000, 15),\n(10, 'Earphone Nirkabel', 'Elektronik', 299000, 30);\nINSERT INTO pesanan (id, pelanggan_id, tanggal, status) VALUES\n(1, 1, '2025-02-01', 'selesai'),\n(2, 2, '2025-02-05', 'selesai'),\n(3, 3, '2025-02-11', 'selesai'),\n(4, 1, '2025-02-18', 'selesai'),\n(5, 4, '2025-03-02', 'selesai'),\n(6, 5, '2025-03-09', 'batal'),\n(7, 2, '2025-03-15', 'selesai'),\n(8, 6, '2025-03-22', 'selesai'),\n(9, 7, '2025-04-04', 'dikirim'),\n(10, 3, '2025-04-12', 'selesai'),\n(11, 8, '2025-04-20', 'selesai'),\n(12, 9, '2025-05-06', 'dikirim'),\n(13, 4, '2025-05-14', 'diproses'),\n(14, 10, '2025-05-27', 'batal'),\n(15, 1, '2025-06-02', 'diproses'),\n(16, 5, '2025-06-15', 'selesai');\nINSERT INTO detail_pesanan (pesanan_id, produk_id, jumlah) VALUES\n(1, 1, 2), (1, 5, 1),\n(2, 4, 1), (2, 8, 2),\n(3, 2, 1), (3, 7, 1),\n(4, 6, 1),\n(5, 3, 2),\n(6, 9, 1),\n(7, 10, 1), (7, 5, 2),\n(8, 1, 1), (8, 3, 1),\n(9, 4, 1),\n(10, 9, 1), (10, 8, 1),\n(11, 6, 1), (11, 7, 2),\n(12, 2, 2),\n(13, 10, 2),\n(14, 3, 1),\n(15, 5, 3), (15, 8, 1),\n(16, 7, 1), (16, 2, 1);",
+      "tables": [
+        {
+          "name": "pelanggan",
+          "description": "Daftar pelanggan toko.",
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "note": "kunci utama"
+            },
+            {
+              "name": "nama",
+              "type": "text"
+            },
+            {
+              "name": "kota",
+              "type": "text"
+            },
+            {
+              "name": "tanggal_daftar",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "name": "produk",
+          "description": "Daftar produk yang dijual.",
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "note": "kunci utama"
+            },
+            {
+              "name": "nama",
+              "type": "text"
+            },
+            {
+              "name": "kategori",
+              "type": "text",
+              "note": "Pakaian, Sepatu, Aksesori, atau Elektronik"
+            },
+            {
+              "name": "harga",
+              "type": "integer",
+              "note": "dalam rupiah"
+            },
+            {
+              "name": "stok",
+              "type": "integer"
+            }
+          ]
+        },
+        {
+          "name": "pesanan",
+          "description": "Satu baris untuk setiap pesanan.",
+          "columns": [
+            {
+              "name": "id",
+              "type": "integer",
+              "note": "kunci utama"
+            },
+            {
+              "name": "pelanggan_id",
+              "type": "integer",
+              "note": "mengacu ke pelanggan.id"
+            },
+            {
+              "name": "tanggal",
+              "type": "date"
+            },
+            {
+              "name": "status",
+              "type": "text",
+              "note": "diproses, dikirim, selesai, atau batal"
+            }
+          ]
+        },
+        {
+          "name": "detail_pesanan",
+          "description": "Rincian produk pada setiap pesanan.",
+          "columns": [
+            {
+              "name": "pesanan_id",
+              "type": "integer",
+              "note": "mengacu ke pesanan.id"
+            },
+            {
+              "name": "produk_id",
+              "type": "integer",
+              "note": "mengacu ke produk.id"
+            },
+            {
+              "name": "jumlah",
+              "type": "integer"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "exercises": [
+    {
+      "id": "sql-pelanggan-bandung",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Memilih data",
+      "title": "Pelanggan dari Bandung",
+      "task": "Tampilkan nama dan kota semua pelanggan yang berkota Bandung.",
+      "referenceSql": "SELECT nama, kota FROM pelanggan WHERE kota = 'Bandung'",
+      "ordered": false,
+      "hints": [
+        "Gunakan SELECT untuk memilih kolom dan FROM untuk menentukan tabel.",
+        "Kolom yang diminta adalah nama dan kota dari tabel pelanggan.",
+        "Saring baris dengan WHERE kota = '...'. Teks ditulis di antara tanda kutip tunggal."
+      ],
+      "explanation": "WHERE menyaring baris sebelum hasil ditampilkan. Perbandingan teks memakai tanda kutip tunggal, dan huruf besar atau kecil berpengaruh pada perbandingan =.",
+      "expectedRowCount": 3
+    },
+    {
+      "id": "sql-produk-mahal",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Memilih data",
+      "title": "Produk di atas 200.000",
+      "task": "Tampilkan nama dan harga produk yang harganya di atas 200.000, urutkan dari yang termahal.",
+      "referenceSql": "SELECT nama, harga FROM produk WHERE harga > 200000 ORDER BY harga DESC",
+      "ordered": true,
+      "hints": [
+        "Tulis angka tanpa titik pemisah ribuan, misalnya 200000.",
+        "ORDER BY mengurutkan hasil. Urutan bawaannya naik (ASC).",
+        "Tambahkan DESC setelah nama kolom untuk mengurutkan dari yang terbesar."
+      ],
+      "explanation": "ORDER BY harga DESC mengurutkan hasil dari harga tertinggi. Tanpa ORDER BY, urutan baris tidak dijamin.",
+      "expectedRowCount": 5
+    },
+    {
+      "id": "sql-tiga-termurah",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Memilih data",
+      "title": "Tiga produk termurah",
+      "task": "Tampilkan nama dan harga untuk tiga produk dengan harga paling rendah.",
+      "referenceSql": "SELECT nama, harga FROM produk ORDER BY harga ASC LIMIT 3",
+      "ordered": true,
+      "hints": [
+        "Urutkan dulu produk berdasarkan harga dari yang terkecil.",
+        "LIMIT membatasi jumlah baris yang ditampilkan.",
+        "Gabungkan ORDER BY harga dengan LIMIT 3 di akhir pernyataan."
+      ],
+      "explanation": "LIMIT dipakai bersama ORDER BY supaya baris yang diambil memang yang paling kecil atau paling besar. Tanpa ORDER BY, baris yang terambil tidak dapat diprediksi.",
+      "expectedRowCount": 3
+    },
+    {
+      "id": "sql-kota-unik",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Memilih data",
+      "title": "Daftar kota tanpa pengulangan",
+      "task": "Tampilkan daftar kota tempat pelanggan tinggal tanpa pengulangan, urutkan berdasarkan abjad.",
+      "referenceSql": "SELECT DISTINCT kota FROM pelanggan ORDER BY kota",
+      "ordered": true,
+      "hints": [
+        "Satu kota dapat muncul berkali-kali karena banyak pelanggan tinggal di sana.",
+        "DISTINCT setelah SELECT menghapus baris yang sama persis.",
+        "Tutup dengan ORDER BY kota agar urut abjad."
+      ],
+      "explanation": "SELECT DISTINCT menyisakan satu baris untuk setiap kombinasi nilai yang berbeda. Di sini hanya kolom kota yang dipilih, sehingga setiap kota muncul sekali.",
+      "expectedRowCount": 5
+    },
+    {
+      "id": "sql-nama-awalan-s",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Menyaring data",
+      "title": "Nama berawalan huruf S",
+      "task": "Tampilkan nama pelanggan yang diawali huruf S.",
+      "referenceSql": "SELECT nama FROM pelanggan WHERE nama LIKE 'S%'",
+      "ordered": false,
+      "hints": [
+        "Perbandingan = hanya cocok bila seluruh teks sama persis.",
+        "LIKE membandingkan teks dengan pola.",
+        "Tanda % berarti sembarang deretan karakter, jadi 'S%' berarti diawali huruf S."
+      ],
+      "explanation": "LIKE memakai pola: % mewakili nol karakter atau lebih, sedangkan _ mewakili tepat satu karakter. LIKE membedakan huruf besar dan kecil; ILIKE tidak.",
+      "expectedRowCount": 2
+    },
+    {
+      "id": "sql-in-between",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Menyaring data",
+      "title": "Kombinasi kota dan tanggal",
+      "task": "Tampilkan nama, kota, dan tanggal daftar pelanggan yang berkota Jakarta atau Medan dan mendaftar antara 1 April 2025 dan 31 Mei 2025 (termasuk kedua tanggal itu).",
+      "referenceSql": "SELECT nama, kota, tanggal_daftar FROM pelanggan WHERE kota IN ('Jakarta', 'Medan') AND tanggal_daftar BETWEEN '2025-04-01' AND '2025-05-31'",
+      "ordered": false,
+      "hints": [
+        "Dua syarat harus terpenuhi sekaligus, hubungkan dengan AND.",
+        "Untuk beberapa pilihan nilai gunakan kota IN ('Jakarta', 'Medan').",
+        "Untuk rentang tanggal gunakan BETWEEN '2025-04-01' AND '2025-05-31'. Tanggal ditulis sebagai teks berformat tahun-bulan-tanggal."
+      ],
+      "explanation": "IN mewakili beberapa pilihan nilai, sedangkan BETWEEN mencakup kedua batasnya. AND mensyaratkan keduanya benar.",
+      "expectedRowCount": 3
+    },
+    {
+      "id": "sql-agregat-produk",
+      "datasetId": "toko-online",
+      "level": 1,
+      "subTopic": "Fungsi agregat",
+      "title": "Ringkasan produk",
+      "task": "Tampilkan dalam satu baris: jumlah produk dan harga rata-rata semua produk.",
+      "referenceSql": "SELECT COUNT(*) AS jumlah_produk, AVG(harga) AS harga_rata_rata FROM produk",
+      "ordered": false,
+      "hints": [
+        "Fungsi agregat meringkas banyak baris menjadi satu nilai.",
+        "COUNT(*) menghitung baris dan AVG(kolom) menghitung rata-rata.",
+        "Pisahkan kedua fungsi dengan koma dalam satu SELECT. Nama kolom hasil dapat diubah dengan AS."
+      ],
+      "explanation": "COUNT, SUM, AVG, MIN, dan MAX adalah fungsi agregat. Tanpa GROUP BY, seluruh tabel dianggap satu kelompok sehingga hasilnya satu baris. Nilai rata-rata dibandingkan sebagai angka, jadi pembulatan dengan ROUND juga diterima bila hasilnya sama.",
+      "expectedRowCount": 1
+    },
+    {
+      "id": "sql-insert-pelanggan",
+      "datasetId": "toko-online",
+      "level": 2,
+      "subTopic": "Mengubah data",
+      "title": "Tambah pelanggan baru",
+      "task": "Tambahkan satu pelanggan baru: id 13, nama Lina Kartika, kota Bandung, tanggal daftar 2025-06-20.",
+      "referenceSql": "INSERT INTO pelanggan (id, nama, kota, tanggal_daftar) VALUES (13, 'Lina Kartika', 'Bandung', '2025-06-20')",
+      "ordered": false,
+      "hints": [
+        "Pernyataan untuk menambah baris adalah INSERT INTO nama_tabel.",
+        "Sebutkan kolom yang diisi dalam tanda kurung, lalu nilainya setelah VALUES.",
+        "Urutan nilai harus sama dengan urutan kolom yang Anda sebutkan, dan teks memakai tanda kutip tunggal."
+      ],
+      "explanation": "INSERT INTO tabel (kolom, ...) VALUES (nilai, ...) menambah satu baris. Menyebut kolom secara eksplisit membuat pernyataan tetap benar walau urutan kolom tabel berubah.",
+      "expectedRowCount": 1,
+      "verifySql": "SELECT id, nama, kota, tanggal_daftar FROM pelanggan WHERE id = 13"
+    },
+    {
+      "id": "sql-update-aksesori",
+      "datasetId": "toko-online",
+      "level": 2,
+      "subTopic": "Mengubah data",
+      "title": "Naikkan harga aksesori",
+      "task": "Naikkan harga semua produk berkategori Aksesori sebesar 10 persen.",
+      "referenceSql": "UPDATE produk SET harga = harga * 11 / 10 WHERE kategori = 'Aksesori'",
+      "ordered": false,
+      "hints": [
+        "Pernyataan untuk mengubah isi baris adalah UPDATE nama_tabel SET kolom = nilai.",
+        "Nilai baru dapat dihitung dari nilai lama, misalnya harga = harga * 11 / 10.",
+        "Jangan lupa WHERE kategori = 'Aksesori'. Tanpa WHERE, semua baris ikut berubah."
+      ],
+      "explanation": "UPDATE tanpa WHERE mengubah seluruh baris tabel, jadi periksa klausa WHERE sebelum menjalankannya. Menaikkan 10 persen sama dengan mengalikan 1,1, atau mengalikan 11 lalu membagi 10 pada bilangan bulat.",
+      "expectedRowCount": 10,
+      "verifySql": "SELECT id, harga FROM produk ORDER BY id"
+    },
+    {
+      "id": "sql-delete-batal",
+      "datasetId": "toko-online",
+      "level": 2,
+      "subTopic": "Mengubah data",
+      "title": "Hapus pesanan batal",
+      "task": "Hapus semua pesanan berstatus batal beserta rincian produknya di tabel detail_pesanan.",
+      "referenceSql": "DELETE FROM detail_pesanan WHERE pesanan_id IN (SELECT id FROM pesanan WHERE status = 'batal'); DELETE FROM pesanan WHERE status = 'batal'",
+      "ordered": false,
+      "hints": [
+        "Tabel detail_pesanan mengacu ke pesanan lewat kunci asing, sehingga urutan penghapusan penting.",
+        "Hapus dulu baris anak (detail_pesanan), baru baris induknya (pesanan).",
+        "Untuk menemukan detail yang dimaksud, gunakan subkueri: WHERE pesanan_id IN (SELECT id FROM pesanan WHERE status = 'batal')."
+      ],
+      "explanation": "Kunci asing mencegah baris induk dihapus selama masih ada baris anak yang mengacu padanya. Karena itu rincian dihapus lebih dulu, lalu pesanannya. Pernyataan yang dipisahkan titik koma dijalankan berurutan.",
+      "expectedRowCount": 1,
+      "verifySql": "SELECT (SELECT COUNT(*) FROM pesanan) AS jumlah_pesanan, (SELECT COUNT(*) FROM detail_pesanan) AS jumlah_rincian"
+    },
+    {
+      "id": "sql-join-pesanan",
+      "datasetId": "toko-online",
+      "level": 3,
+      "subTopic": "Menggabungkan tabel",
+      "title": "Pesanan selesai beserta nama pelanggan",
+      "task": "Tampilkan nama pelanggan dan tanggal pesanan untuk setiap pesanan yang berstatus selesai.",
+      "referenceSql": "SELECT p.nama, o.tanggal FROM pelanggan p JOIN pesanan o ON o.pelanggan_id = p.id WHERE o.status = 'selesai'",
+      "ordered": false,
+      "hints": [
+        "Nama ada di tabel pelanggan, sedangkan tanggal ada di tabel pesanan.",
+        "JOIN menggabungkan dua tabel lewat kolom yang berhubungan: pesanan.pelanggan_id dengan pelanggan.id.",
+        "Tulis FROM pelanggan p JOIN pesanan o ON o.pelanggan_id = p.id, lalu saring status dengan WHERE."
+      ],
+      "explanation": "JOIN ... ON mempertemukan baris dua tabel yang nilai kolom penghubungnya sama. Alias seperti p dan o memperpendek penulisan dan menghindari kerancuan nama kolom.",
+      "expectedRowCount": 10
+    },
+    {
+      "id": "sql-left-join-belum-pesan",
+      "datasetId": "toko-online",
+      "level": 3,
+      "subTopic": "Menggabungkan tabel",
+      "title": "Pelanggan yang belum memesan",
+      "task": "Tampilkan nama pelanggan yang belum pernah melakukan pesanan.",
+      "referenceSql": "SELECT p.nama FROM pelanggan p LEFT JOIN pesanan o ON o.pelanggan_id = p.id WHERE o.id IS NULL",
+      "ordered": false,
+      "hints": [
+        "JOIN biasa membuang pelanggan yang tidak punya pesanan.",
+        "LEFT JOIN mempertahankan semua baris tabel kiri, dengan NULL pada kolom tabel kanan bila tidak ada pasangan.",
+        "Saring baris yang pasangannya kosong dengan WHERE o.id IS NULL."
+      ],
+      "explanation": "LEFT JOIN menyisakan semua pelanggan. Pelanggan tanpa pesanan mendapat NULL pada kolom pesanan, dan IS NULL menyaring tepat baris-baris itu. Perbandingan dengan NULL harus memakai IS NULL, bukan = NULL.",
+      "expectedRowCount": 2
+    },
+    {
+      "id": "sql-group-kota",
+      "datasetId": "toko-online",
+      "level": 3,
+      "subTopic": "Pengelompokan",
+      "title": "Jumlah pelanggan per kota",
+      "task": "Hitung jumlah pelanggan di setiap kota. Tampilkan kota dan jumlahnya, urutkan dari jumlah terbanyak, lalu berdasarkan nama kota bila jumlahnya sama.",
+      "referenceSql": "SELECT kota, COUNT(*) AS jumlah FROM pelanggan GROUP BY kota ORDER BY jumlah DESC, kota",
+      "ordered": true,
+      "hints": [
+        "Untuk menghitung per kelompok, gunakan GROUP BY.",
+        "Kolom yang tidak dibungkus fungsi agregat harus ada di GROUP BY.",
+        "ORDER BY dapat memakai beberapa kolom dan alias, misalnya ORDER BY jumlah DESC, kota."
+      ],
+      "explanation": "GROUP BY membentuk satu kelompok untuk setiap nilai kota, lalu COUNT(*) menghitung baris di tiap kelompok. ORDER BY boleh memakai alias kolom hasil.",
+      "expectedRowCount": 5
+    },
+    {
+      "id": "sql-having-belanja",
+      "datasetId": "toko-online",
+      "level": 3,
+      "subTopic": "Pengelompokan",
+      "title": "Pelanggan dengan belanja besar",
+      "task": "Tampilkan nama pelanggan dan total belanjanya (jumlah dikali harga produk) dari pesanan yang tidak dibatalkan, hanya untuk pelanggan dengan total belanja di atas 500.000. Urutkan dari total terbesar.",
+      "referenceSql": "SELECT p.nama, SUM(d.jumlah * pr.harga) AS total_belanja FROM pelanggan p JOIN pesanan o ON o.pelanggan_id = p.id JOIN detail_pesanan d ON d.pesanan_id = o.id JOIN produk pr ON pr.id = d.produk_id WHERE o.status <> 'batal' GROUP BY p.id, p.nama HAVING SUM(d.jumlah * pr.harga) > 500000 ORDER BY total_belanja DESC",
+      "ordered": true,
+      "hints": [
+        "Anda memerlukan empat tabel: pelanggan, pesanan, detail_pesanan, dan produk.",
+        "WHERE menyaring baris sebelum dikelompokkan, sedangkan HAVING menyaring kelompok setelah dihitung.",
+        "Total belanja per pelanggan adalah SUM(d.jumlah * pr.harga). Kelompokkan dengan GROUP BY p.id, p.nama lalu saring dengan HAVING SUM(...) > 500000."
+      ],
+      "explanation": "Urutan pemrosesan: FROM dan JOIN, WHERE, GROUP BY, HAVING, SELECT, lalu ORDER BY. Syarat atas hasil agregat seperti SUM harus berada di HAVING karena WHERE bekerja sebelum agregasi.",
+      "expectedRowCount": 5
+    },
+    {
+      "id": "sql-subquery-di-atas-rata",
+      "datasetId": "toko-online",
+      "level": 3,
+      "subTopic": "Subkueri",
+      "title": "Produk di atas harga rata-rata",
+      "task": "Tampilkan nama dan harga produk yang harganya di atas rata-rata harga semua produk.",
+      "referenceSql": "SELECT nama, harga FROM produk WHERE harga > (SELECT AVG(harga) FROM produk)",
+      "ordered": false,
+      "hints": [
+        "Anda perlu membandingkan setiap harga dengan satu angka yang dihitung dari tabel yang sama.",
+        "Subkueri adalah SELECT di dalam tanda kurung yang dapat dipakai sebagai nilai.",
+        "Gunakan WHERE harga > (SELECT AVG(harga) FROM produk)."
+      ],
+      "explanation": "Subkueri skalar menghasilkan satu nilai yang dapat dibandingkan dengan kolom. Fungsi agregat tidak boleh dipakai langsung di WHERE, tetapi boleh berada di dalam subkueri.",
+      "expectedRowCount": 5
+    },
+    {
+      "id": "sql-create-ulasan",
+      "datasetId": "toko-online",
+      "level": 4,
+      "subTopic": "Merancang tabel",
+      "title": "Rancang tabel ulasan",
+      "task": "Buat tabel ulasan dengan kolom: id (bilangan bulat, kunci utama), pelanggan_id (bilangan bulat, wajib diisi, mengacu ke pelanggan.id), produk_id (bilangan bulat, wajib diisi, mengacu ke produk.id), nilai (bilangan bulat, wajib diisi, hanya boleh 1 sampai 5), dan komentar (teks, boleh kosong). Gunakan urutan kolom tersebut.",
+      "referenceSql": "CREATE TABLE ulasan (id integer PRIMARY KEY, pelanggan_id integer NOT NULL REFERENCES pelanggan (id), produk_id integer NOT NULL REFERENCES produk (id), nilai integer NOT NULL CHECK (nilai BETWEEN 1 AND 5), komentar text)",
+      "ordered": false,
+      "hints": [
+        "Pernyataan pembuatan tabel adalah CREATE TABLE nama_tabel (kolom tipe, ...).",
+        "Gunakan PRIMARY KEY untuk kunci utama, NOT NULL untuk kolom wajib, dan REFERENCES tabel (kolom) untuk kunci asing.",
+        "Batasi nilai dengan CHECK (nilai BETWEEN 1 AND 5) pada kolom nilai."
+      ],
+      "explanation": "Batasan (constraint) menjaga data tetap valid dari dalam basis data: PRIMARY KEY untuk identitas baris, NOT NULL untuk kolom wajib, REFERENCES untuk hubungan antartabel, dan CHECK untuk aturan nilai.",
+      "expectedRowCount": 9,
+      "verifySql": "SELECT column_name || ' ' || CASE WHEN data_type IN ('integer', 'bigint', 'smallint') THEN 'bilangan bulat' WHEN data_type IN ('text', 'character varying', 'character') THEN 'teks' ELSE data_type END || ' ' || is_nullable AS definisi FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'ulasan' UNION SELECT 'kunci utama ' || a.attname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1] WHERE c.conrelid = to_regclass('ulasan') AND c.contype = 'p' UNION SELECT 'kunci asing ' || a.attname || ' ke ' || t.relname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1] JOIN pg_class t ON t.oid = c.confrelid WHERE c.conrelid = to_regclass('ulasan') AND c.contype = 'f' UNION SELECT 'batasan nilai' FROM pg_constraint c WHERE c.conrelid = to_regclass('ulasan') AND c.contype = 'c'"
+    }
+  ]
+}

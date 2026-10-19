@@ -65,7 +65,7 @@ async function submit() {
     <PlayCard v-if="result" tone="success" as="section" aria-labelledby="diag-result" role="status">
       <h2 id="diag-result" class="rc-h2">Kamu cocok mulai di level {{ result.recommendedLevel }}</h2>
       <div class="rc-actions">
-        <PlayButton to="/learn/topics">Pilih topik</PlayButton>
+        <PlayButton to="/learn/topics">Pilih course</PlayButton>
       </div>
     </PlayCard>
   </div>

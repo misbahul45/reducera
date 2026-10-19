@@ -15,9 +15,12 @@ from errors.envelope import error_envelope
 from errors.types import AuthError, CrossServiceError
 from middleware.idempotency import require_idempotency_key
 from v1.learning.dto import GenerateContentMaterialPipeline
+from v1.learning.action_runner import RUNNABLE
+from v1.learning.reply_actions import validate_action
 from v1.learning.workers import (
     generate_content_material_task,
     generating_new_content,
+    run_chat_action_task,
 )
 
 
@@ -139,3 +142,48 @@ async def chat(
 
 
 __all__ = ["router"]
+
+
+@router.post("/chat/action")
+@rate_limit(capacity_per_minute=20, burst=5)
+@require_idempotency_key(mint_if_missing=False)
+async def chat_action(
+    request: Request,
+    body: dict = Body(..., description="Request body for an action the learner confirmed in the chat"),
+    user: dict = Depends(authenticated_user),
+):
+    idempotency_key = getattr(request.state, "idempotency_key", None)
+    if not idempotency_key:
+        raise AuthError(
+            "Idempotency-Key missing after decorator",
+            details={"requestId": current_trace_id()},
+        )
+    action = validate_action(body.get("action"))
+    if action is None or action["type"] not in RUNNABLE:
+        raise HTTPException(status_code=422, detail="unsupported action")
+
+    session = _resolve_session(request, body, idempotency_key, user)
+    payload = {
+        "chatId": body.get("chatId", ""),
+        "userStepId": body.get("userStepId", ""),
+        "messageId": body.get("messageId", ""),
+        "action": action,
+        **session.to_dict(),
+    }
+    try:
+        task = run_chat_action_task.delay(payload)
+    except Exception as exc:
+        logger.error("Failed to dispatch run_chat_action: %s", exc)
+        raise CrossServiceError(
+            "failed to dispatch task",
+            details={"requestId": current_trace_id(), "error": str(exc)},
+        ) from exc
+
+    return {
+        "status": "processing",
+        "task_id": task.id,
+        "session_id": session.session_id,
+        "trace_id": session.trace_id,
+        "idempotency_key": session.idempotency_key,
+        "message": "Action started",
+    }

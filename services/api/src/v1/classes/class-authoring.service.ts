@@ -7,7 +7,8 @@ import { Actor } from '@/common/authz/policy.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { TenantContext } from '@/common/tenancy/tenant-context';
 import { money } from '../commerce/money';
-import { assertContentTransition, assertEditable } from '../marketplace/content-state';
+import { assertContentTransition, assertEditable, assertTaggable } from '../marketplace/content-state';
+import { conceptLinksOf, replaceConceptLinks } from '../marketplace/product-concept-links';
 import { assertOwnedUploadedFile } from '../uploads/uploaded-file';
 import { UploadsService } from '../uploads/uploads.service';
 import { assertClassReady } from './class-readiness';
@@ -81,6 +82,9 @@ export class ClassAuthoringService {
           select: summarySelect,
         }),
       );
+      if (dto.conceptIds !== undefined) {
+        await replaceConceptLinks(tx, { kind: 'class', id: cls.id }, dto.conceptIds, actor.id);
+      }
       await this.audit.record(
         {
           actorId: actor.id,
@@ -135,7 +139,8 @@ export class ClassAuthoringService {
     if (!cls || (this.ownOnly(ctx) && cls.instructorId !== actor.id)) {
       throw new AppError('Class not found', 404, AppErrorCode.NOT_FOUND);
     }
-    return { message: 'Successfully retrieved class', data: cls };
+    const conceptLinks = await conceptLinksOf(this.prisma, { kind: 'class', id });
+    return { message: 'Successfully retrieved class', data: { ...cls, conceptLinks } };
   }
 
   async update(actor: Actor, ctx: TenantContext, id: string, dto: UpdateClassDtoType, traceId?: string) {
@@ -168,6 +173,9 @@ export class ClassAuthoringService {
           select: summarySelect,
         }),
       );
+      if (dto.conceptIds !== undefined) {
+        await replaceConceptLinks(tx, { kind: 'class', id }, dto.conceptIds, actor.id);
+      }
       await this.audit.record(
         {
           actorId: actor.id,
@@ -184,6 +192,34 @@ export class ClassAuthoringService {
       return result;
     });
     return { message: 'Class updated', data: updated };
+  }
+
+  async setConcepts(actor: Actor, ctx: TenantContext, id: string, conceptIds: readonly string[], traceId?: string) {
+    const tenantId = this.requireMember(ctx);
+    const product = { kind: 'class', id } as const;
+    const conceptLinks = await this.prisma.$transaction(async (tx) => {
+      const cls = await this.lockOwned(tx, ctx, actor, id, tenantId);
+      assertTaggable(cls.status);
+      const before = (await conceptLinksOf(tx, product)).map((link) => link.conceptId);
+      await replaceConceptLinks(tx, product, conceptIds, actor.id);
+      const after = await conceptLinksOf(tx, product);
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId,
+          action: 'CLASS_CONCEPTS_UPDATED',
+          entityType: 'ClassProduct',
+          entityId: id,
+          before: { conceptIds: before },
+          after: { conceptIds: after.map((link) => link.conceptId) },
+          traceId,
+        },
+        tx,
+      );
+      return after;
+    });
+    return { message: 'Concept tags updated', data: { conceptLinks } };
   }
 
   async addSession(actor: Actor, ctx: TenantContext, id: string, dto: CreateSessionDtoType, traceId?: string) {

@@ -25,7 +25,7 @@ function onRetry() {
     aria-live="assertive"
     class="rc-error-state"
   >
-    <UIcon name="i-lucide-alert-triangle" class="text-3xl text-red-500" aria-hidden="true" />
+    <UIcon name="i-lucide-alert-triangle" class="text-3xl rc-icon--danger" aria-hidden="true" />
     <h2 class="rc-error-state__title">{{ title }}</h2>
     <p v-if="message" class="rc-error-state__message">{{ message }}</p>
     <p v-if="details" class="rc-error-state__details">{{ details }}</p>

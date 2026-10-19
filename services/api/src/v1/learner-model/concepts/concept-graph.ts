@@ -8,6 +8,11 @@ export interface ConceptGraph {
   levelOf(id: string): number | null;
 }
 
+export const restrictConceptGraph = (graph: ConceptGraph, ids: ReadonlySet<string>): ConceptGraph => ({
+  ...graph,
+  order: graph.order.filter((id) => ids.has(id)),
+});
+
 export const buildConceptGraph = (concepts: ConceptView[]): ConceptGraph => {
   const ordered = [...concepts].sort((a, b) => a.level - b.level || a.sortOrder - b.sortOrder);
   const order = ordered.map((c) => c.id);

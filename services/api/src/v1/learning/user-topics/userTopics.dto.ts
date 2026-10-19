@@ -2,11 +2,9 @@ import z from "zod";
 import { extendApi } from "@anatine/zod-openapi";import { LearningStatus } from "@prisma/client";
 ;
 
-// Enums sesuai Prisma
 export const TopicAccessTypeEnum = z.enum(["FREE", "PURCHASED"]).describe("Access type of the topic");
 export const LearningStatusEnum = z.enum(LearningStatus).describe("Learning status of the topic");
 
-// Base schema
 export const baseUserTopicSchema = z.object({
   userId: z.string().min(1, "User ID is required").describe("User ID who enrolled in the topic"),
   topicId: z.string().min(1, "Topic ID is required").describe("Topic ID the user enrolled in"),
@@ -25,7 +23,6 @@ export const baseUserTopicSchema = z.object({
     ).describe("Datetime when the topic access will expire"),
 });
 
-// Create DTO (single or array)
 export const CreateUserTopicDto = extendApi(
   z.union([baseUserTopicSchema, z.array(baseUserTopicSchema)]),
   {
@@ -55,7 +52,6 @@ export const CreateUserTopicDto = extendApi(
 
 export type CreateUserTopicType = z.infer<typeof CreateUserTopicDto>;
 
-// Update DTO (opsional semua field)
 const optionalDate = z.preprocess(
   (val) => (typeof val === "string" ? new Date(val) : val),
   z.date().optional()
@@ -82,7 +78,6 @@ export const UpdateUserTopicDto = extendApi(
 );
 
 export type UpdateUserTopicType = z.infer<typeof UpdateUserTopicDto>;
-
 
 export const EnrollUserTopicDto = baseUserTopicSchema.pick({ userId: true, topicId: true });
 

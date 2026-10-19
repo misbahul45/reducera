@@ -1,6 +1,6 @@
 import type { ApiResponse, Tokens } from "~/interfaces/api";
 import { authService } from "~/services/auth";
-import { captureSsrContext, failureEnvelope, normalizeEnvelope, relaySetCookies, statusOf } from "~/lib/api";
+import { captureSsrContext, failureEnvelope, normalizeEnvelope, relaySetCookies, rememberRefreshedTokens, statusOf } from "~/lib/api";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "PATCH";
 
@@ -43,19 +43,17 @@ export async function requestAi<T>(
   const path = normalizeAiPath(endpoint);
   const isServer = typeof window === "undefined";
 
-  const authHeaders: Record<string, string> = {};
-  if (tokens?.access_token) authHeaders["Authorization"] = `Bearer ${tokens.access_token}`;
-
   try {
     if (!isServer) {
       try {
-        return await $fetch<ApiResponse<T>>(path, {
+        const parsed = await $fetch<unknown>(path, {
           baseURL: AI_URL,
           method,
           body: method !== "GET" && method !== "HEAD" ? body : undefined,
           headers: { "Content-Type": "application/json", ...headers },
           credentials: "include",
         });
+        return normalizeEnvelope<T>(parsed, 200);
       } catch (error: any) {
         if (retry && statusOf(error) === 401) {
           const refreshed = await authService.refreshToken();
@@ -66,6 +64,8 @@ export async function requestAi<T>(
     }
 
     const ssr = captureSsrContext(tokens);
+    const bearer = tokens?.access_token ? tokens : ssr.tokens;
+    const authHeaders: Record<string, string> = bearer?.access_token ? { Authorization: `Bearer ${bearer.access_token}` } : {};
     const res = await fetch(`${AI_URL}${path}`, {
       method,
       headers: {
@@ -79,12 +79,14 @@ export async function requestAi<T>(
     relaySetCookies(res, ssr.event);
 
     if (res.status === 401 && retry) {
-      const refreshed = await authService.refreshToken(tokens, ssr);
+      const refreshed = await authService.refreshToken(bearer, ssr);
       if (refreshed.success && refreshed.data) {
-        return await requestAi<T>(endpoint, method, body, headers, false, {
+        const fresh = {
           access_token: refreshed.data.access_token,
           refresh_token: refreshed.data.refresh_token,
-        });
+        };
+        rememberRefreshedTokens(ssr.event, fresh);
+        return await requestAi<T>(endpoint, method, body, headers, false, fresh);
       }
     }
 

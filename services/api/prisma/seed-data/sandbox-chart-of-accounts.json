@@ -1,0 +1,278 @@
+{
+  "currency": "IDR",
+  "accounts": [
+    {
+      "code": "101",
+      "name": "Kas",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "102",
+      "name": "Kas di Bank",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "103",
+      "name": "Piutang Usaha",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "105",
+      "name": "Persediaan Barang Dagang",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "106",
+      "name": "Perlengkapan",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "107",
+      "name": "Sewa Dibayar di Muka",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "108",
+      "name": "Asuransi Dibayar di Muka",
+      "type": "ASSET",
+      "group": "Aset lancar",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "111",
+      "name": "Peralatan",
+      "type": "ASSET",
+      "group": "Aset tetap",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "112",
+      "name": "Akumulasi Penyusutan Peralatan",
+      "type": "CONTRA_ASSET",
+      "group": "Aset tetap",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "113",
+      "name": "Kendaraan",
+      "type": "ASSET",
+      "group": "Aset tetap",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "114",
+      "name": "Akumulasi Penyusutan Kendaraan",
+      "type": "CONTRA_ASSET",
+      "group": "Aset tetap",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "115",
+      "name": "Penyisihan Piutang Tak Tertagih",
+      "type": "CONTRA_ASSET",
+      "group": "Aset lancar",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "116",
+      "name": "Goodwill",
+      "type": "ASSET",
+      "group": "Aset tidak berwujud",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "201",
+      "name": "Utang Usaha",
+      "type": "LIABILITY",
+      "group": "Kewajiban jangka pendek",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "203",
+      "name": "Utang Gaji",
+      "type": "LIABILITY",
+      "group": "Kewajiban jangka pendek",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "204",
+      "name": "Pendapatan Diterima di Muka",
+      "type": "LIABILITY",
+      "group": "Kewajiban jangka pendek",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "205",
+      "name": "Utang Bank",
+      "type": "LIABILITY",
+      "group": "Kewajiban jangka panjang",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "206",
+      "name": "Utang Bunga",
+      "type": "LIABILITY",
+      "group": "Kewajiban jangka pendek",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "301",
+      "name": "Modal Pemilik",
+      "type": "EQUITY",
+      "group": "Ekuitas",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "302",
+      "name": "Prive",
+      "type": "DRAWING",
+      "group": "Ekuitas",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "303",
+      "name": "Ikhtisar Laba Rugi",
+      "type": "SUMMARY",
+      "group": "Ekuitas",
+      "normalSide": null
+    },
+    {
+      "code": "401",
+      "name": "Pendapatan Jasa",
+      "type": "REVENUE",
+      "group": "Pendapatan",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "402",
+      "name": "Penjualan",
+      "type": "REVENUE",
+      "group": "Pendapatan",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "403",
+      "name": "Retur Penjualan",
+      "type": "CONTRA_REVENUE",
+      "group": "Pendapatan",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "404",
+      "name": "Potongan Penjualan",
+      "type": "CONTRA_REVENUE",
+      "group": "Pendapatan",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "501",
+      "name": "Harga Pokok Penjualan",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "502",
+      "name": "Pembelian",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "503",
+      "name": "Retur Pembelian",
+      "type": "CONTRA_EXPENSE",
+      "group": "Beban",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "504",
+      "name": "Potongan Pembelian",
+      "type": "CONTRA_EXPENSE",
+      "group": "Beban",
+      "normalSide": "CREDIT"
+    },
+    {
+      "code": "505",
+      "name": "Beban Angkut Pembelian",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "511",
+      "name": "Beban Gaji",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "512",
+      "name": "Beban Sewa",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "513",
+      "name": "Beban Perlengkapan",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "514",
+      "name": "Beban Penyusutan Peralatan",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "515",
+      "name": "Beban Listrik dan Air",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "516",
+      "name": "Beban Asuransi",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "517",
+      "name": "Beban Kerugian Piutang",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "518",
+      "name": "Beban Bunga",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    },
+    {
+      "code": "520",
+      "name": "Beban Penyusutan Kendaraan",
+      "type": "EXPENSE",
+      "group": "Beban",
+      "normalSide": "DEBIT"
+    }
+  ]
+}

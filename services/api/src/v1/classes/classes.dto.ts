@@ -2,7 +2,7 @@ import { extendApi } from '@anatine/zod-openapi';
 import { ClassDifficulty, ClassFormat, ContentStatus } from '@prisma/client';
 import z from 'zod';
 import { partialWithoutDefaults } from '@/common/lib/zod-partial';
-import { AccessTypeDto, PaginationDto, PriceDto, SlugDto, UploadedImageDto } from '../marketplace/marketplace.dto';
+import { AccessTypeDto, ConceptIdsDto, PaginationDto, PriceDto, SlugDto, UploadedImageDto } from '../marketplace/marketplace.dto';
 
 const HttpsUrl = z.string().url().startsWith('https://').max(600);
 
@@ -18,6 +18,7 @@ const ClassBase = z
     difficulty: z.nativeEnum(ClassDifficulty).default('BEGINNER'),
     durationMinutes: z.number().int().min(5).max(6000).optional(),
     capacity: z.number().int().min(1).max(100000).optional(),
+    conceptIds: ConceptIdsDto.optional(),
   })
   .strict();
 
@@ -56,6 +57,7 @@ export type TeacherClassQueryDtoType = z.infer<typeof TeacherClassQueryDto>;
 export const AdminClassQueryDto = PaginationDto.extend({
   status: z.nativeEnum(ContentStatus).default(ContentStatus.PENDING_REVIEW),
   tenantId: z.string().uuid().optional(),
+  pendingTags: z.enum(['true', 'false']).optional(),
 });
 export type AdminClassQueryDtoType = z.infer<typeof AdminClassQueryDto>;
 

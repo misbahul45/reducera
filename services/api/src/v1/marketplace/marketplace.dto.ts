@@ -24,6 +24,14 @@ export const PaginationDto = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 
+export const ConceptIdsDto = z.array(z.string().trim().min(1).max(120)).max(5);
+
+export const ConceptTagsBodyDto = z.object({ conceptIds: ConceptIdsDto }).strict();
+export type ConceptTagsBody = z.infer<typeof ConceptTagsBodyDto>;
+
+export const RecommendationQueryDto = z.object({ limit: z.coerce.number().int().min(1).max(30).default(10) });
+export type RecommendationQuery = z.infer<typeof RecommendationQueryDto>;
+
 export const AccessTypeDto = z.nativeEnum(ProductAccessType);
 
 export const ReasonDto = z.object({ reason: z.string().min(3).max(500) }).strict();

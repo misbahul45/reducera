@@ -21,6 +21,7 @@ export interface GrantInput {
   conceptId?: string;
   topicId?: string;
   subTopicId?: string;
+  oncePerCause?: boolean;
 }
 
 export interface ReverseInput {
@@ -66,6 +67,7 @@ export class RewardLedgerService {
   async grant(input: GrantInput, tx?: Prisma.TransactionClient): Promise<LedgerResult> {
     if (!Number.isInteger(input.points) || input.points <= 0) throw invalid('A grant must be a positive whole number of points');
     if (!input.idempotencyKey) throw invalid('A grant needs an idempotency key');
+    if (input.oncePerCause && !input.conceptId && !input.subTopicId) throw invalid('A once-per-cause grant needs a concept or a sub-topic');
     const work = (client: Prisma.TransactionClient) => this.grantWithin(client, input);
     return tx ? work(tx) : this.prisma.$transaction(work);
   }
@@ -88,6 +90,11 @@ export class RewardLedgerService {
   }
 
   private async grantWithin(tx: Prisma.TransactionClient, input: GrantInput): Promise<LedgerResult> {
+    if (input.oncePerCause) {
+      const earlier = await this.earlierGrantOfCause(tx, input);
+      if (earlier) return { entry: earlier, duplicate: true };
+    }
+
     const inserted = await tx.gamificationLedger.createMany({
       data: [
         {
@@ -113,6 +120,15 @@ export class RewardLedgerService {
 
     await this.project(tx, entry, entry.points);
     return { entry, duplicate: false };
+  }
+
+  private async earlierGrantOfCause(tx: Prisma.TransactionClient, input: GrantInput): Promise<GamificationLedger | null> {
+    const cause = input.conceptId ? { conceptId: input.conceptId } : { subTopicId: input.subTopicId };
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`reward-cause:${input.userId}:${input.ruleId}:${input.conceptId ?? input.subTopicId}`}))`;
+    return tx.gamificationLedger.findFirst({
+      where: { userId: input.userId, ruleId: input.ruleId, reversalOf: null, ...cause },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
   }
 
   private async reverseWithin(tx: Prisma.TransactionClient, input: ReverseInput): Promise<LedgerResult> {

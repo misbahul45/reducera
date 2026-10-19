@@ -1,5 +1,23 @@
 # syntax=docker/dockerfile:1.6
-# ---------- Runtime stage (uses locally-built .output from host) ----------
+FROM node:20-alpine AS tools
+WORKDIR /repo/apps/web
+
+ENV COREPACK_HOME=/opt/corepack \
+    CI=true
+
+RUN corepack enable && corepack prepare pnpm@10.15.0 --activate \
+    && chmod -R a+rX /opt/corepack
+
+RUN apk add --no-cache libc6-compat
+
+RUN mkdir -p /repo/apps/web/node_modules /home/node/.local/share/pnpm \
+    && chown -R node:node /repo /home/node/.local
+
+USER node
+
+CMD ["sh"]
+
+
 FROM node:20-alpine AS runtime
 WORKDIR /app
 

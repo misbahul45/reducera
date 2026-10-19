@@ -1,27 +1,3 @@
-export type SandboxDifficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-
-export interface SandboxScenario {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: SandboxDifficulty;
-  level: 1 | 2 | 3 | 4;
-  topicId: string;
-}
-
-export interface SandboxJournalEntry {
-  debitAccount: string;
-  creditAccount: string;
-  amount: number;
-}
-
-export interface SandboxJournalValidation {
-  isBalanced: boolean;
-  score?: number;
-  errors?: Array<{ code: string; message: string }>;
-  scenario?: { id: string; title: string; level: number };
-}
-
 export interface SandboxGraphLevel {
   id: number;
   title: string;

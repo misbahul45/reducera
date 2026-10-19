@@ -1,4 +1,3 @@
-// streak-sse.service.ts
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';

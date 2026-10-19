@@ -36,6 +36,7 @@ import {
 } from './auth.dto';
 import { TokenPair } from '@/common/interfaces/auth.interface';
 import { SessionClaims } from './session-claims';
+import { AUTH_LIMITS, AuthLimitName, deriveLimitSecret, limitProps } from './auth-limits';
 import { GetUser, Public } from './auth.decorator';
 import { ApiAuthDocs, ApiProtectedDocs } from '@/common/lib/docs';
 import { AuthCheckResponseSchema, LoginResponseSchema, RegisterResponseSchema, UserProfileSchema } from '@/common/docs/auth.doc';
@@ -69,7 +70,7 @@ export class AuthController {
     @Body(new ZodPipe(RegisterDto)) dto: RegisterDtoType,
     @Req() req: Request,
   ) {
-    await this.limit(req, '5m', 3, 'Too many registration attempts. Please try again later.');
+    await this.limit(req, 'register', dto.email);
     return this.authService.register(dto);
   }
 
@@ -86,7 +87,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.limit(req, '1m', 5, 'Too many login attempts. Please try again later.');
+    await this.limit(req, 'login', dto.email);
 
     const user = await this.authService.login(dto);
     const tokens = await this.authService.generateTokens({
@@ -120,7 +121,7 @@ export class AuthController {
     @Body(new ZodPipe(VerificationDto)) dto: VerificationDtoType,
     @Req() req: Request,
   ) {
-    await this.limit(req, '10m', 10, 'Too many verification attempts. Please try again later.');
+    await this.limit(req, 'verifyEmail', dto.identifier);
     return this.authService.verifyOTP(dto);
   }
 
@@ -135,7 +136,7 @@ export class AuthController {
     @Body(new ZodPipe(ForgotPasswordDto)) dto: ForgotPasswordDtoType,
     @Req() req: Request,
   ) {
-    await this.limit(req, '15m', 3, 'Too many password reset requests. Please try again later.');
+    await this.limit(req, 'forgotPassword', dto.email);
     await this.authService.requestPasswordReset(dto.email);
     return { message: RECOVERY_MESSAGE, data: null };
   }
@@ -152,7 +153,7 @@ export class AuthController {
     @Req() req: Request,
     @Query(new ZodPipe(OtpTypeQueryDto)) query: OtpTypeQueryDtoType,
   ) {
-    await this.limit(req, '5m', 5, 'Too many resend attempts. Please try again later.');
+    await this.limit(req, 'resendToken', dto.email);
     await this.authService.resendOtp(dto.email, query.type);
     return { message: RECOVERY_MESSAGE, data: null };
   }
@@ -167,8 +168,6 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string, data: { access_token: string, refresh_token: string } }> {
-    await this.limit(req, '5m', 10, 'Too many refresh attempts. Please try again later.');
-
     const refreshToken =
       req.cookies?.['refresh_token'] ||
       (req.headers['x-refresh-token'] as string);
@@ -201,7 +200,7 @@ export class AuthController {
     @Body(new ZodPipe(ResetPasswordDto)) dto: ResetPasswordDtoType,
     @Req() req: Request,
   ) {
-    await this.limit(req, '15m', 5, 'Too many password reset attempts. Please try again later.');
+    await this.limit(req, 'resetPassword', dto.identifier);
     return this.authService.resetPassword(dto);
   }
 
@@ -261,13 +260,24 @@ export class AuthController {
     };
   }
 
-  private async limit(req: Request, window: '1m' | '5m' | '10m' | '15m', max: number, message: string): Promise<void> {
+  private limitSecretCache?: string;
+
+  private limitSecret(): string {
+    this.limitSecretCache ??= deriveLimitSecret(
+      this.configService.get<string>('OTP_HMAC_SECRET') ?? this.configService.get<string>('JWT_REFRESH_SECRET'),
+    );
+    return this.limitSecretCache;
+  }
+
+  private async limit(req: Request, name: AuthLimitName, email: string): Promise<void> {
+    const policy = AUTH_LIMITS[name];
     const decision = await this.arcjet
-      .withRule(fixedWindow({ mode: 'LIVE', window, max }))
-      .protect(req);
+      .withRule(fixedWindow({ mode: 'LIVE', window: policy.window, max: policy.perAddress, characteristics: ['ip.src', 'scope'] }))
+      .withRule(fixedWindow({ mode: 'LIVE', window: policy.window, max: policy.perEmail, characteristics: ['emailKey', 'scope'] }))
+      .protect(req, limitProps(name, this.limitSecret(), email));
 
     if (decision.isDenied()) {
-      throw new HttpException(message, HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(policy.message, HttpStatus.TOO_MANY_REQUESTS);
     }
   }
 

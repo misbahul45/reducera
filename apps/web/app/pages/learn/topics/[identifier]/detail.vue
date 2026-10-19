@@ -24,7 +24,7 @@ const hydrated = useHydrated()
 
 const owned = computed(() => hydrated.value && (topic.value ? hasAccess(topic.value.id) : false))
 const free = computed(() => topic.value?.price === 0)
-const actionLabel = computed(() => (owned.value ? 'Belajar' : free.value ? 'Mulai gratis' : 'Beli topik'))
+const actionLabel = computed(() => (owned.value ? 'Belajar' : free.value ? 'Mulai gratis' : 'Beli course'))
 const intro = computed(() => plainText(topic.value?.description))
 const teacherName = computed(() => topic.value?.teacher?.name?.trim() || 'Tanpa nama')
 const categories = computed(() => topic.value?.categories ?? [])
@@ -33,19 +33,19 @@ const siteUrl = useRuntimeConfig().public.SITE_URL
 
 useHead(() => ({
   title: topic.value?.title
-    ? `${topic.value.title} | Detail Topik Penguasaan | ReduCera`
-    : 'Detail Topik Penguasaan | ReduCera',
+    ? `${topic.value.title} | Detail Course | ReduCera`
+    : 'Detail Course | ReduCera',
   meta: [
     {
       name: 'description',
       content:
         intro.value ||
-        'Pelajari topik penguasaan akuntansi berbasis AI dan gamifikasi. Tingkatkan kompetensi akuntansi perguruan tinggi sesuai standar akuntansi dan akuntansi.',
+        'Pelajari course penguasaan akuntansi berbasis AI dan gamifikasi. Tingkatkan kompetensi akuntansi perguruan tinggi sesuai standar akuntansi dan akuntansi.',
     },
     {
       name: 'keywords',
       content:
-        'ReduCera, topik penguasaan, akuntansi perguruan tinggi, pembelajaran AI, gamifikasi, microlearning, penguasaan akuntansi, akuntansi',
+        'ReduCera, course penguasaan, akuntansi perguruan tinggi, pembelajaran AI, gamifikasi, microlearning, penguasaan akuntansi, akuntansi',
     },
     { property: 'og:type', content: 'article' },
     { property: 'og:url', content: `${siteUrl}${route.fullPath}` },
@@ -54,7 +54,7 @@ useHead(() => ({
       content:
         topic.value?.title
           ? `${topic.value.title} | ReduCera`
-          : 'Detail Topik Penguasaan | ReduCera',
+          : 'Detail Course | ReduCera',
     },
     {
       property: 'og:description',
@@ -66,13 +66,13 @@ useHead(() => ({
     { name: 'twitter:card', content: 'summary_large_image' },
     {
       name: 'twitter:title',
-      content: topic.value?.title || 'Detail Topik Penguasaan | ReduCera',
+      content: topic.value?.title || 'Detail Course | ReduCera',
     },
     {
       name: 'twitter:description',
       content:
         intro.value ||
-        'Pelajari topik pembelajaran akuntansi untuk persiapan penguasaan akuntansi dengan pendekatan AI dan gamifikasi.',
+        'Pelajari course pembelajaran akuntansi untuk persiapan penguasaan akuntansi dengan pendekatan AI dan gamifikasi.',
     },
     { name: 'twitter:image', content: topic.value?.image?.url || '/meta/og-detail.png' },
   ],
@@ -83,7 +83,7 @@ useHead(() => ({
 <template>
   <div class="rc-stack rc-detail">
     <section class="rc-card rc-detail__hero" aria-labelledby="detail-title">
-      <TopicCover :src="topic?.image?.url" :title="topic?.title ?? 'Topik'" class="rc-detail__cover" />
+      <TopicCover :src="topic?.image?.url" :title="topic?.title ?? 'Course'" class="rc-detail__cover" />
       <div class="rc-detail__head">
         <h1 id="detail-title" class="rc-detail__title">{{ topic?.title }}</h1>
         <p class="rc-hint">Pengajar: {{ teacherName }}</p>
@@ -96,7 +96,7 @@ useHead(() => ({
     <div class="rc-detail__grid">
       <div class="rc-detail__main">
         <section class="rc-card" aria-labelledby="detail-about">
-          <h2 id="detail-about" class="rc-h2">Tentang topik</h2>
+          <h2 id="detail-about" class="rc-h2">Tentang course</h2>
           <p v-if="intro" class="rc-detail__about">{{ intro }}</p>
           <p v-else class="rc-hint">Deskripsi belum ditambahkan.</p>
         </section>
@@ -109,11 +109,11 @@ useHead(() => ({
         <PlayButton v-if="topic" block size="lg" :variant="owned ? 'secondary' : 'primary'" :loading="pending" @click="open(topic)">
           {{ actionLabel }}
         </PlayButton>
-        <PlayButton to="/learn/topics" variant="outline" block>Lihat topik lain</PlayButton>
+        <PlayButton to="/learn/topics" variant="outline" block>Lihat course lain</PlayButton>
       </aside>
     </div>
 
-    <MappingTopics heading="Topik lainnya" :exclude="topic?.id" />
+    <MappingTopics heading="Course lainnya" :exclude="topic?.id" />
   </div>
 </template>
 

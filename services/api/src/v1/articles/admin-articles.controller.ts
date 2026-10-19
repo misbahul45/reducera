@@ -36,6 +36,28 @@ export class AdminArticlesController {
   }
 
   @Roles(Role.ADMIN)
+  @Post(':id/approve-concepts')
+  approveConcepts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(OptionalNoteDto)) dto: OptionalNoteDtoType,
+    @GetUser() user: AuthUser,
+    @TraceId() traceId: string,
+  ) {
+    return this.moderation.approveConcepts(user, id, dto.note, traceId);
+  }
+
+  @Roles(Role.ADMIN)
+  @Post(':id/reject-concepts')
+  rejectConcepts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(ReasonDto)) dto: ReasonDtoType,
+    @GetUser() user: AuthUser,
+    @TraceId() traceId: string,
+  ) {
+    return this.moderation.rejectConcepts(user, id, dto.reason, traceId);
+  }
+
+  @Roles(Role.ADMIN)
   @Post(':id/reject')
   reject(
     @Param('id', ParseUUIDPipe) id: string,

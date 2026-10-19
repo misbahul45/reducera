@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextConceptCopy, type NextConceptView } from '~/lib/learner';
+import { nextConceptCopy, strategyEvidenceCopy, strategyLabel, strategyReasons, type NextConceptView } from '~/lib/learner';
 
 const view = (overrides: Partial<NextConceptView> = {}): NextConceptView => ({
   conceptId: 'c1',
@@ -44,5 +44,51 @@ describe('nextConceptCopy', () => {
 
   it('uses the first reason code when there are several', () => {
     expect(nextConceptCopy(view({ reasonCodes: ['CONTINUE_PRACTICE', 'PREREQUISITES_MET'] })).reason).toBe('Kamu sedang di tengah konsep ini, lanjutkan latihannya.');
+  });
+});
+
+describe('strategy copy', () => {
+  it('names every strategy in Indonesian and falls back to the code', () => {
+    expect(strategyLabel('GUIDED_EXAMPLE')).toBe('Contoh terpandu');
+    expect(strategyLabel('SOMETHING_NEW')).toBe('SOMETHING_NEW');
+  });
+
+  it('turns reason codes into sentences and drops the ones it does not know', () => {
+    expect(strategyReasons(['MID_MASTERY', 'INSUFFICIENT_EVIDENCE', 'NOT_A_CODE'])).toEqual([
+      'Penguasaanmu sedang, jadi kamu ikut mengerjakan sebagian.',
+      'Bukti belajarmu masih sedikit, jadi keputusan ini masih awal.',
+    ]);
+  });
+
+  it('explains how the learner can start generating evidence when there is none', () => {
+    const copy = strategyEvidenceCopy({ strategies: [{ strategy: 'HINT', attempts: 0, successes: 0, averageDelta: 0, successRate: null }], preferredStrategy: null, totalAttempts: 0 });
+
+    expect(copy.rows).toEqual([]);
+    expect(copy.hint).toMatch(/kuis/);
+  });
+
+  it('lists only strategies with evidence, the preferred one first', () => {
+    const copy = strategyEvidenceCopy({
+      strategies: [
+        { strategy: 'EXPLAIN', attempts: 4, successes: 1, averageDelta: -0.01, successRate: 0.25 },
+        { strategy: 'SOCRATIC', attempts: 5, successes: 4, averageDelta: 0.07, successRate: 0.8 },
+        { strategy: 'HINT', attempts: 0, successes: 0, averageDelta: 0, successRate: null },
+      ],
+      preferredStrategy: 'SOCRATIC',
+      totalAttempts: 9,
+    });
+
+    expect(copy.rows.map((row) => [row.strategy, row.percent, row.preferred])).toEqual([
+      ['SOCRATIC', 80, true],
+      ['EXPLAIN', 25, false],
+    ]);
+    expect(copy.hint).toContain('Tanya jawab terarah');
+  });
+
+  it('says it is still collecting evidence before any strategy is preferred', () => {
+    const copy = strategyEvidenceCopy({ strategies: [{ strategy: 'HINT', attempts: 1, successes: 1, averageDelta: 0.05, successRate: 1 }], preferredStrategy: null, totalAttempts: 1 });
+
+    expect(copy.rows).toHaveLength(1);
+    expect(copy.hint).toMatch(/mengumpulkan bukti/);
   });
 });

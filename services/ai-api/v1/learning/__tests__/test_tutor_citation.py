@@ -55,3 +55,46 @@ def test_a_citation_may_name_only_the_concept_or_only_the_resource_the_chunk_com
 def test_empty_citations_is_allowed():
     response = _make_response(None)
     assert response.citations is None
+
+def test_a_citation_of_a_topic_record_names_the_record_and_survives_the_round_trip():
+    response = _make_response(
+        [
+            {
+                "index": 1,
+                "kind": "TOPIC",
+                "title": "Konsep: Persamaan Akuntansi",
+                "snippet": "Aset = Liabilitas + Ekuitas",
+                "refType": "CONCEPT",
+                "refId": "l1-t01",
+                "via": ["LEXICAL"],
+            }
+        ]
+    )
+
+    dumped = response.model_dump(by_alias=True, exclude_none=True)["citations"][0]
+    assert dumped == {
+        "index": 1,
+        "kind": "TOPIC",
+        "title": "Konsep: Persamaan Akuntansi",
+        "snippet": "Aset = Liabilitas + Ekuitas",
+        "refType": "CONCEPT",
+        "refId": "l1-t01",
+        "via": ["LEXICAL"],
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"index": 1, "kind": "TOPIC", "title": "tanpa rujukan"},
+        {"index": 1, "kind": "WEB", "title": "x"},
+        {"index": 1, "kind": "WEB", "title": "x", "url": "javascript:alert(1)"},
+        {"index": 1, "kind": "TOPIC", "title": "x", "refType": "CONCEPT", "refId": "c", "url": "https://contoh.id"},
+        {"index": 0, "kind": "TOPIC", "title": "x", "refType": "CONCEPT", "refId": "c"},
+        {"index": 1, "kind": "OTHER", "title": "x"},
+        {"index": 1, "kind": "TOPIC", "title": "x", "refType": "CONCEPT", "refId": "c", "html": "<b>"},
+    ],
+)
+def test_a_generated_citation_that_does_not_name_a_real_source_is_refused(bad):
+    with pytest.raises(ValidationError):
+        _make_response([bad])

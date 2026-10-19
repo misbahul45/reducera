@@ -5,6 +5,7 @@ const entry = (points: number) => ({ id: `entry-${points}`, points });
 interface GrantCall {
   points: number;
   ruleId: string;
+  oncePerCause?: boolean;
   topicId?: string;
   subTopicId?: string;
 }
@@ -74,6 +75,15 @@ describe('RewardEngineService.onAssessment', () => {
       ['CONCEPT_PASSED', 50],
     ]);
     expect(outcome.points).toBe(55);
+  });
+
+  it('asks the ledger to pay the pass reward once per concept across rule versions, and the progress per event', async () => {
+    const { engine, ledger, tx } = build(20);
+
+    await engine.onAssessment(input({ after: { score: 0.7558, evidenceCount: 3 } }), tx as never);
+
+    const flags = Object.fromEntries(ledger.grant.mock.calls.map(([g]) => [g.ruleId, g.oncePerCause]));
+    expect(flags).toEqual({ MASTERY_PROGRESS: undefined, CONCEPT_PASSED: true });
   });
 
   it('counts only the grants the ledger actually stored', async () => {

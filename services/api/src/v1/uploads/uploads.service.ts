@@ -41,7 +41,7 @@ export class UploadsService {
         throw new BadRequestException('Image exceeds 4 MB limit');
     } else if (ext === '.pdf') {
       folder = 'pdf';
-      resourceType = 'raw'; // 👈 paksa Cloudinary anggap sebagai file
+      resourceType = 'raw';
       if (fileSizeMB > 256)
         throw new BadRequestException('PDF exceeds 256 MB limit');
     } else {

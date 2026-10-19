@@ -10,7 +10,7 @@ import { topicsService } from '~/services/curriculum/topics';
 
 const props = withDefaults(defineProps<{ category?: string | null; heading?: string; exclude?: string }>(), {
   category: null,
-  heading: 'Semua topik',
+  heading: 'Semua course',
   exclude: undefined,
 });
 
@@ -88,13 +88,13 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <ErrorState v-else-if="isError && !topics.length" title="Topik belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
+    <ErrorState v-else-if="isError && !topics.length" title="Course belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
 
     <EmptyState
       v-else-if="!topics.length && !hasNextPage"
       icon-name="i-lucide-book-open"
-      :title="category ? `Belum ada topik ${category}` : 'Belum ada topik'"
-      :message="category ? 'Coba kategori lain atau lihat semua topik.' : 'Topik akan muncul di sini begitu tersedia.'"
+      :title="category ? `Belum ada course ${category}` : 'Belum ada course'"
+      :message="category ? 'Coba kategori lain atau lihat semua course.' : 'Course akan muncul di sini begitu tersedia.'"
     />
 
     <ul v-else class="rc-topics__grid">

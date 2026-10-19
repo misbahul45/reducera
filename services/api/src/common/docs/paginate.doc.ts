@@ -43,7 +43,6 @@ export const PaginationQuerySchema = extendApi(
   }
 );
 
-// Function untuk membuat paginated response schema
 export const createPaginatedSchema = <T extends ZodSchema>(itemSchema: T, title?: string) => {
   return extendApi(
     z.object({

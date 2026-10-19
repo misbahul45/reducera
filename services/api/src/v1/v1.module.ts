@@ -3,7 +3,6 @@ import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
 import { MarketplaceDiscoveryModule } from './marketplace/marketplace-discovery.module';
 import { CreatorAnalyticsModule } from './creator-analytics/creator-analytics.module';
-import { TutorModule } from './tutor/tutor.module';
 import { MetricsModule } from './observability/metrics.module';
 import { MaterialModule } from './material/material.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -14,11 +13,15 @@ import { CertificationsModule } from './teacher/certifications/certifications.mo
 import { TeacherModule } from './teacher/teacher.module';
 import { curriculumModule } from './curriculum/curriculum.module';
 import { GamifyModule } from './gamify/gamify.module';
+import { CircularityModule } from './circularity/circularity.module';
+import { GamifyAdminModule } from './gamify/admin/gamify-admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmittersModule } from './emitters/emitters.module';
 import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
 import { LearnerModelModule } from './learner-model/learner-model.module';
+import { ReviewReminderModule } from './learner-model/review/review-reminder.module';
+import { OptimizationModule } from './optimization/optimization.module';
 import { InternalModule } from './internal/internal.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { EntitlementsModule } from './entitlements/entitlements.module';
@@ -32,6 +35,7 @@ import { RefundsModule } from './refunds/refunds.module';
 import { EventsModule } from '@/common/events/events.module';
 import { AiCreditsModule } from './ai-credits/ai-credits.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { NotesModule } from './notes/notes.module';
 
 @Module({
   imports:[
@@ -41,7 +45,6 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     curriculumModule,
     ChatModule,
     MaterialModule,
-    TutorModule,
     MarketplaceDiscoveryModule,
     CreatorAnalyticsModule,
     MetricsModule,
@@ -51,11 +54,15 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     ExperiencesModule,
     CertificationsModule,
     GamifyModule,
+    CircularityModule,
+    GamifyAdminModule,
     NotificationsModule,
     EmittersModule,
     CategoriesModule,
     OrdersModule,
     LearnerModelModule,
+    ReviewReminderModule,
+    OptimizationModule,
     InternalModule,
     TenantsModule,
     EntitlementsModule,
@@ -68,6 +75,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     RefundsModule,
     CommerceModule,
     AiCreditsModule,
+    NotesModule,
     AuditLogsModule
   ],
   exports:[

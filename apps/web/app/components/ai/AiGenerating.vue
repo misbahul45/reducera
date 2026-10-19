@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import AiFactChips from '~/components/ai/AiFactChips.vue';
-import { currentStage, factsOf, type AiStage } from '~/lib/ai-stages';
+import { currentStage, factsOf, headlineOf, settledLive, type AiStage } from '~/lib/ai-stages';
 
 const props = withDefaults(
   defineProps<{
@@ -9,14 +9,18 @@ const props = withDefaults(
     stages: AiStage[];
     compact?: boolean;
     note?: string;
+    busy?: boolean;
+    doneTitle?: string;
   }>(),
-  { compact: false, note: '' },
+  { compact: false, note: '', busy: true, doneTitle: '' },
 );
 
 const current = computed(() => currentStage(props.stages));
 const facts = computed(() => factsOf(props.stages));
 const writing = computed(() => current.value?.key === 'writing' && current.value.state === 'active');
+const headline = computed(() => headlineOf(props.stages, props.busy, props.title, props.doneTitle));
 const live = computed(() => {
+  if (!props.busy) return settledLive(props.stages);
   const stage = current.value;
   if (!stage) return props.title;
   return stage.detail ? `${stage.label}. ${stage.detail}` : stage.label;
@@ -24,7 +28,7 @@ const live = computed(() => {
 </script>
 
 <template>
-  <section class="rc-ai" :class="{ 'rc-ai--compact': compact }" aria-busy="true">
+  <section class="rc-ai" :class="{ 'rc-ai--compact': compact, 'rc-ai--done': !busy }" :aria-busy="busy ? 'true' : 'false'">
     <span class="rc-ai__scan" aria-hidden="true"></span>
 
     <header class="rc-ai__head">
@@ -35,7 +39,7 @@ const live = computed(() => {
         <span v-for="n in 3" :key="n" class="rc-ai__node" :style="{ '--i': n }"></span>
       </div>
       <div class="rc-ai__headline">
-        <h2 class="rc-ai__title">{{ title }}</h2>
+        <h2 class="rc-ai__title">{{ headline }}</h2>
         <p class="rc-ai__live" role="status" aria-live="polite">{{ live }}</p>
       </div>
     </header>
@@ -456,5 +460,20 @@ const live = computed(() => {
   .rc-ai-fade-leave-active {
     transition: none;
   }
+}
+
+.rc-ai--done::before,
+.rc-ai--done .rc-ai__scan,
+.rc-ai--done .rc-ai__ring,
+.rc-ai--done .rc-ai__core,
+.rc-ai--done .rc-ai__node,
+.rc-ai--done .rc-ai__live {
+  animation: none;
+}
+.rc-ai--done .rc-ai__scan {
+  display: none;
+}
+.rc-ai--done .rc-ai__core {
+  background: radial-gradient(circle at 30% 30%, var(--rc-primary), var(--rc-primary));
 }
 </style>

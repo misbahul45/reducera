@@ -3,6 +3,7 @@ import { RouterModule } from '@nestjs/core';
 import { ChatsModule } from './chats/chats.module';
 import { ChatMessagesModule } from './chat-messages/chat-messages.module';
 import { ContentsModule } from './contents/contents.module';
+import { ChatAttachmentsModule } from './chat-attachments/chat-attachments.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { ContentsModule } from './contents/contents.module';
           { path: '', module: ChatsModule },
           { path: '', module: ChatMessagesModule },
           { path: '', module: ContentsModule },
+          { path: '', module: ChatAttachmentsModule },
         ],
       },
     ]),
@@ -20,7 +22,8 @@ import { ContentsModule } from './contents/contents.module';
     ChatsModule,
     ChatMessagesModule,
     ContentsModule,
+    ChatAttachmentsModule,
   ],
-  exports: [ChatsModule, ChatMessagesModule, ContentsModule],
+  exports: [ChatsModule, ChatMessagesModule, ContentsModule, ChatAttachmentsModule],
 })
 export class ChatModule {}

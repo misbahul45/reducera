@@ -83,3 +83,38 @@ def test_non_200_response_returns_empty(fake_post):
     out = web_search.tool_web_search("safe query", limit=5)
 
     assert out == ""
+
+def test_structured_results_keep_title_link_and_snippet(fake_post):
+    mock, resp = fake_post
+    resp.json.return_value = {
+        "results": [{"title": "Jurnal umum", "url": "https://contoh.id/jurnal", "content": "Mencatat transaksi."}]
+    }
+
+    found = web_search.tool_web_search_results("jurnal", limit=3)
+
+    assert found == [{"title": "Jurnal umum", "url": "https://contoh.id/jurnal", "snippet": "Mencatat transaksi."}]
+    assert mock.call_args.kwargs["json"]["max_results"] == 3
+
+
+@pytest.mark.parametrize("url", ["javascript:alert(1)", "ftp://contoh.id/a", "", "contoh.id/tanpa-skema"])
+def test_a_result_without_a_web_link_is_not_returned(fake_post, url):
+    mock, resp = fake_post
+    resp.json.return_value = {"results": [{"title": "x", "url": url, "content": "isi"}]}
+
+    assert web_search.tool_web_search_results("jurnal") == []
+
+
+def test_a_failing_search_returns_nothing_instead_of_raising(fake_post):
+    mock, resp = fake_post
+    resp.status_code = 500
+    resp.text = "boom"
+
+    assert web_search.tool_web_search_results("jurnal") == []
+    assert web_search.tool_web_search("jurnal") == ""
+
+
+def test_the_text_form_lists_the_same_results(fake_post):
+    mock, resp = fake_post
+    resp.json.return_value = {"results": [{"title": "Jurnal", "url": "https://contoh.id/j", "content": "isi"}]}
+
+    assert web_search.tool_web_search("jurnal") == "- Jurnal\n  isi\n  https://contoh.id/j"

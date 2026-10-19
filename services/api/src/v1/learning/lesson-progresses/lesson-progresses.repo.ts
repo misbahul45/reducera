@@ -3,7 +3,7 @@ import { PrismaService } from '../../../common/config/prisma/prisma.service';
 import { Query } from '@/common/interfaces';
 import { errorHandler, validation } from '@/common/lib/utils';
 import { CreateLessonProgressDto, CreateLessonProgressType, UpdateLessonProgressDto, UpdateLessonProgressType } from './lesson-progresses.dto';
-import { LessonProgress } from '@prisma/client';
+import { LessonProgress, Prisma } from '@prisma/client';
 
 @Injectable()
 export class LessonProgressesRepo {
@@ -103,9 +103,19 @@ export class LessonProgressesRepo {
                 return await this.prisma.lessonProgress.createMany({ data })
             }
             
-            return await this.prisma.lessonProgress.create({
-                data
-            })
+            try {
+                return await this.prisma.lessonProgress.create({
+                    data
+                })
+            } catch (error) {
+                if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                    const existing = await this.prisma.lessonProgress.findFirst({
+                        where: { userId: data.userId, lessonId: data.lessonId }
+                    })
+                    if (existing) return existing
+                }
+                throw error
+            }
         })
     }
 

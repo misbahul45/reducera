@@ -25,7 +25,7 @@ const visibleMessage = computed(() => props.message ?? reasonCopy[props.reason ?
     aria-live="polite"
     class="rc-forbidden-state"
   >
-    <UIcon name="i-lucide-shield-off" class="text-3xl text-amber-500" aria-hidden="true" />
+    <UIcon name="i-lucide-shield-off" class="text-3xl rc-icon--warning" aria-hidden="true" />
     <h2 class="rc-forbidden-state__title">{{ title }}</h2>
     <p class="rc-forbidden-state__message">{{ visibleMessage }}</p>
     <NuxtLink to="/" class="rc-forbidden-state__cta">

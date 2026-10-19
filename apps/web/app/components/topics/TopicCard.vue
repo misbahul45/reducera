@@ -19,7 +19,7 @@ const teacherName = computed(() => props.topic.teacher?.name?.trim() || 'Tanpa n
 const teacherInitial = computed(() => teacherName.value.charAt(0).toUpperCase());
 const free = computed(() => props.topic.price === 0);
 const owned = computed(() => hydrated.value && hasAccess(props.topic.id));
-const actionLabel = computed(() => (owned.value ? 'Belajar' : free.value ? 'Mulai gratis' : 'Beli topik'));
+const actionLabel = computed(() => (owned.value ? 'Belajar' : free.value ? 'Mulai gratis' : 'Beli course'));
 </script>
 
 <template>

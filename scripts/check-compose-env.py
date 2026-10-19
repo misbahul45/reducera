@@ -16,6 +16,7 @@ API_TO_AI_SECRET = r"INTERNAL_API_SECRET"
 FORBIDDEN = {
     "ai-api": AI_FORBIDDEN,
     "celery-worker": AI_FORBIDDEN + (API_TO_AI_SECRET,),
+    "celery-chat-worker": AI_FORBIDDEN + (API_TO_AI_SECRET,),
     "x-ai-runtime-environment": AI_FORBIDDEN + (API_TO_AI_SECRET,),
     "api": (
         r"OPENAI_[A-Z_]+",

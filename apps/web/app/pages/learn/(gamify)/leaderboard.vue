@@ -34,22 +34,22 @@ const { data: board, isLoading: boardLoading, isError, refetch } = useTopicBoard
 
 <template>
   <div>
-    <PageHeader title="Peringkat" subtitle="Papan per topik, dihitung dari konsep yang pertama kali kamu lulus minggu ini. Hanya yang ikut serta yang tampil, dengan nama panggilan." />
+    <PageHeader title="Peringkat" subtitle="Papan per course, dihitung dari konsep yang pertama kali kamu lulus minggu ini. Hanya yang ikut serta yang tampil, dengan nama panggilan." />
 
     <BoardMembershipForm class="rc-board-join" />
 
-    <LoadingSkeleton v-if="topicsLoading" variant="row" :count="3" aria-label="Memuat topik" />
+    <LoadingSkeleton v-if="topicsLoading" variant="row" :count="3" aria-label="Memuat course" />
     <EmptyState
       v-else-if="!topics || topics.length === 0"
-      title="Belum ada topik"
-      message="Daftar ke sebuah topik untuk melihat peringkatnya."
+      title="Belum ada course"
+      message="Daftar ke sebuah course untuk melihat peringkatnya."
       icon-name="i-lucide-book-open"
-      cta-label="Jelajahi topik"
+      cta-label="Jelajahi course"
       cta-to="/learn/topics"
     />
-    <section v-else class="rc-stack" style="--rc-stack-gap: 1rem" aria-label="Papan topik">
+    <section v-else class="rc-stack" style="--rc-stack-gap: 1rem" aria-label="Papan course">
       <div class="rc-row">
-        <label class="rc-label" for="board-topic">Topik</label>
+        <label class="rc-label" for="board-topic">Course</label>
         <select id="board-topic" v-model="selected" class="rc-field rc-board-select">
           <option v-for="topic in topics" :key="topic.id" :value="topic.id">{{ topic.title }}</option>
         </select>
@@ -64,7 +64,7 @@ const { data: board, isLoading: boardLoading, isError, refetch } = useTopicBoard
           <template v-else-if="board.me.score > 0">Kamu sudah lulus {{ formatCount(board.me.score) }} konsep minggu ini. Ikut serta agar namamu tampil.</template>
           <template v-else>Lulus satu konsep minggu ini untuk masuk papan.</template>
         </p>
-        <EmptyState v-if="board.entries.length === 0" title="Papan masih kosong" message="Belum ada yang lulus konsep di topik ini minggu ini. Jadilah yang pertama." icon-name="i-lucide-trophy" />
+        <EmptyState v-if="board.entries.length === 0" title="Papan masih kosong" message="Belum ada yang lulus konsep di course ini minggu ini. Jadilah yang pertama." icon-name="i-lucide-trophy" />
         <ol v-else class="rc-rank-list">
           <RankRow v-for="entry in board.entries" :key="entry.handle" :entry="entry" />
         </ol>

@@ -500,6 +500,10 @@
   outline-offset: 2px;
 }
 
+.rc-studio-tenant {
+  max-width: 24rem;
+}
+
 .rc-studio__main {
   min-width: 0;
   width: 100%;
@@ -609,7 +613,16 @@
 
 .rc-studio-list > li.rc-mastery__row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
   gap: 0.5rem;
+}
+
+.rc-reasons {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
 .rc-sandbox__row {
@@ -666,4 +679,31 @@
 
 .rc-notfound__actions {
   justify-content: center;
+}
+
+.rc-mrail {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0.25rem 0.25rem 0.5rem;
+  list-style: none;
+}
+
+.rc-mrail > li {
+  flex: 0 0 min(80vw, 17rem);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.rc-conceptlist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rc-story__concepts {
+  margin-block: 0 1rem;
 }

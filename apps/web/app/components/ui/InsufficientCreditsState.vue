@@ -19,7 +19,7 @@ const formattedWarning = computed(() => props.warning.replace('{n}', String(prop
     aria-live="polite"
     class="rc-insufficient-credits"
   >
-    <UIcon name="i-lucide-wallet" class="text-3xl text-amber-500" aria-hidden="true" />
+    <UIcon name="i-lucide-wallet" class="text-3xl rc-icon--warning" aria-hidden="true" />
     <h2 class="rc-insufficient-credits__title">Saldo kredit tidak cukup</h2>
     <p class="rc-insufficient-credits__message">{{ formattedWarning }}</p>
     <p class="rc-insufficient-credits__hint">

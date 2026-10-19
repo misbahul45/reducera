@@ -39,9 +39,9 @@ const closest = computed(() =>
     <div v-else class="rc-home">
       <PlayCard tone="success" as="section" class="rc-home__next" aria-labelledby="next-title">
         <h2 id="next-title" class="rc-home__next-title">{{ nextCopy?.title ?? 'Mulai belajar' }}</h2>
-        <p class="rc-hint">{{ nextCopy?.reason ?? 'Pilih topik pertamamu dan kumpulkan bukti belajar.' }}</p>
+        <p class="rc-hint">{{ nextCopy?.reason ?? 'Pilih course pertamamu dan kumpulkan bukti belajar.' }}</p>
         <div class="rc-row" style="margin-top: 1rem">
-          <PlayButton to="/learn/topics" size="lg">{{ nextCopy?.done ? 'Jelajahi topik lain' : 'Lanjut belajar' }}</PlayButton>
+          <PlayButton to="/learn/topics" size="lg">{{ nextCopy?.done ? 'Jelajahi course lain' : 'Lanjut belajar' }}</PlayButton>
           <PlayButton to="/sandbox" variant="outline" size="lg">Latihan di sandbox</PlayButton>
         </div>
       </PlayCard>

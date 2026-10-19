@@ -1,6 +1,8 @@
 import { extendApi } from "@anatine/zod-openapi";
 import { ChatRole, MessageStatus } from "@prisma/client";
 import z from "zod";
+import { ChatActionsSchema, ChatCitationsSchema } from "../chat-message-extras";
+import { ATTACHMENTS_PER_MESSAGE } from "../chat-attachments/attachment-rules";
 
 export const CreateChatMessageDto = extendApi(
   z.object({
@@ -11,6 +13,11 @@ export const CreateChatMessageDto = extendApi(
       .enum(MessageStatus)
       .optional()
       .describe("Status of the message"),
+    attachmentIds: z
+      .array(z.string().uuid())
+      .max(ATTACHMENTS_PER_MESSAGE)
+      .optional()
+      .describe("Uploaded images to send with this message"),
   }),
   {
     title: "CreateChatMessageRequest",
@@ -41,6 +48,12 @@ export const UpdateChatMessageDto = extendApi(
 );
 
 
+export const InternalUpdateChatMessageDto = UpdateChatMessageDto.extend({
+  citations: ChatCitationsSchema.nullable().optional(),
+  actions: ChatActionsSchema.nullable().optional(),
+}).strict();
+
+export type InternalUpdateChatMessageDtoType = z.infer<typeof InternalUpdateChatMessageDto>;
 export type CreateChatMessageDtoType = z.infer<typeof CreateChatMessageDto>;
 export type UpdateChatMessageDtoType = z.infer<typeof UpdateChatMessageDto>;
 

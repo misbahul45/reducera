@@ -1,243 +1,271 @@
 import { Injectable } from '@nestjs/common';
-import { ClassDifficulty, ContentStatus, ProductAccessType, TenantStatus } from '@prisma/client';
+import { ClassDifficulty, ContentStatus, EnrollmentStatus, EntitlementStatus, Prisma, ProductAccessType, ReviewStatus, TenantStatus } from '@prisma/client';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
+import { LearnerStateService } from '@/v1/learner-model/learner-state.service';
+import { buildReviewQueue } from '@/v1/learner-model/review/review-schedule';
+import {
+  DifficultyFit,
+  LearnerNeed,
+  MatchedConcept,
+  ProductForRanking,
+  RECOMMENDATION_VERSION,
+  difficultyForScore,
+  learnerNeeds,
+  rankProducts,
+  reasonFor,
+} from './recommendation-ranking';
 
-export type ArticleCandidate = {
+export const LINK_FETCH_LIMIT = 500;
+export const NEW_ARRIVAL_REASON = 'Terbaru di marketplace.';
+
+const articleSelect = {
+  id: true,
+  title: true,
+  excerpt: true,
+  coverImage: true,
+  accessType: true,
+  price: true,
+  currency: true,
+  publishedAt: true,
+  author: { select: { name: true } },
+  tenant: { select: { name: true } },
+} satisfies Prisma.ArticleSelect;
+
+const classSelect = {
+  id: true,
+  title: true,
+  description: true,
+  coverImage: true,
+  accessType: true,
+  price: true,
+  currency: true,
+  format: true,
+  difficulty: true,
+  publishedAt: true,
+  instructor: { select: { name: true } },
+  tenant: { select: { name: true } },
+} satisfies Prisma.ClassProductSelect;
+
+type ArticleRow = Prisma.ArticleGetPayload<{ select: typeof articleSelect }>;
+type ClassRow = Prisma.ClassProductGetPayload<{ select: typeof classSelect }>;
+
+export interface RecommendedProduct {
+  kind: 'article' | 'class';
   id: string;
   title: string;
-  slug: string;
   excerpt: string | null;
-  categoryId: string | null;
-  authorId: string;
-  tenantId: string;
-  accessType: ProductAccessType;
-  price: number | null;
-  publishedAt: Date | null;
-};
-
-export type ClassCandidate = {
-  id: string;
-  title: string;
-  slug: string;
   description: string | null;
-  instructorId: string;
-  tenantId: string;
+  coverUrl: string | null;
+  creator: string;
   accessType: ProductAccessType;
   price: number | null;
-  difficulty: ClassDifficulty;
+  currency: string;
+  difficulty: ClassDifficulty | null;
+  format: string | null;
   publishedAt: Date | null;
-  format: string;
-};
-
-export type ProductCandidate =
-  | ({ kind: 'article' } & ArticleCandidate)
-  | ({ kind: 'class' } & ClassCandidate);
-
-export interface LearnerSignals {
-  userId: string;
-  /** 0..1; learner-mastery average across active topics */
-  averageMastery: number;
-  /** ClassDifficulty preference derived from mastery bands */
-  preferredDifficulty: ClassDifficulty;
-  /** Topics the learner is currently working on */
-  activeTopicIds: string[];
-  /** Sub-topics already completed */
-  completedSubTopicIds: string[];
 }
 
 export interface Recommendation {
-  product: ProductCandidate;
+  product: RecommendedProduct;
   score: number;
   reason: string;
-  signals: {
-    matchesGoal: boolean;
-    matchesDifficulty: boolean;
-    matchesPrerequisites: boolean;
-    novelty: number;
-    engagement: number;
-  };
+  personalized: boolean;
+  matchedConcepts: MatchedConcept[];
+  difficultyFit: DifficultyFit;
 }
 
-const DIFFICULTY_RANK: Record<ClassDifficulty, number> = {
-  BEGINNER: 0,
-  INTERMEDIATE: 1,
-  ADVANCED: 2,
-};
-
-const MASTERY_TO_DIFFICULTY: Array<[number, ClassDifficulty]> = [
-  [0.0, ClassDifficulty.BEGINNER],
-  [0.4, ClassDifficulty.INTERMEDIATE],
-  [0.75, ClassDifficulty.ADVANCED],
-];
-
-export function masteryToPreferredDifficulty(mastery: number): ClassDifficulty {
-  for (let i = MASTERY_TO_DIFFICULTY.length - 1; i >= 0; i -= 1) {
-    const entry = MASTERY_TO_DIFFICULTY[i]!;
-    if (mastery >= entry[0]) return entry[1];
-  }
-  return ClassDifficulty.BEGINNER;
+export interface RecommendationResult {
+  algorithm: string;
+  averageMastery: number;
+  preferredDifficulty: ClassDifficulty;
+  needs: Array<Pick<LearnerNeed, 'conceptId' | 'title' | 'kind' | 'score'>>;
+  recommendations: Recommendation[];
 }
 
-const LEARNING_RELEVANCE_WEIGHT = 0.40;
-const ENGAGEMENT_WEIGHT = 0.30;
-const NOVELTY_WEIGHT = 0.15;
-const DIFFICULTY_MATCH_WEIGHT = 0.15;
+const coverOf = (image: Prisma.JsonValue): string | null =>
+  image !== null && typeof image === 'object' && !Array.isArray(image) && typeof image.url === 'string' ? image.url : null;
+
+const priceOf = (price: Prisma.Decimal | null): number | null => (price === null ? null : Number(price.toString()));
+
+const fromArticle = (row: ArticleRow): RecommendedProduct => ({
+  kind: 'article',
+  id: row.id,
+  title: row.title,
+  excerpt: row.excerpt,
+  description: null,
+  coverUrl: coverOf(row.coverImage),
+  creator: row.author.name ?? row.tenant.name,
+  accessType: row.accessType,
+  price: priceOf(row.price),
+  currency: row.currency,
+  difficulty: null,
+  format: null,
+  publishedAt: row.publishedAt,
+});
+
+const fromClass = (row: ClassRow): RecommendedProduct => ({
+  kind: 'class',
+  id: row.id,
+  title: row.title,
+  excerpt: null,
+  description: row.description,
+  coverUrl: coverOf(row.coverImage),
+  creator: row.instructor.name ?? row.tenant.name,
+  accessType: row.accessType,
+  price: priceOf(row.price),
+  currency: row.currency,
+  difficulty: row.difficulty,
+  format: row.format,
+  publishedAt: row.publishedAt,
+});
+
+const visibleWhere = { status: ContentStatus.PUBLISHED, tenant: { status: TenantStatus.ACTIVE } } as const;
 
 @Injectable()
 export class MarketplaceDiscoveryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly state: LearnerStateService,
+  ) {}
 
-  async discoverFor(signals: LearnerSignals, options: { limit: number }): Promise<Recommendation[]> {
-    const preferredDifficulty = signals.preferredDifficulty;
-    const articles = await this.prisma.article.findMany({
-      where: {
-        status: ContentStatus.PUBLISHED,
-        tenant: { status: TenantStatus.ACTIVE },
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        excerpt: true,
-        categoryId: true,
-        authorId: true,
-        tenantId: true,
-        accessType: true,
-        price: true,
-        publishedAt: true,
-      },
-    });
-    const articleCandidates: ArticleCandidate[] = articles.map((a) => ({
-      ...a,
-      price: a.price ? Number(a.price.toString()) : null,
-    }));
+  async recommend(userId: string, options: { limit: number }, now: Date = new Date()): Promise<RecommendationResult> {
+    const [mastery, nodes, next, owned, enrolled] = await Promise.all([
+      this.state.listMastery(userId),
+      this.state.skillNodes(userId),
+      this.state.nextConcept(userId),
+      this.ownedProducts(userId),
+      this.state.hasEnrollment(userId),
+    ]);
 
-    const classes = await this.prisma.classProduct.findMany({
-      where: {
-        status: ContentStatus.PUBLISHED,
-        tenant: { status: TenantStatus.ACTIVE },
-      },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        description: true,
-        instructorId: true,
-        tenantId: true,
-        accessType: true,
-        price: true,
-        difficulty: true,
-        publishedAt: true,
-        format: true,
-      },
-    });
-    const classCandidates: ClassCandidate[] = classes.map((c) => ({
-      ...c,
-      price: c.price ? Number(c.price.toString()) : null,
-    }));
+    const evidenced = mastery.filter((entry) => entry.evidenceCount > 0);
+    const averageMastery = evidenced.length === 0 ? 0 : evidenced.reduce((sum, entry) => sum + entry.score, 0) / evidenced.length;
 
-    const recommendations: Recommendation[] = [];
-    for (const article of articleCandidates) {
-      recommendations.push(this.scoreArticle(article, signals, preferredDifficulty));
-    }
-    for (const cls of classCandidates) {
-      recommendations.push(this.scoreClass(cls, signals, preferredDifficulty));
-    }
+    const due = buildReviewQueue(
+      mastery.map((entry) => ({ conceptId: entry.conceptId, score: entry.score, evidenceCount: entry.evidenceCount, lastEventAt: entry.lastEventAt })),
+      now,
+    ).due;
 
-    return recommendations
-      .sort((a, b) => b.score - a.score)
-      .slice(0, options.limit);
-  }
-
-  async explainFor(product: ProductCandidate, signals: LearnerSignals): Promise<string> {
-    if (product.kind === 'article') {
-      return this.scoreArticle(product, signals, signals.preferredDifficulty).reason;
-    }
-    return this.scoreClass(product, signals, signals.preferredDifficulty).reason;
-  }
-
-  private scoreArticle(
-    article: ArticleCandidate,
-    signals: LearnerSignals,
-    preferredDifficulty: ClassDifficulty,
-  ): Recommendation {
-    const matchesGoal = true;
-    const matchesDifficulty = true;
-    const matchesPrerequisites = true;
-    const novelty = this.noveltyScore(article.publishedAt);
-    const engagement = article.accessType === ProductAccessType.FREE ? 1 : 0.6;
-    const score = this.combine({
-      matchesGoal: matchesGoal ? 1 : 0,
-      matchesDifficulty: matchesDifficulty ? 1 : 0,
-      matchesPrerequisites: matchesPrerequisites ? 1 : 0,
-      novelty,
-      engagement,
+    const needs = learnerNeeds({
+      mastery: mastery.map((entry) => ({ conceptId: entry.conceptId, title: entry.title, score: entry.score, evidenceCount: entry.evidenceCount, passed: entry.passed })),
+      nextConceptId: enrolled ? next.conceptId : null,
+      dueConceptIds: due.map((item) => item.conceptId),
+      readyConcepts: enrolled ? nodes.filter((node) => node.state === 'AVAILABLE').map((node) => ({ conceptId: node.conceptId, title: node.title })) : [],
     });
 
-    const reason = `Rekomendasi: artikel ${article.title} cocok untuk level ${preferredDifficulty.toLowerCase()} dengan skor relevansi ${(score * 100).toFixed(0)}%.`;
+    const personalized = await this.personalized(userId, needs, owned, options.limit, now);
+    const missing = options.limit - personalized.length;
+    const fillers = missing > 0 ? await this.newArrivals(userId, owned, new Set(personalized.map((item) => `${item.product.kind}:${item.product.id}`)), missing) : [];
 
     return {
-      product: { kind: 'article', ...article },
-      score,
-      reason,
-      signals: { matchesGoal, matchesDifficulty, matchesPrerequisites, novelty, engagement },
+      algorithm: RECOMMENDATION_VERSION,
+      averageMastery,
+      preferredDifficulty: difficultyForScore(evidenced.length === 0 ? null : averageMastery),
+      needs: needs.slice(0, 5).map(({ conceptId, title, kind, score }) => ({ conceptId, title, kind, score })),
+      recommendations: [...personalized, ...fillers],
     };
   }
 
-  private scoreClass(
-    cls: ClassCandidate,
-    signals: LearnerSignals,
-    preferredDifficulty: ClassDifficulty,
-  ): Recommendation {
-    const matchesGoal = true;
-    const matchesDifficulty =
-      DIFFICULTY_RANK[cls.difficulty] <= DIFFICULTY_RANK[preferredDifficulty] + 1 &&
-      DIFFICULTY_RANK[cls.difficulty] >= DIFFICULTY_RANK[preferredDifficulty] - 1;
-    const matchesPrerequisites = true;
-    const novelty = this.noveltyScore(cls.publishedAt);
-    const engagement = cls.accessType === ProductAccessType.FREE ? 1 : 0.6;
-    const score = this.combine({
-      matchesGoal: matchesGoal ? 1 : 0,
-      matchesDifficulty: matchesDifficulty ? 1 : 0,
-      matchesPrerequisites: matchesPrerequisites ? 1 : 0,
-      novelty,
-      engagement,
+  private async personalized(
+    userId: string,
+    needs: readonly LearnerNeed[],
+    owned: Set<string>,
+    limit: number,
+    now: Date,
+  ): Promise<Recommendation[]> {
+    if (needs.length === 0) return [];
+
+    const links = await this.prisma.productConceptLink.findMany({
+      where: {
+        conceptId: { in: needs.map((need) => need.conceptId) },
+        status: ReviewStatus.APPROVED,
+        OR: [
+          { article: { ...visibleWhere, authorId: { not: userId } } },
+          { classProduct: { ...visibleWhere, instructorId: { not: userId } } },
+        ],
+      },
+      select: {
+        conceptId: true,
+        article: { select: articleSelect },
+        classProduct: { select: classSelect },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: LINK_FETCH_LIMIT,
     });
 
-    const reason = `Rekomendasi: kelas ${cls.title} untuk ${cls.difficulty.toLowerCase()} (skor relevansi ${(score * 100).toFixed(0)}%).`;
+    const products = new Map<string, { product: RecommendedProduct; conceptIds: string[] }>();
+    for (const link of links) {
+      const product = link.article ? fromArticle(link.article) : link.classProduct ? fromClass(link.classProduct) : null;
+      if (product === null) continue;
+      const key = `${product.kind}:${product.id}`;
+      if (owned.has(key)) continue;
+      const entry = products.get(key) ?? { product, conceptIds: [] };
+      entry.conceptIds.push(link.conceptId);
+      products.set(key, entry);
+    }
 
-    return {
-      product: { kind: 'class', ...cls },
-      score,
-      reason,
-      signals: { matchesGoal, matchesDifficulty, matchesPrerequisites, novelty, engagement },
-    };
+    const candidates: ProductForRanking[] = [...products.values()].map(({ product, conceptIds }) => ({
+      kind: product.kind,
+      id: product.id,
+      conceptIds,
+      difficulty: product.difficulty,
+      free: product.accessType === ProductAccessType.FREE,
+      publishedAt: product.publishedAt,
+    }));
+
+    return rankProducts(needs, candidates, now)
+      .slice(0, limit)
+      .map((ranked) => ({
+        product: (products.get(`${ranked.kind}:${ranked.id}`) as { product: RecommendedProduct }).product,
+        score: ranked.score,
+        reason: reasonFor(ranked),
+        personalized: true,
+        matchedConcepts: ranked.matched,
+        difficultyFit: ranked.difficultyFit,
+      }));
   }
 
-  private noveltyScore(publishedAt: Date | null): number {
-    if (!publishedAt) return 0;
-    const days = (Date.now() - publishedAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (days < 0) return 1;
-    return Math.max(0, Math.min(1, 1 - days / 90));
+  private async newArrivals(userId: string, owned: Set<string>, taken: Set<string>, count: number): Promise<Recommendation[]> {
+    const window = count + owned.size + taken.size;
+    const [articles, classes] = await Promise.all([
+      this.prisma.article.findMany({
+        where: { ...visibleWhere, authorId: { not: userId } },
+        select: articleSelect,
+        orderBy: { publishedAt: 'desc' },
+        take: window,
+      }),
+      this.prisma.classProduct.findMany({
+        where: { ...visibleWhere, instructorId: { not: userId } },
+        select: classSelect,
+        orderBy: { publishedAt: 'desc' },
+        take: window,
+      }),
+    ]);
+
+    return [...articles.map(fromArticle), ...classes.map(fromClass)]
+      .filter((product) => !owned.has(`${product.kind}:${product.id}`) && !taken.has(`${product.kind}:${product.id}`))
+      .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0) || a.id.localeCompare(b.id))
+      .slice(0, count)
+      .map((product) => ({ product, score: 0, reason: NEW_ARRIVAL_REASON, personalized: false, matchedConcepts: [], difficultyFit: 'NOT_APPLICABLE' as const }));
   }
 
-  private combine(input: {
-    matchesGoal: number;
-    matchesDifficulty: number;
-    matchesPrerequisites: number;
-    novelty: number;
-    engagement: number;
-  }): number {
-    const goalScore =
-      input.matchesGoal * LEARNING_RELEVANCE_WEIGHT +
-      input.matchesDifficulty * DIFFICULTY_MATCH_WEIGHT +
-      input.matchesPrerequisites * 0.0;
-    return Math.max(
-      0,
-      Math.min(
-        1,
-        goalScore + input.novelty * NOVELTY_WEIGHT + input.engagement * ENGAGEMENT_WEIGHT,
-      ),
-    );
+  private async ownedProducts(userId: string): Promise<Set<string>> {
+    const [entitlements, enrollments] = await Promise.all([
+      this.prisma.entitlement.findMany({
+        where: { userId, status: EntitlementStatus.ACTIVE, OR: [{ articleId: { not: null } }, { classId: { not: null } }] },
+        select: { articleId: true, classId: true },
+      }),
+      this.prisma.classEnrollment.findMany({
+        where: { userId, status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] } },
+        select: { classProductId: true },
+      }),
+    ]);
+
+    const owned = new Set<string>();
+    for (const entitlement of entitlements) {
+      if (entitlement.articleId) owned.add(`article:${entitlement.articleId}`);
+      if (entitlement.classId) owned.add(`class:${entitlement.classId}`);
+    }
+    for (const enrollment of enrollments) owned.add(`class:${enrollment.classProductId}`);
+    return owned;
   }
 }

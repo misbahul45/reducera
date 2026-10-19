@@ -2,6 +2,7 @@ import { QuizAttemptsService } from '../quiz-attempts.service';
 import { QuizEvaluationService } from '@/v1/quiz/services/quiz-evaluation.service';
 
 interface QuizFixture {
+  passingScore?: number;
   topicId?: string | null;
   lessonId?: string | null;
   subTopicId?: string | null;
@@ -9,7 +10,8 @@ interface QuizFixture {
   subTopic?: { topicId: string } | null;
   lesson?: { subTopicId: string; subTopic: { topicId: string } } | null;
   step?: { lessonId: string; lesson: { subTopicId: string; subTopic: { topicId: string } } } | null;
-  questions?: Array<{ id: string; points: number; correctAnswer: string }>;
+  userStepProgress?: { stepTemplate: { lessonId: string; lesson: { subTopicId: string; subTopic: { topicId: string } } } | null } | null;
+  questions?: Array<{ id: string; points: number; correctAnswer: string; distractors?: Record<string, string> | null }>;
 }
 
 const question = (id: string, points = 1) => ({
@@ -29,6 +31,7 @@ const build = (quiz: QuizFixture, links: { source: string; conceptIds: string[] 
     quiz: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'quiz-1',
+        passingScore: quiz.passingScore ?? 70,
         topicId: quiz.topicId ?? null,
         lessonId: quiz.lessonId ?? null,
         subTopicId: quiz.subTopicId ?? null,
@@ -36,13 +39,14 @@ const build = (quiz: QuizFixture, links: { source: string; conceptIds: string[] 
         subTopic: quiz.subTopic ?? null,
         lesson: quiz.lesson ?? null,
         step: quiz.step ?? null,
+        userStepProgress: quiz.userStepProgress ?? null,
         questions: (quiz.questions ?? [question('q1'), question('q2')]),
       }),
     },
     answer: { upsert: jest.fn().mockResolvedValue({}) },
   };
   const prisma = { $transaction: jest.fn(async (work: (client: typeof tx) => unknown) => work(tx)) };
-  const misconception = { recordFromAnswer: jest.fn().mockResolvedValue(undefined) };
+  const misconception = { recordFromAnswer: jest.fn().mockResolvedValue(undefined), recordTagged: jest.fn().mockResolvedValue({ patternCode: null }) };
   const concepts = { conceptsForCurriculum: jest.fn().mockResolvedValue(links) };
   const learnerEvents = {
     append: jest.fn(async (input: { conceptId: string; idempotencyKey: string; payload: { score: number; items: number; share: number } }) => ({
@@ -274,7 +278,22 @@ describe('quiz submission gamification after the evidence', () => {
     await submit(service, { q1: 'A', q2: 'A' });
 
     expect(gamify.afterAssessment).toHaveBeenCalledTimes(1);
-    expect(gamify.afterAssessment).toHaveBeenCalledWith({ userId: 'user-1', subTopicId: 'sub-1', at: expect.any(Date), xpGained: 8 }, tx);
+    expect(gamify.afterAssessment).toHaveBeenCalledWith({ userId: 'user-1', subTopicId: 'sub-1', at: expect.any(Date), xpGained: 8, passed: true }, tx);
+  });
+
+  it('counts a streak day only when the score reaches the passing score of the quiz', async () => {
+    const half = { ...lessonQuiz, questions: [question('q1'), question('q2')] };
+    const failed = build(half);
+    await submit(failed.service, { q1: 'A', q2: 'B' });
+    expect(failed.gamify.afterAssessment).toHaveBeenCalledWith(expect.objectContaining({ passed: false }), failed.tx);
+
+    const lenient = build({ ...half, passingScore: 50 });
+    await submit(lenient.service, { q1: 'A', q2: 'B' });
+    expect(lenient.gamify.afterAssessment).toHaveBeenCalledWith(expect.objectContaining({ passed: true }), lenient.tx);
+
+    const empty = build(half);
+    await submit(empty.service, { q1: 'B', q2: 'B' });
+    expect(empty.gamify.afterAssessment).toHaveBeenCalledWith(expect.objectContaining({ passed: false }), empty.tx);
   });
 
   it('returns what the gamification step reports next to the grade', async () => {
@@ -305,5 +324,82 @@ describe('quiz submission gamification after the evidence', () => {
     await expect(submit(service, { q1: 'A', q2: 'B' })).rejects.toThrow('streak down');
 
     expect(misconception.recordFromAnswer).not.toHaveBeenCalled();
+  });
+});
+
+describe('quiz made for one user step', () => {
+  const viaUserStep = { stepTemplate: { lessonId: 'lesson-7', lesson: { subTopicId: 'sub-7', subTopic: { topicId: 'topic-7' } } } };
+
+  it('counts as evidence for the concepts of the lesson its step belongs to', async () => {
+    const { service, concepts, learnerEvents } = build({ userStepProgress: viaUserStep });
+
+    await submit(service, { q1: 'A', q2: 'A' });
+
+    expect(concepts.conceptsForCurriculum).toHaveBeenCalledWith({ lessonId: 'lesson-7', subTopicId: 'sub-7' });
+    expect(learnerEvents.append).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives no evidence when the step has no template', async () => {
+    const { service, concepts } = build({ userStepProgress: { stepTemplate: null } });
+
+    await submit(service, { q1: 'A', q2: 'A' });
+
+    expect(concepts.conceptsForCurriculum).toHaveBeenCalledWith({ lessonId: null, subTopicId: null });
+  });
+
+  it('keeps the own location of a quiz before the one of a step', async () => {
+    const { service, concepts } = build({ lessonId: 'lesson-1', lesson: { subTopicId: 'sub-1', subTopic: { topicId: 'topic-1' } }, userStepProgress: viaUserStep });
+
+    await submit(service, { q1: 'A', q2: 'A' });
+
+    expect(concepts.conceptsForCurriculum).toHaveBeenCalledWith({ lessonId: 'lesson-1', subTopicId: 'sub-1' });
+  });
+});
+
+describe('quiz submission records the misconception named by a chosen distractor', () => {
+  const tagged = (id: string, distractors: Record<string, string> | null) => ({ ...question(id), distractors });
+
+  it('records the code of the distractor the learner chose, with the topic of the quiz', async () => {
+    const { service, misconception } = build({
+      topicId: 'topic-1',
+      lessonId: 'lesson-1',
+      questions: [tagged('q1', { B: 'debit_credit_swap' }), tagged('q2', null)],
+    });
+
+    await submit(service, { q1: 'B', q2: 'A' });
+
+    expect(misconception.recordTagged).toHaveBeenCalledTimes(1);
+    expect(misconception.recordTagged).toHaveBeenCalledWith({ userId: 'user-1', topicId: 'topic-1', code: 'debit_credit_swap', questionId: 'q1', userAnswer: 'B' });
+  });
+
+  it('records nothing for a right answer, however the options are tagged', async () => {
+    const { service, misconception } = build({ lessonId: 'lesson-1', questions: [tagged('q1', { B: 'debit_credit_swap' })] });
+
+    await submit(service, { q1: 'A' });
+
+    expect(misconception.recordTagged).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the generic path for a wrong answer without a tag and ignores an unknown code', async () => {
+    const { service, misconception } = build({
+      lessonId: 'lesson-1',
+      questions: [tagged('q1', { B: 'made_up_code' }), tagged('q2', null)],
+    });
+
+    await submit(service, { q1: 'B', q2: 'B' });
+
+    expect(misconception.recordTagged).not.toHaveBeenCalled();
+    expect(misconception.recordFromAnswer).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads the topic of a user step quiz from its step so the record has a topic', async () => {
+    const { service, misconception } = build({
+      userStepProgress: { stepTemplate: { lessonId: 'lesson-7', lesson: { subTopicId: 'sub-7', subTopic: { topicId: 'topic-7' } } } },
+      questions: [tagged('q1', { B: 'normal_balance_confusion' })],
+    });
+
+    await submit(service, { q1: 'B' });
+
+    expect(misconception.recordTagged.mock.calls[0][0].topicId).toBe('topic-7');
   });
 });

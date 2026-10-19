@@ -11,11 +11,20 @@ from config.model_router import get_router
 from errors.types import CrossServiceError, LLMError
 from v1.decision_traces.dto import DecisionTraceCreate
 from v1.decision_traces.service import sha256_hex, write_decision_trace
-from v1.episodes.dto import EpisodeCitation, EpisodeCreate
+from v1.episodes.dto import EpisodeCreate
 from v1.episodes.service import write_episode
+from v1.learning.action_runner import run_chat_action
+from v1.learning.chat_images import image_prompt, text_prompt
 from v1.learning.content_pipeline import generate_content_material_pipeline
 from v1.learning.dto import GenerateContentMaterialPipeline
-from v1.learning.service import create_content_material, update_message_chat
+from v1.learning.citations import episode_citations
+from v1.learning.reply import finalize_reply, store_reply
+from v1.learning.service import (
+    LESSON_PROMPT_VERSION,
+    create_content_material,
+    update_message_chat,
+)
+from v1.learning.turn_record import episode_fields, reason_codes_of, selected_action_of, trace_fields, trace_outputs
 
 
 logger = logging.getLogger(__name__)
@@ -37,6 +46,25 @@ def _require_fields(payload: dict, fields: tuple[str, ...]) -> None:
     if missing:
         logger.error("[CELERY] payload is missing required fields: %s", ", ".join(missing))
         raise Reject(f"missing payload fields: {', '.join(missing)}", requeue=False)
+
+
+def _invoke_reply(prompt, query: str, session: AgentSession):
+    def call(messages):
+        return get_router().invoke(
+            "tutor_reply",
+            messages,
+            query=query,
+            context_chars=len(prompt.text),
+            subject=session.acting_user_id,
+        )
+
+    images = prompt.images.images
+    if images:
+        try:
+            return call([image_prompt(prompt.text, images)])
+        except Exception:
+            logger.warning("[generate_new_content] the model could not use the images, answering without them", exc_info=True)
+    return call(text_prompt(prompt.text, unreadable=prompt.images.asked > 0))
 
 
 def _session_from_payload(payload: dict) -> AgentSession:
@@ -119,21 +147,10 @@ def generate_content_material_task(self, payload: dict):
                     user_id=session.acting_user_id,
                     task="generate-material",
                     response_excerpt=(content_generate.get("data") or "")[:512],
-                    citations=[
-                        EpisodeCitation(
-                            lesson_id=c.get("lessonId") or c.get("lesson_id"),
-                            chunk_id=c.get("chunkId") or c.get("chunk_id"),
-                            score=c.get("score"),
-                            source=c.get("source"),
-                        )
-                        for c in citations
-                        if isinstance(c, dict)
-                    ],
-                    tokens_in=None,
-                    tokens_out=None,
-                    cost_usd=None,
-                    latency_ms=None,
+                    citations=episode_citations((c for c in citations if isinstance(c, dict)), lesson_id=state.lesson_id),
+                    prompt_version=LESSON_PROMPT_VERSION,
                     status="completed",
+                    **episode_fields(result_state.get("routed"), result_state.get("snapshot")),
                 ),
                 session=session,
             )
@@ -155,16 +172,20 @@ def generate_content_material_task(self, payload: dict):
                     ),
                     response_hash=sha256_hex(content_generate.get("data") or ""),
                     tool_calls=[
+                        {"name": "topic_sources", "lesson_id": state.lesson_id},
                         {"name": "rag_retrieve", "lesson_id": state.lesson_id},
-                        {"name": "web_search", "lesson_id": state.lesson_id},
                     ],
                     deterministic_outputs={
                         "lesson_id": state.lesson_id,
                         "step_id": state.step_id,
                         "topic_id": state.topic_id,
                         "citation_count": len(content_generate.get("citations") or []),
+                        **trace_outputs(result_state.get("snapshot"), state.user_step_id),
                     },
-                    reason_codes=["PHASE_1_FOUNDATION"],
+                    prompt_version=LESSON_PROMPT_VERSION,
+                    reason_codes=reason_codes_of(result_state.get("snapshot")),
+                    selected_action=selected_action_of(result_state.get("snapshot")),
+                    **trace_fields(result_state.get("routed")),
                 ),
                 session=session,
             )
@@ -198,19 +219,12 @@ def generating_new_content(self, payload: dict):
         user_step_id = payload["userStepId"]
         message_id = payload["messageId"]
 
-        from v1.learning.service import get_propmpt_material
+        from v1.learning.service import build_chat_prompt
 
         pipeline.enable_thinking = False
-        prompt = get_propmpt_material(query, message_id, user_step_id, session)
+        prompt = build_chat_prompt(query, message_id, user_step_id, session, chat_id=payload["chatId"])
         try:
-            routed = get_router().invoke(
-                "tutor_reply",
-                prompt,
-                query=query,
-                context_chars=len(prompt),
-                subject=session.acting_user_id,
-            )
-            generated_content = routed.text
+            routed = _invoke_reply(prompt, query, session)
         except Exception as exc:
             logger.error("[generate_new_content] LLM call failed: %s", exc)
             update_message_chat(message_id, session, {"text": CHAT_FAILURE_TEXT, "status": "FAILED"})
@@ -219,11 +233,9 @@ def generating_new_content(self, payload: dict):
                 details={"trace_id": session.trace_id},
             ) from exc
 
-        update_message_chat(
-            message_id,
-            session,
-            {"text": f"Successfully generate continue material for {generated_content[:50]}", "status": "COMPLETED"},
-        )
+        reply = finalize_reply(routed.text, prompt.sources)
+        generated_content = reply.text
+        store_reply(message_id, session, reply, update_message_chat)
         logger.info("Content material generation completed successfully")
 
         try:
@@ -239,7 +251,11 @@ def generating_new_content(self, payload: dict):
                     user_id=session.acting_user_id,
                     task="continue-material",
                     response_excerpt=generated_content[:512],
+                    citations=episode_citations(prompt.citations)
+                    + episode_citations((c for c in reply.citations if c.get("kind") == "TOPIC"), lesson_id=prompt.scope.get("lessonId")),
+                    prompt_version=prompt.label,
                     status="completed",
+                    **episode_fields(routed, prompt.snapshot, prompt_arm=prompt.arm),
                 ),
                 session=session,
             )
@@ -262,9 +278,11 @@ def generating_new_content(self, payload: dict):
                         {"name": "rag_retrieve", "user_step_id": user_step_id},
                         {"name": "web_search", "user_step_id": user_step_id},
                     ],
-                    deterministic_outputs={"user_step_id": user_step_id},
-                    policy_version=routed.policy_version,
-                    reason_codes=["PHASE_1_FOUNDATION"],
+                    deterministic_outputs=trace_outputs(prompt.snapshot, user_step_id),
+                    prompt_version=prompt.label,
+                    reason_codes=reason_codes_of(prompt.snapshot),
+                    selected_action=selected_action_of(prompt.snapshot),
+                    **trace_fields(routed),
                     metadata={
                         "modelMode": routed.mode,
                         "escalated": routed.escalated,
@@ -286,7 +304,18 @@ def generating_new_content(self, payload: dict):
         raise exc
 
 
+ACTION_PAYLOAD_FIELDS = ("chatId", "userStepId", "messageId", "action")
+
+
+@celery_app.task(name="v1.learning.run_chat_action", bind=True)
+def run_chat_action_task(self, payload: dict):
+    _reject_if_unsafe(payload)
+    _require_fields(payload, ACTION_PAYLOAD_FIELDS)
+    return run_chat_action(payload, update_message_chat)
+
+
 __all__ = [
     "generate_content_material_task",
     "generating_new_content",
+    "run_chat_action_task",
 ]

@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import {
   ConceptSeedInput,
+  LinkFile,
   ReviewStatusValue,
   aliasRows,
+  allLinkFiles,
   conceptRows,
   prerequisiteRows,
   validateConceptSeed,
@@ -74,13 +76,26 @@ export class ConceptSeeder {
     };
   }
 
-  private async resolveLinks({ links }: ConceptSeedInput): Promise<LinkRow[]> {
+  private async resolveLinks(input: ConceptSeedInput): Promise<LinkRow[]> {
+    const rows: LinkRow[] = [];
+    const missing: string[] = [];
+    for (const file of allLinkFiles(input)) {
+      const hint = file === input.links ? 'run seed:golden-graph first' : 'seed that topic first';
+      const resolved = await this.resolveFile(file, hint);
+      rows.push(...resolved.rows);
+      missing.push(...resolved.missing);
+    }
+    if (missing.length > 0) throw new ConceptSeedError(missing);
+    return rows;
+  }
+
+  private async resolveFile(links: LinkFile, hint: string): Promise<{ rows: LinkRow[]; missing: string[] }> {
     const topic = await this.prisma.topic.findUnique({
       where: { slug: links.topicSlug },
       include: { subTopics: { include: { lessons: true } } },
     });
     if (!topic) {
-      throw new ConceptSeedError([`topic ${links.topicSlug} not found; run seed:golden-graph first`]);
+      throw new ConceptSeedError([`topic ${links.topicSlug} not found; ${hint}`]);
     }
 
     const missing: string[] = [];
@@ -109,7 +124,6 @@ export class ConceptSeeder {
       }
     }
 
-    if (missing.length > 0) throw new ConceptSeedError(missing);
-    return rows;
+    return { rows, missing };
   }
 }

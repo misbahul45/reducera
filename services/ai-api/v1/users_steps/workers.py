@@ -6,6 +6,7 @@ from celery.exceptions import Reject
 
 from config.agent_session import AgentSession, session_payload_is_safe
 from config.celery import celery_app
+from config.generation_lock import release as release_lock
 from v1.decision_traces.dto import DecisionTraceCreate
 from v1.decision_traces.service import sha256_hex, write_decision_trace
 from v1.episodes.dto import EpisodeCreate
@@ -45,7 +46,12 @@ def _reject_if_unsafe(payload: dict) -> None:
 def generate_personality_quiz(self, initial_state: dict):
     _reject_if_unsafe(initial_state)
     session = _session_from_payload(initial_state)
-    result = graph.invoke(GenerateQuestionPipeline.model_validate(initial_state).model_dump())
+    try:
+        result = graph.invoke(GenerateQuestionPipeline.model_validate(initial_state).model_dump())
+    except Exception:
+        if self.request.retries >= self.max_retries:
+            release_lock("quiz", session.acting_user_id, initial_state["lessonId"])
+        raise
 
     quiz_items = result.get("quiz", [])
 
@@ -56,9 +62,15 @@ def generate_personality_quiz(self, initial_state: dict):
             "difficulty": q.difficulty,
             "options": q.options,
             "answer": q.answer,
+            "sources": list(q.sources),
         }
         for q in quiz_items
     ]
+
+    if not questions:
+        logger.error("[QUIZ] no question with a real source came out, the quiz is not created")
+        release_lock("quiz", session.acting_user_id, initial_state["lessonId"])
+        return []
 
     create_personality_quiz(
         payload={
@@ -66,12 +78,14 @@ def generate_personality_quiz(self, initial_state: dict):
             "lessonId": initial_state["lessonId"],
             "title": "AI Generated Personality Quiz",
             "questions": questions,
+            "sources": result.get("sources") or [],
             "userAttempt": "JSON_NULL",
             "result": "JSON_NULL",
             "takenAt": None,
         },
         session=session,
     )
+    release_lock("quiz", session.acting_user_id, initial_state["lessonId"])
 
     try:
         write_episode(

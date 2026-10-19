@@ -21,6 +21,8 @@ describeDb('concept seeder (requires TEST_DATABASE_URL)', () => {
   const aliases = (): AliasEntry[] => parseAliases(read('concept-aliases.json'));
   const slug = `seeder-${randomUUID().slice(0, 8)}`;
   let topicId: string;
+  let secondTopicId: string;
+  const secondSlug = `${slug}-b`;
   let releaseLock: () => Promise<void>;
 
   const links = (overrides: Partial<LinkFile> = {}): LinkFile => ({
@@ -49,6 +51,16 @@ describeDb('concept seeder (requires TEST_DATABASE_URL)', () => {
       },
     });
     topicId = topic.id;
+    const second = await prisma.topic.create({
+      data: {
+        title: 'Seeder fixture B',
+        slug: secondSlug,
+        image: {},
+        price: 0,
+        subTopics: { create: [{ title: 'S1', lessons: { create: [{ title: 'L1' }] } }] },
+      },
+    });
+    secondTopicId = second.id;
   }, 120_000);
 
   beforeEach(cleanRegistry);
@@ -56,6 +68,7 @@ describeDb('concept seeder (requires TEST_DATABASE_URL)', () => {
   afterAll(async () => {
     await cleanRegistry();
     await prisma.topic.delete({ where: { id: topicId } });
+    await prisma.topic.delete({ where: { id: secondTopicId } });
     await prisma.$disconnect();
     await releaseLock();
   });
@@ -72,6 +85,27 @@ describeDb('concept seeder (requires TEST_DATABASE_URL)', () => {
     expect(await prisma.conceptPrerequisite.count()).toBe(first.prerequisites);
     expect(await prisma.conceptAlias.count()).toBe(13);
     expect(await prisma.conceptCurriculumLink.count()).toBe(2);
+  });
+
+  it('links the sub-topics and lessons of every listed topic and drops the ones a later run no longer lists', async () => {
+    const seeder = new ConceptSeeder(prisma);
+    const other = links({ topicSlug: secondSlug, lessons: [{ subTopicTitle: 'S1', title: 'L1', status: 'APPROVED', conceptIds: ['l1-t03-journal-entries'] }] });
+
+    const both = await seeder.run({ graph, aliases: aliases(), links: links(), extraLinks: [other] });
+    expect(both).toMatchObject({ subTopicLinks: 2, lessonLinks: 2 });
+    expect(await prisma.conceptCurriculumLink.count()).toBe(4);
+    expect(await prisma.conceptCurriculumLink.count({ where: { lesson: { subTopic: { topicId: secondTopicId } } } })).toBe(1);
+    expect(await seeder.run({ graph, aliases: aliases(), links: links(), extraLinks: [other] })).toEqual(both);
+
+    const only = await seeder.run({ graph, aliases: aliases(), links: links() });
+    expect(only).toMatchObject({ subTopicLinks: 1, lessonLinks: 1 });
+    expect(await prisma.conceptCurriculumLink.count()).toBe(2);
+  });
+
+  it('refuses an extra topic that is not seeded and writes nothing', async () => {
+    const missing = links({ topicSlug: `${slug}-missing` });
+    await expect(new ConceptSeeder(prisma).run({ graph, aliases: aliases(), links: links(), extraLinks: [missing] })).rejects.toThrow('seed that topic first');
+    expect(await prisma.concept.count()).toBe(0);
   });
 
   it('stores review status, kind and the umbrella targets of an alias', async () => {

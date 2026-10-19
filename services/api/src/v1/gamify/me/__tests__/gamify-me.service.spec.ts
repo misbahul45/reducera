@@ -9,7 +9,7 @@ const build = (overrides: { user?: Record<string, unknown> | null; levels?: Arra
   const prisma = {
     user: { findUnique: jest.fn().mockResolvedValue(user) },
     levelThreshold: { findMany: jest.fn().mockResolvedValue(overrides.levels ?? []) },
-    streakHistory: { findMany: jest.fn().mockResolvedValue((overrides.days ?? ['2026-10-07', '2026-10-08', '2026-10-09']).map((d) => ({ date: new Date(`${d}T00:00:00Z`) }))) },
+    streakHistory: { findMany: jest.fn().mockResolvedValue((overrides.days ?? ['2026-10-07', '2026-10-08', '2026-10-09']).map((d, index) => ({ date: new Date(`${d}T00:00:00Z`), streakCount: index + 2 }))) },
   };
   return { service: new GamifyMeService(prisma as never, () => NOW), prisma };
 };
@@ -35,6 +35,14 @@ describe('GamifyMeService', () => {
 
     expect(prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'u1' } }));
     expect(prisma.streakHistory.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: 'u1' }) }));
+  });
+
+  it('reads the streak count of each stored day, which is what tells a covered gap from a restart', async () => {
+    const { service, prisma } = build();
+
+    await service.get('u1');
+
+    expect(prisma.streakHistory.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: { date: true, streakCount: true } }));
   });
 
   it('uses the thresholds stored in the database when there are some, and the defaults otherwise', async () => {

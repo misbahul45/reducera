@@ -34,7 +34,7 @@ const STYLE_LABELS: Readonly<Record<string, string>> = {
 export const introStages = (): AiStage[] => [
   { key: 'context', label: 'Membaca langkah pelajaran', state: 'active', detail: '', fact: null },
   { key: 'profile', label: 'Mencocokkan gaya belajarmu', state: 'pending', detail: '', fact: null },
-  { key: 'retrieval', label: 'Mencari referensi pendukung', state: 'pending', detail: '', fact: null },
+  { key: 'retrieval', label: 'Mencari sumber pendukung', state: 'pending', detail: '', fact: null },
   { key: 'writing', label: 'Menulis pengantar', state: 'pending', detail: '', fact: null },
 ];
 
@@ -61,46 +61,54 @@ export const describeStage = (event: StageEvent): { detail: string; fact: AiFact
     const steps = count(data.steps);
     const titles = titlesOf(data.titles);
     const names = titles.length ? `: ${titles.join(', ')}${steps > titles.length ? ', dan lainnya' : ''}` : '';
-    return { detail: `${steps} langkah dibaca${names}`, fact: { key, text: `${steps} langkah kurikulum`, tone: 'ok' } };
+    return { detail: `${steps} langkah pelajaran dibaca${names}`, fact: { key, text: `${steps} langkah pelajaran dibaca`, tone: 'ok' } };
   }
 
   if (key === 'profile') {
     const label = typeof data.style === 'string' ? STYLE_LABELS[data.style] : undefined;
     if (state === 'done' && label) {
-      return { detail: `Gaya belajar dominanmu: ${label}`, fact: { key, text: `Gaya ${label}`, tone: 'ok' } };
+      return { detail: `Gaya belajar yang paling cocok denganmu: ${label}`, fact: { key, text: `Gaya belajar: ${label}`, tone: 'ok' } };
     }
     return {
-      detail: 'Belum ada gaya belajar yang terbaca, memakai gaya netral',
-      fact: { key, text: 'Gaya netral', tone: 'muted' },
+      detail: 'Gaya belajarmu belum diketahui, jadi pengantar ditulis dengan gaya umum',
+      fact: { key, text: 'Gaya belajar umum', tone: 'muted' },
     };
   }
 
   if (key === 'retrieval') {
     const sources = count(data.sources);
+    const topic = count(data.topic);
     const queries = count(data.queries);
-    if (state === 'failed') {
+    if (state === 'failed' && topic > 0) {
       return {
-        detail: 'Layanan referensi sedang tidak tersedia, pengantar hanya memakai data langkah',
-        fact: { key, text: 'Referensi tidak tersedia', tone: 'warn' },
+        detail: `${topic} sumber dari materi course ditemukan. Pencarian berdasarkan arti sedang tidak aktif, jadi sumber yang muncul bisa lebih sedikit`,
+        fact: { key, text: `${topic} sumber, pencarian terbatas`, tone: 'warn' },
       };
     }
-    if (state === 'skipped') {
-      return { detail: 'Pencarian referensi dilewati', fact: { key, text: 'Tanpa referensi', tone: 'muted' } };
-    }
-    if (sources > 0) {
+    if (state === 'failed') {
       return {
-        detail: `${sources} potongan referensi ditemukan dari ${queries} pencarian`,
-        fact: { key, text: `${sources} referensi`, tone: 'ok' },
+        detail: 'Sumber tambahan belum bisa diambil, jadi pengantar hanya memakai isi langkah pelajaran',
+        fact: { key, text: 'Sumber belum bisa diambil', tone: 'warn' },
+      };
+    }
+    if (state === 'skipped' && topic === 0) {
+      return { detail: 'Pencarian sumber tambahan dilewati', fact: { key, text: 'Tanpa sumber tambahan', tone: 'muted' } };
+    }
+    if (topic > 0 || sources > 0) {
+      const parts = [topic > 0 ? `${topic} sumber dari materi course` : '', sources > 0 ? `${sources} cuplikan dari ${queries} pencarian` : ''];
+      return {
+        detail: parts.filter(Boolean).join(' dan ') + ' ditemukan',
+        fact: { key, text: `${topic + sources} sumber ditemukan`, tone: 'ok' },
       };
     }
     return {
-      detail: 'Tidak ada referensi tambahan yang cocok, hanya memakai data langkah',
-      fact: { key, text: 'Tanpa referensi tambahan', tone: 'muted' },
+      detail: 'Belum ada sumber materi untuk pelajaran ini, jadi pengantar hanya memakai isi langkah pelajaran',
+      fact: { key, text: 'Belum ada sumber materi', tone: 'muted' },
     };
   }
 
   if (key === 'writing') {
-    return { detail: 'Menulis hanya dari data yang terkumpul di atas', fact: null };
+    return { detail: 'Menulis hanya dari sumber di atas. Setiap pernyataan diberi nomor sumber', fact: null };
   }
 
   return { detail: '', fact: null };
@@ -129,6 +137,18 @@ export const applyStageEvent = (stages: AiStage[], event: StageEvent): AiStage[]
 };
 
 export const factsOf = (stages: AiStage[]): AiFact[] => stages.flatMap((stage) => (stage.fact ? [stage.fact] : []));
+
+export const hasFailed = (stages: AiStage[]): boolean => stages.some((stage) => stage.state === 'failed');
+
+export const FAILED_HEADLINE = 'Ada tahap yang belum berhasil';
+
+export const headlineOf = (stages: AiStage[], busy: boolean, title: string, doneTitle: string): string => {
+  if (busy) return title;
+  if (hasFailed(stages)) return FAILED_HEADLINE;
+  return doneTitle || title;
+};
+
+export const settledLive = (stages: AiStage[]): string => (hasFailed(stages) ? FAILED_HEADLINE : 'Semua tahap selesai');
 
 export const currentStage = (stages: AiStage[]): AiStage | null =>
   stages.find((stage) => stage.state === 'active') ?? [...stages].reverse().find((stage) => FINISHED.includes(stage.state)) ?? null;

@@ -38,8 +38,8 @@ def make_state():
 @pytest.fixture
 def pipeline_io():
     with patch.object(content_pipeline, "update_message_chat") as update, patch.object(
-        content_pipeline, "retrieve_material_rag", return_value=("", [])
-    ), patch.object(content_pipeline, "retrieve_material_web", return_value=""), patch.object(
+        content_pipeline, "retrieve_material_results", return_value=[]
+    ), patch.object(content_pipeline, "fetch_topic_sources", return_value={"scope": {}, "sources": []}), patch.object(
         content_pipeline, "_render_tutor_system_policy", return_value="policy"
     ), patch.object(content_pipeline, "tool_memory_upsert") as memory_upsert, patch.object(
         content_pipeline, "tool_semantic_search", return_value=[]
@@ -81,3 +81,11 @@ def test_the_learner_analysis_text_reaches_the_context(scripted_llm, pipeline_io
     state = content_pipeline.prepare_learning_context(make_state())
 
     assert "Ringkasan analisis pelajar." in state.context
+
+
+def test_the_first_message_in_the_chat_is_a_friendly_offer_not_a_job_report():
+    from v1.learning import content_pipeline
+
+    assert "completed successfully" not in content_pipeline.MATERIAL_READY_TEXT
+    assert content_pipeline.MATERIAL_READY_TEXT.startswith("Materi untuk langkah ini sudah siap")
+    assert content_pipeline.MATERIAL_READY_ACTIONS == [{"type": "QUIZ", "count": 5}]

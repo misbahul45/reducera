@@ -1,10 +1,10 @@
 export const sidebarItems = [
   {
     id: 'topics',
-    label: 'Topics',
+    label: 'Courses',
     href: '/learn/topics',
     icon: 'i-lucide-orbit',
-    info: 'Explore available learning topics',
+    info: 'Explore available learning courses',
   },
   {
     id: 'home',

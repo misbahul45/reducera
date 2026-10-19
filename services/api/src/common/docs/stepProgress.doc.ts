@@ -1,7 +1,6 @@
 import { extendApi } from '@anatine/zod-openapi';
 import z from 'zod';
 
-// Base schema (tanpa relasi)
 export const BaseStepProgressSchema = z.object({
   id: z.string().describe('Unique step progress identifier'),
   userId: z.string().describe('User ID linked to this progress'),
@@ -9,7 +8,6 @@ export const BaseStepProgressSchema = z.object({
   isCompleted: z.boolean().default(false).describe('Whether the step is completed'),
 });
 
-// Detail schema (dengan relasi opsional)
 export const StepProgressDetailSchema = extendApi(
   BaseStepProgressSchema.extend({
     step: z
@@ -57,7 +55,6 @@ export const StepProgressDetailSchema = extendApi(
   }
 );
 
-// List schema (dengan pagination)
 export const StepProgressListSchema = extendApi(
   z.object({
     data: z.array(BaseStepProgressSchema).describe('List of step progress records'),

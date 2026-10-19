@@ -1,7 +1,6 @@
 import { extendApi } from '@anatine/zod-openapi';
 import z from 'zod';
 
-// Base schema (sesuai model Topic di Prisma, tanpa relasi penuh)
 export const BaseTopicSchema = z.object({
   id: z.string().describe('Unique topic identifier'),
   title: z.string().describe('Topic title'),
@@ -18,7 +17,6 @@ export const BaseTopicSchema = z.object({
   updatedAt: z.date().describe('Last update timestamp'),
 });
 
-// Detail schema (dengan subTopics, teacher, dan count)
 export const TopicDetailSchema = extendApi(
   BaseTopicSchema.extend({
     subTopics: z.array(
@@ -84,7 +82,6 @@ export const TopicDetailSchema = extendApi(
   }
 );
 
-// List schema (untuk daftar topics + pagination)
 export const TopicsListSchema = extendApi(
   z.object({
     data: z.array(

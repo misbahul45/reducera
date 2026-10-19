@@ -52,7 +52,7 @@ export class GamifyMeService {
       this.prisma.levelThreshold.findMany({ orderBy: { level: 'asc' } }),
       this.prisma.streakHistory.findMany({
         where: { userId, date: { gte: new Date(`${shiftDate(today, -HISTORY_DAYS)}T00:00:00Z`) } },
-        select: { date: true },
+        select: { date: true, streakCount: true },
         orderBy: { date: 'asc' },
       }),
     ]);
@@ -71,7 +71,7 @@ export class GamifyMeService {
         lastDate,
         today,
         status: streakStatus(state, today),
-        week: streakCalendar(history.map((row) => row.date.toISOString().slice(0, 10)), today),
+        week: streakCalendar(history.map((row) => ({ date: row.date.toISOString().slice(0, 10), streakCount: row.streakCount })), today),
       },
       board: { optedIn: user.leaderboardOptIn, handle: user.leaderboardHandle },
     };

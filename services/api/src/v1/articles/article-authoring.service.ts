@@ -7,7 +7,8 @@ import { Actor } from '@/common/authz/policy.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { TenantContext, tenantWhere } from '@/common/tenancy/tenant-context';
 import { money } from '../commerce/money';
-import { assertContentTransition, assertEditable } from '../marketplace/content-state';
+import { assertContentTransition, assertEditable, assertTaggable } from '../marketplace/content-state';
+import { conceptLinksOf, replaceConceptLinks } from '../marketplace/product-concept-links';
 import { assertOwnedUploadedFile } from '../uploads/uploaded-file';
 import { UploadsService } from '../uploads/uploads.service';
 import {
@@ -74,6 +75,9 @@ export class ArticleAuthoringService {
           select: summarySelect,
         }),
       );
+      if (dto.conceptIds !== undefined) {
+        await replaceConceptLinks(tx, { kind: 'article', id: created.id }, dto.conceptIds, actor.id);
+      }
       await this.audit.record(
         {
           actorId: actor.id,
@@ -131,7 +135,8 @@ export class ArticleAuthoringService {
     if (!article || (this.ownOnly(ctx) && article.authorId !== actor.id)) {
       throw new AppError('Article not found', 404, AppErrorCode.NOT_FOUND);
     }
-    return { message: 'Successfully retrieved article', data: article };
+    const conceptLinks = await conceptLinksOf(this.prisma, { kind: 'article', id });
+    return { message: 'Successfully retrieved article', data: { ...article, conceptLinks } };
   }
 
   async update(actor: Actor, ctx: TenantContext, id: string, dto: UpdateArticleDtoType, traceId?: string) {
@@ -188,6 +193,10 @@ export class ArticleAuthoringService {
         }
       }
 
+      if (dto.conceptIds !== undefined) {
+        await replaceConceptLinks(tx, { kind: 'article', id }, dto.conceptIds, actor.id);
+      }
+
       await this.audit.record(
         {
           actorId: actor.id,
@@ -205,6 +214,34 @@ export class ArticleAuthoringService {
     });
 
     return { message: 'Article updated', data: updated };
+  }
+
+  async setConcepts(actor: Actor, ctx: TenantContext, id: string, conceptIds: readonly string[], traceId?: string) {
+    const tenantId = this.requireMember(ctx);
+    const product = { kind: 'article', id } as const;
+    const conceptLinks = await this.prisma.$transaction(async (tx) => {
+      const article = await this.lockOwned(tx, ctx, actor, id, tenantId);
+      assertTaggable(article.status);
+      const before = (await conceptLinksOf(tx, product)).map((link) => link.conceptId);
+      await replaceConceptLinks(tx, product, conceptIds, actor.id);
+      const after = await conceptLinksOf(tx, product);
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId,
+          action: 'ARTICLE_CONCEPTS_UPDATED',
+          entityType: 'Article',
+          entityId: id,
+          before: { conceptIds: before },
+          after: { conceptIds: after.map((link) => link.conceptId) },
+          traceId,
+        },
+        tx,
+      );
+      return after;
+    });
+    return { message: 'Concept tags updated', data: { conceptLinks } };
   }
 
   submitReview(actor: Actor, ctx: TenantContext, id: string, traceId?: string) {

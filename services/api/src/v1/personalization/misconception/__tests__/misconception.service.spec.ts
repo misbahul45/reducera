@@ -44,3 +44,31 @@ describe('MisconceptionService.classify (deterministic)', () => {
     expect(code).toBe('missing_credit_side');
   });
 });
+
+describe('MisconceptionService.recordTagged', () => {
+  it('stores a known code with the question and the answer as evidence', async () => {
+    const repo = { upsert: jest.fn().mockResolvedValue({}), listActiveByUser: jest.fn() };
+    const service = new MisconceptionService(repo as any);
+
+    const result = await service.recordTagged({ userId: 'u-1', topicId: 't-1', code: 'debit_credit_swap', questionId: 'q-1', userAnswer: 'B' });
+
+    expect(result).toEqual({ patternCode: 'debit_credit_swap' });
+    expect(repo.upsert).toHaveBeenCalledWith({
+      userId: 'u-1',
+      conceptKey: 'debit_credit_swap',
+      topicId: 't-1',
+      evidence: { questionId: 'q-1', userAnswer: 'B' },
+      confidence: 0.8,
+    });
+  });
+
+  it('stores nothing for a code outside the closed list', async () => {
+    const repo = { upsert: jest.fn(), listActiveByUser: jest.fn() };
+    const service = new MisconceptionService(repo as any);
+
+    const result = await service.recordTagged({ userId: 'u-1', code: 'invented', questionId: 'q-1', userAnswer: 'B' });
+
+    expect(result).toEqual({ patternCode: null });
+    expect(repo.upsert).not.toHaveBeenCalled();
+  });
+});

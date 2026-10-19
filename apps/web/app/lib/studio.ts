@@ -10,6 +10,21 @@ const EDITABLE = new Set(['DRAFT', 'REJECTED']);
 
 export const isEditable = (status: string): boolean => EDITABLE.has(status);
 
+const TAGGED_WHILE_LIVE = new Set(['PENDING_REVIEW', 'PUBLISHED']);
+
+export const canTagSeparately = (status: string): boolean => TAGGED_WHILE_LIVE.has(status);
+
+export function liveTagHint(status: string): string {
+  if (status === 'PUBLISHED') {
+    return 'Karya ini sudah terbit. Konsep baru tampil di marketplace setelah admin menyetujuinya. Konsep yang kamu hapus langsung hilang.';
+  }
+  return 'Karya ini sedang ditinjau. Perubahan konsep ikut ditinjau bersama karyanya.';
+}
+
+export function liveTagSavedMessage(status: string): string {
+  return status === 'PUBLISHED' ? 'Tag disimpan. Konsep baru menunggu persetujuan admin.' : 'Tag disimpan. Konsep ikut ditinjau bersama karyanya.';
+}
+
 export function contentCounts(items: ReadonlyArray<{ status: string }>): ContentCounts {
   const counts: ContentCounts = { draft: 0, pending: 0, published: 0, rejected: 0, total: items.length };
   for (const item of items) {
@@ -84,6 +99,7 @@ export interface ArticleForm {
   body: string;
   accessType: 'FREE' | 'PAID';
   price: number | null;
+  conceptIds: string[];
 }
 
 export function articlePayload(form: ArticleForm) {
@@ -92,6 +108,7 @@ export function articlePayload(form: ArticleForm) {
     content: form.body,
     excerpt: form.subtitle.trim(),
     accessType: form.accessType,
+    conceptIds: [...form.conceptIds],
     ...(form.accessType === 'PAID' && form.price ? { price: form.price } : {}),
   };
 }

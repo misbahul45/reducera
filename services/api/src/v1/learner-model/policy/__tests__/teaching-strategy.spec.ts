@@ -190,6 +190,49 @@ describe('LearnerPolicyService.teachingStrategy', () => {
       }
     });
 
+    it('lets a strategy that works for the learner replace the default one for a doubt, inside the strategies that fit the mastery band', () => {
+      const evidence = { ...emptyEvidence(), GUIDED_EXAMPLE: { successes: 1, attempts: 5 }, HINT: { successes: 8, attempts: 10 } };
+
+      const out = service.teachingStrategy(input({ intent: 'DOUBT', learner: { mastery: 0.2, evidenceCount: 6 }, policy: { strategyEvidence: evidence } }));
+
+      expect(out.strategy).toBe('HINT');
+      expect(out.reasonCodes).toEqual(['LOW_MASTERY', 'PERSONAL_STRATEGY_PREFERRED']);
+    });
+
+    it('never lets a preference leave the strategies that fit the mastery band', () => {
+      const evidence = { ...emptyEvidence(), CHALLENGE: { successes: 9, attempts: 10 } };
+
+      const out = service.teachingStrategy(input({ intent: 'DOUBT', learner: { mastery: 0.2, evidenceCount: 6 }, policy: { strategyEvidence: evidence } }));
+
+      expect(out.strategy).toBe('WORKED_EXAMPLE');
+      expect(out.reasonCodes).toEqual(['LOW_MASTERY']);
+    });
+
+    it('applies a preference to new learning as well', () => {
+      const evidence = { ...emptyEvidence(), SOCRATIC: { successes: 7, attempts: 9 } };
+
+      const out = service.teachingStrategy(input({ intent: 'NEW_LEARNING', learner: { mastery: 0.55, evidenceCount: 6 }, policy: { strategyEvidence: evidence } }));
+
+      expect(out.strategy).toBe('SOCRATIC');
+      expect(out.reasonCodes).toEqual(['MID_MASTERY', 'PERSONAL_STRATEGY_PREFERRED']);
+    });
+
+    it('keeps remediation for open misconceptions and missing prerequisites whatever the preference', () => {
+      const evidence = { ...emptyEvidence(), SOCRATIC: { successes: 9, attempts: 10 } };
+      const policy = { strategyEvidence: evidence };
+
+      expect(service.teachingStrategy(input({ intent: 'DOUBT', learner: { openMisconceptionCount: 2, evidenceCount: 6 }, policy })).strategy).toBe('REMEDIATE');
+      expect(service.teachingStrategy(input({ intent: 'NEW_LEARNING', concept: { prerequisiteMasteryMet: false }, learner: { evidenceCount: 6 }, policy })).strategy).toBe('REMEDIATE');
+    });
+
+    it('does not let a thin mastery history switch the strategy of a doubt', () => {
+      const evidence = { ...emptyEvidence(), HINT: { successes: 9, attempts: 10 } };
+
+      const out = service.teachingStrategy(input({ intent: 'DOUBT', learner: { mastery: 0.2, evidenceCount: 1 }, policy: { strategyEvidence: evidence } }));
+
+      expect(out.strategy).toBe('WORKED_EXAMPLE');
+    });
+
     it('reports whether the personal policy has enough observations to be trusted', () => {
       const trusted = { ...emptyEvidence(), EXPLAIN: { successes: 3, attempts: 5 } };
 

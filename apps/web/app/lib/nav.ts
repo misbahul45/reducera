@@ -12,12 +12,13 @@ export interface NavItem {
 
 export const LEARNER_NAV: ReadonlyArray<NavItem> = [
   { id: 'home', label: 'Beranda', to: '/learn/profile/dashboard', icon: { kind: 'ui', name: 'i-lucide-house' }, tab: true },
-  { id: 'topics', label: 'Topik', to: '/learn/topics', icon: { kind: 'ui', name: 'i-lucide-book-open' }, tab: true },
+  { id: 'topics', label: 'Courses', to: '/learn/topics', icon: { kind: 'ui', name: 'i-lucide-book-open' }, tab: true },
   { id: 'practice', label: 'Latihan', to: '/sandbox', icon: { kind: 'ui', name: 'i-lucide-dumbbell' }, tab: false },
   { id: 'leaderboard', label: 'Peringkat', to: '/learn/leaderboard', icon: { kind: 'game', name: 'league' }, tab: true },
   { id: 'achievements', label: 'Pencapaian', to: '/learn/achievements', icon: { kind: 'game', name: 'badge' }, tab: true },
   { id: 'streaks', label: 'Streak', to: '/learn/streaks', icon: { kind: 'game', name: 'streak' }, tab: false },
   { id: 'profile', label: 'Profil', to: '/learn/profile/me', icon: { kind: 'ui', name: 'i-lucide-user-round' }, tab: true },
+  { id: 'notes', label: 'Catatan', to: '/my-learning/notes', icon: { kind: 'ui', name: 'i-lucide-notebook-pen' }, tab: false },
   { id: 'market', label: 'Marketplace', to: '/marketplace', icon: { kind: 'ui', name: 'i-lucide-store' }, tab: false },
   { id: 'support', label: 'Bantuan', to: '/learn/support', icon: { kind: 'ui', name: 'i-lucide-life-buoy' }, tab: false },
 ];

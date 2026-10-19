@@ -46,8 +46,8 @@ def memory_manager():
 @pytest.fixture
 def pipeline_io():
     with patch.object(content_pipeline, "update_message_chat"), patch.object(
-        content_pipeline, "retrieve_material_rag", return_value=("", [])
-    ), patch.object(content_pipeline, "retrieve_material_web", return_value=""), patch.object(
+        content_pipeline, "retrieve_material_results", return_value=[]
+    ), patch.object(content_pipeline, "fetch_topic_sources", return_value={"scope": {}, "sources": []}), patch.object(
         content_pipeline, "_render_tutor_system_policy", return_value="policy"
     ), patch.object(content_pipeline, "query_content_history", return_value=[]):
         yield

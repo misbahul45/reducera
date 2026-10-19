@@ -1,4 +1,3 @@
-// common/guards/roles.guard.ts
 import {
   Injectable,
   CanActivate,
@@ -20,7 +19,7 @@ export class RolesGuard implements CanActivate {
     ]);
 
     if (!requiredRoles || requiredRoles.length === 0) {
-      return true; // Tidak butuh role tertentu
+      return true;
     }
 
     const { user } = context.switchToHttp().getRequest();

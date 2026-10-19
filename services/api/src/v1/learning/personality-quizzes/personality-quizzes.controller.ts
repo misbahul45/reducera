@@ -2,12 +2,13 @@ import { ScopeToUser } from '@/common/authz/access';
 import { RequireOwnership } from '@/v1/common/guards/ownership.decorator';
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PersonalityQuizzesService } from './personality-quizzes.service';
-import { CreatePersonalityQuizType, PersonalityQuizUserAttemptSchema, UpdatePersonalityQuizType } from './personality-quizzes.dto';
+import { CreatePersonalityQuizType, PersonalityQuizSubmission, PersonalityQuizSubmissionSchema, UpdatePersonalityQuizType } from './personality-quizzes.dto';
+import { placementForViewer } from './placement-grading';
 import { PersonalityQuizSseService } from '@/v1/sse/personality-quiz-sse/personality-quiz-sse.service';
-import { GetUser } from '@/v1/auth/auth.decorator';
+import { GetUser, Roles } from '@/v1/auth/auth.decorator';
+import { ZodPipe } from '@/common/pipes/zod.pipe';
 import { Query as QueryInterface } from '@/common/interfaces';
-import z from 'zod';
-import { User } from '@prisma/client';
+import { Role, User } from '@prisma/client';
 
 @Controller('personality-quizzes')
 export class PersonalityQuizzesController {
@@ -17,14 +18,13 @@ export class PersonalityQuizzesController {
   ) {}
 
   @Post()
-  @ScopeToUser()
+  @Roles(Role.ADMIN)
   async create(
     @Body() values: CreatePersonalityQuizType,
-    @GetUser() user: User
   ) {
     const res = await this.personalityQuizzesService.create(values);
     this.personalityQuizzesSseService.emitUpdate({
-      userId: user.id,
+      userId: values.userId,
       personalityQuizId: res.data.id,
     });
     return res;
@@ -33,39 +33,37 @@ export class PersonalityQuizzesController {
   @Patch('/submit/:id')
   @RequireOwnership('personality-quiz')
   async submitAttempt(
-    @Query() query:{
-      topicId: string
-      lessonId: string
-      learningStyleId: string
-    },
-    @Param('id') id:string,
-    @GetUser() user:User,
-    @Body() values:z.infer<typeof PersonalityQuizUserAttemptSchema>
-  ){
-    return this.personalityQuizzesService.submitAttempt({
-      ...query,
-      userId:user.id,
-      quizId:id
-    }, values)
+    @Query() query: { learningStyleId: string },
+    @Param('id') id: string,
+    @GetUser() user: User,
+    @Body(new ZodPipe(PersonalityQuizSubmissionSchema)) values: PersonalityQuizSubmission
+  ) {
+    const res = await this.personalityQuizzesService.submitAttempt(
+      { userId: user.id, learningStyleId: query.learningStyleId, quizId: id },
+      values,
+    );
+    return { ...res, data: placementForViewer(user.role, res.data) };
   }
 
   @Get()
   @ScopeToUser()
-  findAll(
+  async findAll(
     @GetUser() user: User,
     @Query() query: QueryInterface
   ) {
-    return this.personalityQuizzesService.findAll(user.id, query);
+    const res = await this.personalityQuizzesService.findAll(user.id, query);
+    return { ...res, data: { ...res.data, data: res.data.data.map((quiz) => placementForViewer(user.role, quiz)) } };
   }
 
   @Get(':id')
   @RequireOwnership('personality-quiz')
-  findOne(@Param('id') id: string, @Query() q: any) {
-    return this.personalityQuizzesService.findOne(id, q);
+  async findOne(@Param('id') id: string, @Query() q: any, @GetUser() user: User) {
+    const res = await this.personalityQuizzesService.findOne(id, q);
+    return { ...res, data: placementForViewer(user.role, res.data) };
   }
 
   @Patch(':id')
-  @RequireOwnership('personality-quiz')
+  @Roles(Role.ADMIN)
   update(
     @Param('id') id: string,
     @Body() values: UpdatePersonalityQuizType
@@ -74,7 +72,7 @@ export class PersonalityQuizzesController {
   }
 
   @Delete(':id')
-  @RequireOwnership('personality-quiz')
+  @Roles(Role.ADMIN)
   remove(@Param('id') id: string) {
     return this.personalityQuizzesService.remove(id);
   }

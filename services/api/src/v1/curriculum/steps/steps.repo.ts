@@ -30,7 +30,6 @@ export class StepsRepo {
                 }, {} as Record<string, boolean>);
             }
 
-
             return await this.prisma.step.findFirst({
                 where: { [key]:value },
                 include,
@@ -46,7 +45,6 @@ export class StepsRepo {
 
             const where: any = {};
 
-            // Searching
             if (q.q) {
                 where.OR = [
                     { title: { contains: q.q, mode: 'insensitive' } },
@@ -54,14 +52,12 @@ export class StepsRepo {
                 ];
             }
 
-            // Sorting
             let orderBy: any = undefined;
             if (q.sort) {
                 const [field, direction = 'asc'] = q.sort.split(':');
                 orderBy = { [field]: direction };
             }
 
-            // Include Relations
             let include: any = undefined;
             if (q.include) {
                 const includes = Array.isArray(q.include)
@@ -74,7 +70,6 @@ export class StepsRepo {
                 }, {} as Record<string, boolean>);
             }
 
-            // Additional filtering except reserved keywords
             for (const key in q) {
                 if (!['q', 'page', 'limit', 'sort', 'include', 'type'].includes(key)) {
                     where[key] = q[key];
@@ -112,7 +107,6 @@ export class StepsRepo {
             };
         });
     }
-
 
     async create(values:CreateStepType){
         return errorHandler(async()=>{

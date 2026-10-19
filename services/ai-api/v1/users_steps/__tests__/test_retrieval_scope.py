@@ -114,7 +114,9 @@ def test_a_failed_retrieval_does_not_stop_the_introduction():
 
     chunks = run_introduction(pipeline, mint_session(acting_user_id="u-7"))
 
-    assert [chunk for chunk in chunks if not isinstance(chunk, StageEvent)] == []
+    from v1.users_steps.streaming import FinalEvent, SourcesEvent
+
+    assert [chunk for chunk in chunks if not isinstance(chunk, (StageEvent, SourcesEvent, FinalEvent))] == []
     assert [stage.state for stage in chunks if isinstance(stage, StageEvent) and stage.key == "retrieval"] == ["failed"]
 
 

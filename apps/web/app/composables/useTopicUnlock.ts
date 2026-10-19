@@ -23,19 +23,19 @@ export function useTopicUnlock() {
       const outcome = claimOutcome(response);
       if (outcome === 'opened') {
         await queryClient.invalidateQueries({ queryKey: [ENROLLED_TOPICS_KEY] });
-        toast.add({ title: 'Topik terbuka', description: 'Selamat belajar!', color: 'success', icon: 'i-lucide-rocket' });
+        toast.add({ title: 'Course terbuka', description: 'Selamat belajar!', color: 'success', icon: 'i-lucide-rocket' });
         await navigateTo(`/my-learning/topics/${topic.slug}`);
         return;
       }
       if (outcome === 'failed') {
-        toast.add({ title: 'Gagal membuka topik', description: response?.message || 'Coba lagi sebentar lagi.', color: 'error' });
+        toast.add({ title: 'Gagal membuka course', description: response?.message || 'Coba lagi sebentar lagi.', color: 'error' });
         return;
       }
-      toast.add({ title: 'Topik belum terbuka', description: 'Selesaikan pesananmu untuk membukanya.', color: 'warning' });
+      toast.add({ title: 'Course belum terbuka', description: 'Selesaikan pesananmu untuk membukanya.', color: 'warning' });
       await navigateTo(`/learn/topics/${topic.id}/order`);
     },
     onError: () => {
-      toast.add({ title: 'Gagal membuka topik', description: 'Coba lagi sebentar lagi.', color: 'error' });
+      toast.add({ title: 'Gagal membuka course', description: 'Coba lagi sebentar lagi.', color: 'error' });
     },
   });
 

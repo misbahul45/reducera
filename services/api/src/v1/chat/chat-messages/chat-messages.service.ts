@@ -1,6 +1,6 @@
 import { errorHandler } from '@/common/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { CreateChatMessageDtoType, UpdateChatMessageDtoType } from './chat-messages.dto';
+import { CreateChatMessageDtoType, InternalUpdateChatMessageDtoType, UpdateChatMessageDtoType } from './chat-messages.dto';
 import { AppError } from '@/common/lib/error';
 import { ChatMessagesRepo } from './chat-messages.repo';
 
@@ -29,6 +29,23 @@ export class ChatMessagesService {
       }
 
       const data=await this.chatMesagesRepo.update(id, values)
+
+      return{
+        message:'Successfully update Message',
+        data:data
+      }
+    })
+  }
+
+  updateReply(id: string, values: InternalUpdateChatMessageDtoType) {
+    return errorHandler(async()=>{
+      const isExist=await this.chatMesagesRepo.findOne(id)
+
+      if(!isExist){
+        throw new AppError('Message not found', 404)
+      }
+
+      const data=await this.chatMesagesRepo.updateReply(id, values)
 
       return{
         message:'Successfully update Message',

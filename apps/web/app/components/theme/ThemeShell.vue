@@ -14,6 +14,7 @@ const props = defineProps<{
 }>();
 
 const defaultTheme = useState<DefaultThemePayload | null>('rc-default-theme', () => null);
+const { theme: userTheme } = useUserTheme();
 const motionPreference = usePreferredReducedMotion();
 const mounted = ref(false);
 
@@ -23,7 +24,7 @@ onMounted(() => {
 
 const render = computed(() =>
   shellRender({
-    chain: [props.step, props.lesson, props.subTopic, props.topic, defaultTheme.value?.theme],
+    chain: [userTheme.value, props.step, props.lesson, props.subTopic, props.topic, defaultTheme.value?.theme],
     variant: props.variant ?? 'LEARN',
     reducedMotion: mounted.value && motionPreference.value === 'reduce',
   }),

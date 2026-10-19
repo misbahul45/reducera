@@ -37,20 +37,12 @@ GOVERNANCE_KEYS = frozenset({
 })
 
 
-# ==========================
-# UTILITY CHUNKING
-# ==========================
-
 def structural_split(text: str) -> list[str]:
     return [chunk.strip() for chunk in text.split('\n\n') if chunk.strip()]
 
 def adaptive_chunks(text: str) -> list[str]:
     return SentenceSplitter(chunk_size=512, chunk_overlap=20).split_text(text)
 
-
-# ==========================
-# INIT QDRANT
-# ==========================
 
 qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
@@ -69,10 +61,6 @@ embed_model = build_embedding_model()
 llm_model = build_chat_model("flash")
 llm_thinking_model = build_chat_model("thinking")
 
-
-# ==========================
-# SMART CHUNKER
-# ==========================
 
 class SmartChunker:
     def __init__(self, embed_model=None):
@@ -101,10 +89,6 @@ class SmartChunker:
         return [n.text for n in nodes if len(n.text.strip()) > 30]
 
 
-# ==========================
-# MAIN PIPELINE (UPDATED)
-# ==========================
-
 class EmbeddingPipeline:
     def __init__(
         self,
@@ -125,9 +109,6 @@ class EmbeddingPipeline:
 
         self.index = self._load_or_create_index()
 
-    # ---------------------------
-    # INIT INDEX
-    # ---------------------------
     def _load_or_create_index(self) -> VectorStoreIndex:
         try:
             return VectorStoreIndex.from_vector_store(
@@ -141,9 +122,6 @@ class EmbeddingPipeline:
                 embed_model=self.embed_model
             )
 
-    # ---------------------------
-    # HELPERS
-    # ---------------------------
 
     @staticmethod
     def _get_md5_hash(text: str) -> str:
@@ -152,9 +130,6 @@ class EmbeddingPipeline:
     def clean_text(self, text: str) -> str:
         return re.sub(r'\s+', ' ', text).strip()
 
-    # ---------------------------
-    # TRANSLATION CONTROL
-    # ---------------------------
 
     def translate(self, text: str) -> str:
         if not self.enable_translation:
@@ -164,9 +139,6 @@ class EmbeddingPipeline:
         response = self.llm.invoke([{"role": "user", "content": prompt}])
         return response.content.strip()
 
-    # ---------------------------
-    # LLM CONTROL — THINKING MODE
-    # ---------------------------
 
     def llm_prompt(self, prompt: str) -> str:
         """
@@ -192,24 +164,18 @@ class EmbeddingPipeline:
 
         return response.content.strip()
 
-    # ---------------------------
-    # UPSERT DOCUMENT
-    # ---------------------------
     def upsert_document(self, content: str, source_id: str, metadata=None, *, governance: Governance):
         if not isinstance(governance, Governance):
             raise GovernanceError("a document cannot be written without governance metadata")
         free_metadata = {k: v for k, v in (metadata or {}).items() if k not in GOVERNANCE_KEYS}
         cleaned = self.clean_text(content)
 
-            # Translation jika diaktifkan
         if self.enable_translation:
             cleaned = self.translate(cleaned)
 
-        # Chunking
         chunks = self.smart_chunker.chunk(cleaned)
         nodes = []
 
-        # 👇 ikuti contoh persis seperti TextNode()
         for i, chunk in enumerate(chunks):
             node = TextNode(
                 text=chunk,
@@ -222,7 +188,6 @@ class EmbeddingPipeline:
             )
             nodes.append(node)
 
-        # Masukkan nodes ke vectorstore
         VectorStoreIndex.from_documents(
             nodes,
             storage_context=self.storage_context,
@@ -230,9 +195,6 @@ class EmbeddingPipeline:
         )
 
         logger.info(f"[UPSERT] Inserted {len(nodes)} chunks for {source_id}")
-    # ---------------------------
-    # RETRIEVAL (CAN BE DISABLED)
-    # ---------------------------
     def retrieve(self, query: str, *, scope: RetrievalScope, top_k: int = RETRIEVAL_K):
         if not isinstance(scope, RetrievalScope):
             raise GovernanceError("a retrieval cannot run without a scope")
@@ -290,7 +252,6 @@ class EmbeddingPipeline:
         return metadata.get("chunk_id") or (metadata.get("source"), metadata.get("chunk_index"))
 
 
-# SINGLETON INSTANCE
 PIPELINE_INSTANCE = EmbeddingPipeline()
 
 def get_embedding_pipeline() -> EmbeddingPipeline:

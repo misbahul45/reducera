@@ -1,4 +1,3 @@
-// zod.exception.ts
 
 import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
 import { ZodError } from 'zod';

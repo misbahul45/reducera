@@ -34,7 +34,7 @@ const demoStyle = computed(() => ({
         <p class="lp-theme__note">{{ C.theme.options.find((o) => o.id === current)?.note }}</p>
       </div>
       <div class="lp-theme__demo" :style="demoStyle" :data-theme="current">
-        <p class="lp-theme__demo-title">Selesaikan satu penilaian hari ini</p>
+        <p class="lp-theme__demo-title">Lulus satu penilaian hari ini</p>
         <div class="lp-theme__icons">
           <GameIcon v-for="name in THEME_ICON_NAMES.slice(0, 6)" :key="name" :name="name" :size="34" decorative />
         </div>

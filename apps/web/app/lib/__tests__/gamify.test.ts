@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { achievementPercent, formatCount, levelPercent, medalFor, rewardHeadline, streakCopy, weekdayShort } from '~/lib/gamify';
+import { achievementPercent, formatCount, levelPercent, levelUpLine, medalFor, rewardHeadline, rewardSummary, streakCopy, weekdayShort } from '~/lib/gamify';
 import type { AssessmentGamify } from '~/interfaces/gamify';
 
 describe('formatCount', () => {
@@ -110,5 +110,38 @@ describe('rewardHeadline', () => {
     const used = { ...base, streak: { ...base.streak, extended: true, current: 8, freezesUsed: 1 } };
 
     expect(rewardHeadline(used).map((r) => r.text)).toContain('Pembeku streak menyelamatkan streak-mu');
+  });
+});
+
+describe('rewardHeadline without a streak', () => {
+  it('reads an outcome whose streak is unknown', () => {
+    expect(rewardHeadline({ xpGained: 12, starsGained: 1, streak: null, achievements: [] }).map((r) => r.text)).toEqual(['+1 bintang', '+12 XP']);
+  });
+});
+
+describe('levelUpLine', () => {
+  it('names the new level when it went up', () => {
+    expect(levelUpLine(2, 3)).toEqual({ kind: 'level', icon: 'level', text: 'Naik ke level 3' });
+    expect(levelUpLine(1, 4)).toEqual({ kind: 'level', icon: 'level', text: 'Naik ke level 4' });
+  });
+
+  it('says nothing when the level stayed, fell, or one side is unknown', () => {
+    expect(levelUpLine(3, 3)).toBeNull();
+    expect(levelUpLine(4, 3)).toBeNull();
+    expect(levelUpLine(null, 3)).toBeNull();
+    expect(levelUpLine(3, null)).toBeNull();
+  });
+});
+
+describe('rewardSummary', () => {
+  const outcome = { xpGained: 30, starsGained: 0, streak: null, achievements: [] };
+
+  it('puts the level up first and then what was earned', () => {
+    expect(rewardSummary(outcome, 2, 3).map((r) => r.text)).toEqual(['Naik ke level 3', '+30 XP']);
+  });
+
+  it('works without an outcome, for a level that moved on its own', () => {
+    expect(rewardSummary(null, 1, 2).map((r) => r.text)).toEqual(['Naik ke level 2']);
+    expect(rewardSummary(undefined, 2, 2)).toEqual([]);
   });
 });

@@ -93,3 +93,99 @@ describe('pathSummary', () => {
     expect(pathSummary([])).toEqual({ total: 0, done: 0, percent: 0 });
   });
 });
+
+import { buildStepPath, stepHref, type PathStepGroup } from '~/lib/learning-path';
+
+const stepItem = (id: string, order: number, isDone: boolean, isUnlocked: boolean, title = `Langkah ${id}`) => ({ id, order, isDone, isUnlocked, title });
+
+const group = (id: string, sortOrder: number, steps: ReturnType<typeof stepItem>[], title = `Bagian ${id}`): PathStepGroup => ({ id, sortOrder, title, steps });
+
+describe('buildStepPath', () => {
+  const sample = [
+    group('g1', 1, [stepItem('a', 1, true, true), stepItem('b', 2, true, true), stepItem('c', 3, false, true)]),
+    group('g2', 2, [stepItem('d', 4, false, false), stepItem('e', 5, false, false)]),
+  ];
+
+  it('walks the sections in order and marks done, current and locked steps', () => {
+    const nodes = buildStepPath(sample);
+
+    expect(nodes.map((node) => [node.id, node.state])).toEqual([
+      ['a', 'done'],
+      ['b', 'done'],
+      ['c', 'current'],
+      ['d', 'locked'],
+      ['e', 'locked'],
+    ]);
+  });
+
+  it('points at exactly one current step and calls later open steps available', () => {
+    const nodes = buildStepPath([group('g1', 1, [stepItem('a', 1, false, true), stepItem('b', 2, false, true), stepItem('c', 3, false, true)])]);
+
+    expect(nodes.map((node) => node.state)).toEqual(['current', 'available', 'available']);
+  });
+
+  it('keeps a step reachable once it is done, even if it is no longer unlocked', () => {
+    const [node] = buildStepPath([group('g1', 1, [stepItem('a', 1, true, false)])]);
+
+    expect(node).toMatchObject({ state: 'done', to: '/my-learning/steps/g1/a' });
+  });
+
+  it('gives a locked step no link and an open step the link of the step page with the lesson', () => {
+    const nodes = buildStepPath(sample, { lessonId: 'lesson-1' });
+
+    expect(nodes[2].to).toBe('/my-learning/steps/g1/c?lessonId=lesson-1');
+    expect(nodes[3].to).toBeNull();
+  });
+
+  it('labels every step with its section and the progress of that section', () => {
+    const nodes = buildStepPath(sample);
+
+    expect(nodes[0]).toMatchObject({ unit: 'Bagian g1', unitDone: 2, unitTotal: 3 });
+    expect(nodes[4]).toMatchObject({ unit: 'Bagian g2', unitDone: 0, unitTotal: 2 });
+  });
+
+  it('marks the step that is open on the page', () => {
+    const nodes = buildStepPath(sample, { activeId: 'c' });
+
+    expect(nodes.filter((node) => node.active).map((node) => node.id)).toEqual(['c']);
+  });
+
+  it('orders sections by sortOrder and steps by their order, keeping input order for ties', () => {
+    const nodes = buildStepPath([
+      group('later', 2, [stepItem('y', 2, false, true), stepItem('x', 1, false, true)]),
+      group('first', 1, [stepItem('z', 1, false, true)]),
+    ]);
+
+    expect(nodes.map((node) => node.id)).toEqual(['z', 'x', 'y']);
+    const ties = buildStepPath([group('g', 1, [stepItem('p', 1, false, true), stepItem('q', 1, false, true)])]);
+    expect(ties.map((node) => node.id)).toEqual(['p', 'q']);
+  });
+
+  it('skips a section that has no steps yet', () => {
+    expect(buildStepPath([group('empty', 1, []), group('g', 2, [stepItem('a', 1, false, true)])]).map((node) => node.id)).toEqual(['a']);
+  });
+
+  it('has no current step when everything is done or everything is locked', () => {
+    expect(buildStepPath([group('g', 1, [stepItem('a', 1, true, true)])]).some((node) => node.state === 'current')).toBe(false);
+    expect(buildStepPath([group('g', 1, [stepItem('a', 1, false, false)])]).some((node) => node.state === 'current')).toBe(false);
+  });
+
+  it('treats a missing flag as not done and locked, so nothing opens by accident', () => {
+    const [node] = buildStepPath([{ id: 'g', steps: [{ id: 's', title: 'Tanpa tanda' }] }]);
+
+    expect(node).toMatchObject({ state: 'locked', to: null });
+  });
+
+  it('names an untitled section or step and copes with no input', () => {
+    const [node] = buildStepPath([{ id: 'g', title: '  ', steps: [{ id: 's', title: null, isUnlocked: true }] }]);
+
+    expect(node).toMatchObject({ unit: 'Tanpa judul', title: 'Tanpa judul' });
+    expect(buildStepPath(null)).toEqual([]);
+    expect(buildStepPath(undefined)).toEqual([]);
+  });
+
+  it('builds the link of a step page', () => {
+    expect(stepHref('g', 's')).toBe('/my-learning/steps/g/s');
+    expect(stepHref('g', 's', 'l 1')).toBe('/my-learning/steps/g/s?lessonId=l%201');
+  });
+});

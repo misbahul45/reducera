@@ -21,10 +21,9 @@ export class LegacyJobScrubber implements OnApplicationBootstrap {
 
   constructor(
     @InjectQueue('knowledge') knowledgeQueue: Queue,
-    @InjectQueue('content') contentQueue: Queue,
     @InjectQueue('user-steps') userStepsQueue: Queue,
   ) {
-    this.queues = [knowledgeQueue, contentQueue, userStepsQueue];
+    this.queues = [knowledgeQueue, userStepsQueue];
   }
 
   async onApplicationBootstrap(): Promise<void> {

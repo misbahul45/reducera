@@ -1,0 +1,598 @@
+{
+  "version": 1,
+  "ppu": [
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “lugas” adalah ...", "options": ["terus terang", "berbelit-belit", "santun", "samar", "ringkas"], "answer": 0, "explanation": "Lugas berarti langsung dan apa adanya, tidak bertele-tele. Padanannya adalah terus terang." },
+    { "section": "Pengetahuan leksikal", "stem": "Antonim kata “abstrak” adalah ...", "options": ["konkret", "samar", "rumit", "umum", "ideal"], "answer": 0, "explanation": "Abstrak berarti hanya ada dalam pikiran dan tidak berwujud. Lawannya adalah konkret, yaitu nyata dan dapat diamati." },
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “adaptif” adalah ...", "options": ["mudah menyesuaikan diri", "menolak perubahan", "suka menyendiri", "gemar meniru", "mengabaikan keadaan"], "answer": 0, "explanation": "Adaptif berarti mampu menyesuaikan diri dengan keadaan atau lingkungan baru." },
+    { "section": "Pengetahuan leksikal", "stem": "Antonim kata “fleksibel” adalah ...", "options": ["kaku", "lentur", "luwes", "ringan", "mudah"], "answer": 0, "explanation": "Fleksibel berarti lentur atau luwes. Lawannya adalah kaku. Lentur dan luwes justru bersinonim dengan fleksibel." },
+    { "section": "Pengetahuan leksikal", "stem": "Makna kata “ambigu” adalah ...", "options": ["bermakna ganda sehingga menimbulkan keraguan", "jelas dan tegas", "bertentangan dengan fakta", "berlebihan", "tidak memiliki arti"], "answer": 0, "explanation": "Ambigu berarti dapat ditafsirkan lebih dari satu cara sehingga maknanya tidak pasti." },
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “efisien” adalah ...", "options": ["berdaya guna", "boros", "rumit", "lambat", "mewah"], "answer": 0, "explanation": "Efisien berarti tepat dan hemat dalam memakai waktu, tenaga, atau biaya sehingga berdaya guna." },
+    { "section": "Pengetahuan leksikal", "stem": "Antonim kata “hemat” adalah ...", "options": ["boros", "cermat", "irit", "kikir", "teliti"], "answer": 0, "explanation": "Hemat berarti tidak berlebihan dalam memakai sesuatu. Lawannya adalah boros." },
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “optimal” adalah ...", "options": ["paling baik", "paling lemah", "seadanya", "sementara", "terbatas"], "answer": 0, "explanation": "Optimal berarti terbaik atau paling menguntungkan sesuai keadaan yang ada." },
+    { "section": "Pengetahuan leksikal", "stem": "Antonim kata “kronis” adalah ...", "options": ["akut", "parah", "menahun", "berat", "berkepanjangan"], "answer": 0, "explanation": "Kronis berarti berlangsung lama atau menahun. Lawannya adalah akut, yaitu timbul cepat dan berlangsung singkat." },
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “eksplisit” adalah ...", "options": ["tersurat", "tersirat", "tersembunyi", "samar", "rancu"], "answer": 0, "explanation": "Eksplisit berarti dinyatakan secara jelas dan langsung, atau tersurat. Lawannya adalah tersirat." },
+    { "section": "Pengetahuan leksikal", "stem": "Makna kata “kontradiktif” adalah ...", "options": ["saling bertentangan", "saling menguatkan", "sejalan", "berulang-ulang", "tidak lengkap"], "answer": 0, "explanation": "Kontradiktif berarti bersifat bertentangan satu sama lain." },
+    { "section": "Pengetahuan leksikal", "stem": "Sinonim kata “skeptis” adalah ...", "options": ["kurang percaya", "penuh harap", "mudah percaya", "acuh tak acuh", "bersemangat"], "answer": 0, "explanation": "Skeptis berarti kurang percaya atau ragu-ragu terhadap kebenaran sesuatu." },
+    { "section": "Pengetahuan leksikal", "stem": "Makna kata “redundan” adalah ...", "options": ["berlebihan sehingga tidak diperlukan", "sangat penting", "sulit dipahami", "belum lengkap", "saling bertentangan"], "answer": 0, "explanation": "Redundan berarti berlebihan: sesuatu yang diulang atau ditambahkan padahal tidak diperlukan." },
+    { "section": "Pengetahuan leksikal", "stem": "Antonim kata “transparan” dalam konteks pengelolaan dana adalah ...", "options": ["tertutup", "jernih", "terbuka", "jelas", "bening"], "answer": 0, "explanation": "Transparan dalam pengelolaan dana berarti terbuka dan dapat diperiksa. Lawannya adalah tertutup." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “naik daun” adalah ...", "options": ["menjadi terkenal atau sukses", "kehilangan pekerjaan", "menjadi pelupa", "jatuh sakit", "mendapat hukuman"], "answer": 0, "explanation": "Naik daun berarti sedang populer, terkenal, atau sukses." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “kambing hitam” adalah ...", "options": ["pihak yang dipersalahkan atas kesalahan orang lain", "hewan peliharaan yang sulit diatur", "orang yang pandai berdagang", "pihak yang paling dermawan", "orang yang bernasib mujur"], "answer": 0, "explanation": "Kambing hitam adalah pihak yang disalahkan atas suatu kesalahan yang sebenarnya bukan perbuatannya." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “buah bibir” adalah ...", "options": ["bahan pembicaraan orang banyak", "makanan penutup", "kata-kata kasar", "janji yang diingkari", "cerita pengantar tidur"], "answer": 0, "explanation": "Buah bibir berarti sesuatu atau seseorang yang sering dibicarakan orang." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “lepas tangan” adalah ...", "options": ["tidak mau ikut bertanggung jawab", "berpisah dengan baik-baik", "melepaskan genggaman", "meminta bantuan", "bekerja keras"], "answer": 0, "explanation": "Lepas tangan berarti tidak mau lagi ikut campur atau bertanggung jawab atas suatu urusan." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “meja hijau” adalah ...", "options": ["pengadilan", "meja makan", "ruang rapat", "tempat belajar", "kantor pajak"], "answer": 0, "explanation": "Meja hijau adalah kiasan untuk pengadilan, misalnya dalam kalimat “Perkara itu dibawa ke meja hijau”." },
+    { "section": "Ungkapan dan makna kiasan", "stem": "Makna ungkapan “besar kepala” adalah ...", "options": ["sombong", "pusing", "berani", "sabar", "pintar"], "answer": 0, "explanation": "Besar kepala berarti sombong atau merasa diri lebih hebat dari orang lain." },
+    { "section": "Imbuhan dan kata dasar", "stem": "Kata dasar dari “menggunakan” adalah ...", "options": ["guna", "gunakan", "mengguna", "kuna", "menggun"], "answer": 0, "explanation": "Menggunakan terbentuk dari awalan meng- + guna + akhiran -kan. Kata dasarnya adalah guna." },
+    { "section": "Imbuhan dan kata dasar", "stem": "Imbuhan me-kan pada kata “memanaskan” bermakna ...", "options": ["menyebabkan menjadi panas", "melakukan pekerjaan panas", "saling memanaskan", "sedang berada dalam keadaan panas", "menyerupai panas"], "answer": 0, "explanation": "Imbuhan me-kan pada kata sifat, seperti panas, bermakna kausatif: menyebabkan menjadi panas." },
+    { "section": "Imbuhan dan kata dasar", "stem": "Awalan ter- yang bermakna “tidak sengaja” terdapat pada kata ...", "options": ["terjatuh", "terbesar", "tertinggi", "terbaik", "terkenal"], "answer": 0, "explanation": "Terjatuh berarti jatuh tanpa disengaja. Pada terbesar, tertinggi, dan terbaik, ter- bermakna paling." },
+    { "section": "Imbuhan dan kata dasar", "stem": "Imbuhan ber-an pada kata “berpelukan” menyatakan makna ...", "options": ["saling memeluk", "sedang memeluk", "menyebabkan memeluk", "suka memeluk", "alat untuk memeluk"], "answer": 0, "explanation": "Imbuhan ber-an pada kata kerja yang dapat dilakukan dua pihak menyatakan perbuatan berbalasan, yaitu saling." }
+  ],
+  "pbm": {
+    "authored": [
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang efektif adalah ...",
+        "options": [
+          "Para peserta ujian telah memasuki ruangan.",
+          "Para peserta-peserta ujian telah memasuki ruangan.",
+          "Peserta-peserta ujian itu semuanya telah masuk ke dalam ruangan.",
+          "Para peserta ujian-ujian telah memasuki ruangan.",
+          "Telah masuk ke dalam ruangan para peserta-peserta ujian."
+        ],
+        "answer": 0,
+        "explanation": "Kata “para” sudah menyatakan jamak, sehingga tidak perlu ditambah pengulangan kata (peserta-peserta) atau kata “semuanya”."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang tidak mengandung unsur mubazir adalah ...",
+        "options": [
+          "Harga bahan pokok naik menjelang hari raya.",
+          "Harga bahan pokok naik ke atas menjelang hari raya.",
+          "Harga bahan pokok yang naik ke atas itu menjelang hari raya.",
+          "Menjelang hari raya, harga bahan-bahan pokok-pokok naik.",
+          "Harga bahan pokok yang naik-naik menjelang hari raya."
+        ],
+        "answer": 0,
+        "explanation": "Kata “naik” sudah bermakna ke atas, sehingga “naik ke atas” mubazir. Pilihan lain juga memuat pengulangan atau struktur yang tidak lengkap."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang efektif adalah ...",
+        "options": [
+          "Ia belajar keras agar lulus ujian.",
+          "Ia belajar keras agar supaya lulus ujian.",
+          "Ia belajar keras, agar supaya dapat lulus ujian.",
+          "Ia belajar keras sehingga supaya lulus ujian.",
+          "Ia belajar keras supaya agar lulus ujian."
+        ],
+        "answer": 0,
+        "explanation": "“Agar” dan “supaya” bermakna sama, jadi cukup memakai salah satunya. Memakai keduanya sekaligus mubazir."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang memiliki subjek dan struktur yang jelas adalah ...",
+        "options": [
+          "Hasil survei menunjukkan bahwa minat baca meningkat.",
+          "Berdasarkan hasil survei menunjukkan bahwa minat baca meningkat.",
+          "Dari hasil survei menunjukkan bahwa minat baca meningkat.",
+          "Berdasarkan hasil survei, menunjukkan minat baca meningkat.",
+          "Menurut hasil survei menunjukkan bahwa minat baca meningkat."
+        ],
+        "answer": 0,
+        "explanation": "Kata depan seperti berdasarkan, dari, dan menurut membuat frasa di depannya menjadi keterangan sehingga kalimat kehilangan subjek. Pada pilihan pertama, “hasil survei” menjadi subjek."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang memiliki bentuk-bentuk sejajar adalah ...",
+        "options": [
+          "Kegiatan itu bertujuan menambah wawasan, melatih keterampilan, dan menanamkan disiplin.",
+          "Kegiatan itu bertujuan untuk menambah wawasan, melatih keterampilan, dan kedisiplinan.",
+          "Kegiatan itu bertujuan menambah wawasan, keterampilan, dan menanamkan disiplin.",
+          "Kegiatan itu bertujuan wawasan bertambah, melatih keterampilan, dan disiplin.",
+          "Kegiatan itu bertujuan menambah wawasan, pelatihan keterampilan, dan menanamkan disiplin."
+        ],
+        "answer": 0,
+        "explanation": "Rincian dalam kalimat harus sejajar. Pada pilihan pertama ketiganya berupa verba: menambah, melatih, menanamkan."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang efektif adalah ...",
+        "options": [
+          "Rumah tempat ia tinggal sudah tua.",
+          "Rumah di mana ia tinggal sudah tua.",
+          "Rumah yang di mana ia tinggal sudah tua.",
+          "Rumah dimana ia tinggal sudah tua.",
+          "Rumah dari mana ia tinggal sudah tua."
+        ],
+        "answer": 0,
+        "explanation": "Kata “di mana” tidak tepat dipakai sebagai kata penghubung klausa. Untuk menunjuk tempat dipakai “tempat” atau “yang”."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat yang tidak memakai konjungsi ganda adalah ...",
+        "options": [
+          "Meskipun hujan lebat, ia tetap berangkat.",
+          "Meskipun hujan lebat, tetapi ia tetap berangkat.",
+          "Walaupun hujan lebat, namun ia tetap berangkat.",
+          "Meskipun hujan lebat, akan tetapi ia tetap berangkat.",
+          "Hujan lebat, meskipun ia tetap berangkat."
+        ],
+        "answer": 0,
+        "explanation": "Anak kalimat berkonjungsi “meskipun” tidak perlu diikuti “tetapi”, “namun”, atau “akan tetapi” pada induk kalimat."
+      },
+      {
+        "section": "Kalimat efektif",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Kalimat berikut yang efektif adalah ...",
+        "options": [
+          "Pemerintah daerah menambah jumlah bus sekolah.",
+          "Pemerintah daerah-daerah menambah jumlah-jumlah bus sekolah.",
+          "Pemerintah daerah itu menambahkan akan jumlah bus sekolah.",
+          "Menambah jumlah bus sekolah oleh pemerintah daerah.",
+          "Jumlah bus sekolah ditambah pemerintah daerah itu yang."
+        ],
+        "answer": 0,
+        "explanation": "Kalimat efektif memiliki subjek dan predikat yang jelas serta tidak memuat pengulangan atau kata yang tidak diperlukan."
+      },
+      {
+        "section": "Ejaan dan tanda baca",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Penulisan kata depan di dan awalan di- yang benar terdapat pada kalimat ...",
+        "options": [
+          "Buku itu terletak di atas meja dan dibaca oleh adik.",
+          "Buku itu terletak diatas meja dan di baca oleh adik.",
+          "Buku itu terletak di atas meja dan di baca oleh adik.",
+          "Buku itu terletak diatas meja dan dibaca oleh adik.",
+          "Buku itu terletak di-atas meja dan dibaca oleh adik."
+        ],
+        "answer": 0,
+        "explanation": "Kata depan di ditulis terpisah dari kata yang mengikutinya (di atas), sedangkan awalan di- ditulis serangkai dengan kata kerja (dibaca)."
+      },
+      {
+        "section": "Ejaan dan tanda baca",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Penulisan huruf kapital yang benar terdapat pada kalimat ...",
+        "options": [
+          "Ayah berangkat ke kantor pada hari Senin.",
+          "Ayah berangkat ke Kantor pada hari senin.",
+          "ayah berangkat ke kantor pada hari Senin.",
+          "Ayah berangkat ke kantor pada Hari Senin.",
+          "Ayah Berangkat ke kantor pada hari senin."
+        ],
+        "answer": 0,
+        "explanation": "Huruf kapital dipakai pada awal kalimat dan nama hari. Kata umum seperti kantor dan hari tidak diawali huruf kapital."
+      },
+      {
+        "section": "Ejaan dan tanda baca",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Penggunaan tanda baca yang tepat terdapat pada kalimat ...",
+        "options": [
+          "Karena hujan deras, pertandingan ditunda.",
+          "Karena hujan deras pertandingan, ditunda.",
+          "Karena, hujan deras pertandingan ditunda.",
+          "Karena hujan, deras pertandingan ditunda.",
+          "Karena hujan deras pertandingan ditunda,."
+        ],
+        "answer": 0,
+        "explanation": "Anak kalimat yang mendahului induk kalimat dipisahkan dengan tanda koma."
+      },
+      {
+        "section": "Ejaan dan tanda baca",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Penulisan istilah yang benar terdapat pada kalimat ...",
+        "options": [
+          "Ia menjunjung tinggi tanggung jawab sebagai pemimpin.",
+          "Ia menjunjung tinggi tanggungjawab sebagai pemimpin.",
+          "Ia menjunjung tinggi tanggung-jawab sebagai pemimpin.",
+          "Ia menjunjung tinggi Tanggung Jawab sebagai pemimpin.",
+          "Ia menjunjung tinggi tanggung jawab, sebagai pemimpin."
+        ],
+        "answer": 0,
+        "explanation": "Tanggung jawab adalah gabungan kata yang ditulis terpisah dan tidak diawali huruf kapital di tengah kalimat."
+      },
+      {
+        "section": "Ejaan dan tanda baca",
+        "conceptId": "utbk-pbm-perbaikan-gagasan",
+        "stem": "Penulisan yang benar terdapat pada kalimat ...",
+        "options": [
+          "Saya lebih suka teh daripada kopi.",
+          "Saya lebih suka teh dari pada kopi.",
+          "Saya lebih suka teh drpd kopi.",
+          "Saya lebih suka teh dari-pada kopi.",
+          "Saya lebih suka teh Daripada kopi."
+        ],
+        "answer": 0,
+        "explanation": "Kata daripada ditulis serangkai ketika dipakai untuk membandingkan."
+      },
+      {
+        "section": "Pemilihan gagasan",
+        "conceptId": "utbk-pbm-pemilihan-gagasan",
+        "stem": "Perhatikan paragraf berikut.\nBanyak pelajar mengira bahwa belajar semalaman menjelang ujian adalah cara terbaik. Padahal, penelitian menunjukkan bahwa materi yang dipelajari sedikit demi sedikit dalam beberapa hari lebih lama bertahan di ingatan. Otak membutuhkan jeda dan tidur untuk menyimpan informasi. Karena itu, jadwal belajar yang tersebar lebih efektif daripada belajar kilat.\nJudul yang paling tepat untuk paragraf tersebut adalah ...",
+        "options": [
+          "Belajar Tersebar Lebih Efektif daripada Belajar Kilat",
+          "Cara Menghadapi Kecemasan Ujian",
+          "Pentingnya Tidur bagi Atlet",
+          "Sejarah Sistem Ujian di Sekolah",
+          "Penelitian tentang Ingatan Hewan"
+        ],
+        "answer": 0,
+        "explanation": "Seluruh paragraf membandingkan belajar kilat dengan belajar yang tersebar dan menyimpulkan bahwa yang kedua lebih efektif."
+      },
+      {
+        "section": "Pemilihan gagasan",
+        "conceptId": "utbk-pbm-pemilihan-gagasan",
+        "stem": "Perhatikan paragraf berikut.\nKantong plastik sekali pakai membutuhkan ratusan tahun untuk terurai. Selama itu, plastik terpecah menjadi serpihan kecil yang mencemari tanah dan perairan, bahkan masuk ke tubuh biota laut. Beberapa daerah telah melarang kantong plastik di toko swalayan dan mewajibkan pembeli membawa tas sendiri.\nGagasan utama paragraf tersebut adalah ...",
+        "options": [
+          "Kantong plastik sekali pakai sulit terurai dan mencemari lingkungan sehingga mulai dibatasi.",
+          "Biota laut terancam punah akibat penangkapan berlebihan.",
+          "Toko swalayan menjual tas ramah lingkungan.",
+          "Plastik adalah bahan yang paling murah.",
+          "Pembeli enggan membawa tas sendiri."
+        ],
+        "answer": 0,
+        "explanation": "Paragraf menjelaskan sifat plastik yang sulit terurai, dampaknya pada lingkungan, dan langkah pembatasannya."
+      },
+      {
+        "section": "Penataan gagasan",
+        "conceptId": "utbk-pbm-penataan-gagasan",
+        "stem": "Perhatikan kalimat-kalimat acak berikut.\n(1) Akibatnya, banyak warga memilih naik angkutan umum.\n(2) Pemerintah kota menaikkan tarif parkir di pusat kota.\n(3) Kebijakan ini bertujuan mengurangi kemacetan.\n(4) Kemacetan di pusat kota memang berkurang dalam tiga bulan pertama.\nUrutan kalimat yang membentuk paragraf padu adalah ...",
+        "options": ["(2)-(3)-(1)-(4)", "(1)-(2)-(3)-(4)", "(3)-(2)-(4)-(1)", "(4)-(1)-(2)-(3)", "(2)-(4)-(3)-(1)"],
+        "answer": 0,
+        "explanation": "Paragraf dimulai dengan peristiwa (2), dilanjutkan tujuannya (3) yang merujuk pada “kebijakan ini”, lalu akibatnya (1), dan hasilnya (4)."
+      },
+      {
+        "section": "Penataan gagasan",
+        "conceptId": "utbk-pbm-penataan-gagasan",
+        "stem": "Perhatikan kalimat-kalimat acak berikut.\n(1) Kemudian, adonan didiamkan selama satu jam agar mengembang.\n(2) Pertama, campurkan tepung, ragi, dan air hingga menjadi adonan.\n(3) Setelah itu, adonan dipanggang sampai berwarna cokelat keemasan.\n(4) Roti pun siap disajikan.\nUrutan kalimat yang membentuk paragraf padu adalah ...",
+        "options": ["(2)-(1)-(3)-(4)", "(1)-(2)-(3)-(4)", "(2)-(3)-(1)-(4)", "(4)-(2)-(1)-(3)", "(3)-(1)-(2)-(4)"],
+        "answer": 0,
+        "explanation": "Langkah dimulai dengan “pertama” (2), diikuti “kemudian” (1), “setelah itu” (3), dan diakhiri hasil akhir (4)."
+      }
+    ],
+    "bakuPairs": [
+      { "baku": "analisis", "tidakBaku": "analisa" },
+      { "baku": "apotek", "tidakBaku": "apotik" },
+      { "baku": "atlet", "tidakBaku": "atlit" },
+      { "baku": "praktik", "tidakBaku": "praktek" },
+      { "baku": "risiko", "tidakBaku": "resiko" },
+      { "baku": "sistem", "tidakBaku": "sistim" },
+      { "baku": "standar", "tidakBaku": "standard" },
+      { "baku": "nasihat", "tidakBaku": "nasehat" },
+      { "baku": "objek", "tidakBaku": "obyek" },
+      { "baku": "izin", "tidakBaku": "ijin" },
+      { "baku": "jadwal", "tidakBaku": "jadual" },
+      { "baku": "kuitansi", "tidakBaku": "kwitansi" },
+      { "baku": "manajemen", "tidakBaku": "managemen" },
+      { "baku": "metode", "tidakBaku": "metoda" },
+      { "baku": "napas", "tidakBaku": "nafas" },
+      { "baku": "silakan", "tidakBaku": "silahkan" },
+      { "baku": "sekadar", "tidakBaku": "sekedar" },
+      { "baku": "subjek", "tidakBaku": "subyek" },
+      { "baku": "hakikat", "tidakBaku": "hakekat" },
+      { "baku": "hierarki", "tidakBaku": "hirarki" },
+      { "baku": "karier", "tidakBaku": "karir" },
+      { "baku": "andal", "tidakBaku": "handal" },
+      { "baku": "antre", "tidakBaku": "antri" },
+      { "baku": "lembap", "tidakBaku": "lembab" },
+      { "baku": "merek", "tidakBaku": "merk" },
+      { "baku": "November", "tidakBaku": "Nopember" },
+      { "baku": "Februari", "tidakBaku": "Pebruari" },
+      { "baku": "persen", "tidakBaku": "prosen" },
+      { "baku": "provinsi", "tidakBaku": "propinsi" },
+      { "baku": "saksama", "tidakBaku": "seksama" },
+      { "baku": "telepon", "tidakBaku": "telpon" },
+      { "baku": "teknik", "tidakBaku": "tehnik" },
+      { "baku": "kualitas", "tidakBaku": "kwalitas" },
+      { "baku": "konsekuen", "tidakBaku": "konsekwen" },
+      { "baku": "paham", "tidakBaku": "faham" },
+      { "baku": "ijazah", "tidakBaku": "ijasah" },
+      { "baku": "azan", "tidakBaku": "adzan" },
+      { "baku": "Jumat", "tidakBaku": "Jum’at" },
+      { "baku": "aktivitas", "tidakBaku": "aktifitas" },
+      { "baku": "kreativitas", "tidakBaku": "kreatifitas" },
+      { "baku": "efektif", "tidakBaku": "efektip" },
+      { "baku": "konkret", "tidakBaku": "konkrit" }
+    ]
+  },
+  "passages": {
+    "literasi-indonesia": [
+      {
+        "id": "kompos-dapur",
+        "title": "Kompos dari Sampah Dapur",
+        "text": "Sampah dapur seperti sisa sayur, kulit buah, dan ampas kopi menyumbang sebagian besar volume sampah rumah tangga. Jika dibuang begitu saja ke tempat pembuangan akhir, sampah organik membusuk tanpa udara dan menghasilkan gas metana, yaitu gas rumah kaca yang daya pemanasannya jauh lebih besar daripada karbon dioksida. Pengomposan menawarkan jalan keluar. Dalam proses ini, mikroorganisme menguraikan bahan organik menjadi humus yang kaya unsur hara. Agar prosesnya berjalan baik, tumpukan perlu mendapat udara, kelembapan yang cukup, dan perbandingan bahan hijau (kaya nitrogen) dengan bahan cokelat (kaya karbon) yang seimbang. Tumpukan yang terlalu basah akan berbau busuk, sedangkan yang terlalu kering membuat penguraian berjalan lambat. Hasilnya, kompos dapat memperbaiki struktur tanah dan mengurangi kebutuhan pupuk kimia. Meski demikian, pengomposan di rumah belum banyak dilakukan karena sebagian orang menganggapnya merepotkan dan khawatir akan bau.",
+        "questions": [
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Gagasan utama bacaan tersebut adalah ...",
+            "options": [
+              "Pengomposan adalah cara mengelola sampah organik yang bermanfaat bagi lingkungan, tetapi belum banyak dilakukan.",
+              "Sampah organik menghasilkan metana yang lebih berbahaya daripada karbon dioksida.",
+              "Pupuk kimia sebaiknya diganti seluruhnya dengan kompos.",
+              "Bau busuk adalah penyebab utama kegagalan pengomposan.",
+              "Mikroorganisme hanya bekerja pada tumpukan yang basah."
+            ],
+            "answer": 0,
+            "explanation": "Bacaan memaparkan masalah sampah organik, pengomposan sebagai jalan keluar beserta syaratnya, manfaatnya, dan hambatan penerapannya."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Menurut bacaan, gas metana perlu dikendalikan karena ...",
+            "options": [
+              "daya pemanasannya jauh lebih besar daripada karbon dioksida",
+              "membuat tanah menjadi asam",
+              "menghambat kerja mikroorganisme",
+              "menimbulkan bau busuk pada tumpukan kompos",
+              "hanya dihasilkan oleh sampah rumah tangga"
+            ],
+            "answer": 0,
+            "explanation": "Bacaan menyebut metana sebagai gas rumah kaca yang daya pemanasannya jauh lebih besar daripada karbon dioksida."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Tumpukan kompos yang berbau busuk kemungkinan besar disebabkan oleh ...",
+            "options": [
+              "kelembapan yang terlalu tinggi",
+              "kelembapan yang terlalu rendah",
+              "udara yang terlalu banyak",
+              "kekurangan bahan cokelat",
+              "kekurangan nitrogen"
+            ],
+            "answer": 0,
+            "explanation": "Bacaan secara eksplisit menyatakan bahwa tumpukan yang terlalu basah akan berbau busuk."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Pernyataan yang sesuai dengan isi bacaan adalah ...",
+            "options": [
+              "Penguraian berjalan lambat bila tumpukan terlalu kering.",
+              "Kompos tidak memengaruhi struktur tanah.",
+              "Tumpukan kompos sebaiknya ditutup rapat agar tidak terkena udara.",
+              "Sampah organik tidak menghasilkan gas apa pun.",
+              "Pengomposan sudah dilakukan oleh sebagian besar rumah tangga."
+            ],
+            "answer": 0,
+            "explanation": "Kalimat “yang terlalu kering membuat penguraian berjalan lambat” menjadi dasar jawaban."
+          },
+          {
+            "conceptId": "utbk-literasi-menilai-merefleksi",
+            "stem": "Kalimat terakhir bacaan berfungsi untuk ...",
+            "options": [
+              "menyebutkan hambatan penerapan pengomposan di rumah",
+              "menegaskan bahwa pengomposan tidak bermanfaat",
+              "menyimpulkan seluruh proses pengomposan",
+              "memberikan contoh bahan hijau dan bahan cokelat",
+              "membandingkan metana dengan karbon dioksida"
+            ],
+            "answer": 0,
+            "explanation": "Kalimat terakhir menjelaskan alasan pengomposan belum banyak dilakukan, yaitu dianggap merepotkan dan dikhawatirkan berbau."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Makna frasa “unsur hara” dalam bacaan adalah ...",
+            "options": [
+              "zat makanan yang diperlukan tumbuhan",
+              "sisa penguraian yang berbau",
+              "gas hasil pembusukan",
+              "mikroorganisme pengurai",
+              "lapisan tanah paling atas"
+            ],
+            "answer": 0,
+            "explanation": "Humus disebut kaya unsur hara dan berguna bagi tanah serta tanaman, sehingga unsur hara adalah zat makanan bagi tumbuhan."
+          }
+        ]
+      },
+      {
+        "id": "pasar-tradisional",
+        "title": "Pasar Tradisional di Tengah Perubahan",
+        "text": "Pasar tradisional bukan sekadar tempat jual beli. Di sana, pedagang dan pembeli saling mengenal, tawar-menawar berlangsung sebagai bentuk percakapan, dan kabar dari kampung ke kampung beredar dari kios ke kios. Bagi banyak keluarga, pasar tradisional juga menjadi sumber penghidupan: pedagang kecil dapat memulai usaha dengan modal terbatas, sementara petani menjual hasil panen tanpa perantara yang panjang. Namun, pasar tradisional menghadapi tekanan dari toko modern yang menawarkan kenyamanan, harga tetap, dan jam buka lebih panjang. Sejumlah kota menanggapinya dengan merevitalisasi pasar: lorong dibuat lebih lapang, drainase diperbaiki, dan sistem pembayaran nontunai diperkenalkan. Upaya itu menunjukkan bahwa pasar tradisional tidak harus ditinggalkan agar tetap relevan; ia dapat berbenah tanpa kehilangan watak sosialnya.",
+        "questions": [
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Gagasan utama bacaan tersebut adalah ...",
+            "options": [
+              "Pasar tradisional memiliki fungsi sosial dan ekonomi serta dapat tetap relevan dengan berbenah.",
+              "Toko modern lebih unggul daripada pasar tradisional dalam segala hal.",
+              "Pembayaran nontunai menyelesaikan semua masalah pasar tradisional.",
+              "Petani sebaiknya menjual hasil panen melalui banyak perantara.",
+              "Tawar-menawar harus dihapuskan dari pasar."
+            ],
+            "answer": 0,
+            "explanation": "Bacaan menjelaskan peran pasar tradisional, tekanan yang dihadapinya, dan upaya berbenah yang membuatnya tetap relevan."
+          },
+          {
+            "conceptId": "utbk-literasi-menilai-merefleksi",
+            "stem": "Pernyataan bahwa tawar-menawar adalah “bentuk percakapan” menunjukkan bahwa ...",
+            "options": [
+              "interaksi di pasar tradisional lebih dari sekadar transaksi",
+              "pembeli di pasar tradisional selalu mendapat harga termurah",
+              "pedagang tidak boleh menetapkan harga",
+              "percakapan di pasar bersifat resmi",
+              "tawar-menawar hanya dilakukan oleh pedagang"
+            ],
+            "answer": 0,
+            "explanation": "Menyebut tawar-menawar sebagai percakapan menegaskan dimensi sosial pasar, bukan hanya jual beli."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Hal berikut merupakan tekanan bagi pasar tradisional menurut bacaan, KECUALI ...",
+            "options": [
+              "petani menjual hasil panen tanpa perantara yang panjang",
+              "toko modern menawarkan kenyamanan",
+              "toko modern menetapkan harga tetap",
+              "toko modern memiliki jam buka lebih panjang",
+              "pembeli beralih ke tempat belanja yang lebih nyaman"
+            ],
+            "answer": 0,
+            "explanation": "Penjualan tanpa perantara panjang adalah keunggulan pasar tradisional, bukan tekanan dari toko modern."
+          },
+          {
+            "conceptId": "utbk-literasi-menilai-merefleksi",
+            "stem": "Sikap penulis terhadap upaya revitalisasi pasar tradisional adalah ...",
+            "options": [
+              "optimistis",
+              "pesimistis",
+              "sinis",
+              "acuh tak acuh",
+              "menolak"
+            ],
+            "answer": 0,
+            "explanation": "Penulis menyimpulkan bahwa pasar tradisional dapat berbenah dan tetap relevan, yang menunjukkan sikap optimistis."
+          },
+          {
+            "conceptId": "utbk-literasi-menemukan-memahami",
+            "stem": "Makna kata “merevitalisasi” dalam bacaan adalah ...",
+            "options": [
+              "memberi daya hidup baru",
+              "menutup untuk selamanya",
+              "memindahkan ke tempat lain",
+              "menaikkan harga",
+              "membatasi jumlah pedagang"
+            ],
+            "answer": 0,
+            "explanation": "Revitalisasi berarti menjadikan sesuatu vital atau hidup kembali. Contoh upayanya: lorong dilapangkan dan drainase diperbaiki."
+          }
+        ]
+      }
+    ],
+    "literasi-inggris": [
+      {
+        "id": "sleep-memory",
+        "title": "Sleep and Memory",
+        "text": "Sleep is often treated as a luxury, yet research suggests it plays an active role in learning. During deep sleep, the brain replays patterns of activity that occurred while we were awake, which helps move new information from short-term to long-term memory. In one well-known experiment, volunteers who studied a list of word pairs and then slept performed noticeably better the next morning than those who stayed awake for the same period. Researchers caution, however, that sleep does not make up for poor study habits: information that was never understood cannot be strengthened. They recommend that students review difficult material before bed and keep a regular sleep schedule, since irregular hours seem to weaken the benefits.",
+        "questions": [
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "What is the main idea of the passage?",
+            "options": [
+              "Sleep actively supports learning by helping the brain store new information.",
+              "Students should sleep instead of studying.",
+              "Memory is not affected by how long people sleep.",
+              "Word pairs are the best way to test memory.",
+              "Irregular sleep hours improve concentration."
+            ],
+            "answer": 0,
+            "explanation": "The passage argues that sleep plays an active role in learning by moving information into long-term memory."
+          },
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "According to the passage, what happens in the brain during deep sleep?",
+            "options": [
+              "It replays activity from waking hours, which helps store information long term.",
+              "It stops processing information completely.",
+              "It erases information that is not useful.",
+              "It creates new word pairs for the next day.",
+              "It becomes more active than when we are awake."
+            ],
+            "answer": 0,
+            "explanation": "The passage states that the brain replays patterns of activity from the day, helping move information into long-term memory."
+          },
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "The word “caution” in the passage is closest in meaning to ...",
+            "options": ["warn", "forget", "deny", "hope", "request"],
+            "answer": 0,
+            "explanation": "“Researchers caution, however, that…” introduces a warning about the limits of sleep’s benefits."
+          },
+          {
+            "conceptId": "utbk-english-inference",
+            "stem": "Which statement can be inferred from the passage?",
+            "options": [
+              "A student who never understood a topic will not remember it well just because they slept.",
+              "Sleeping eight hours guarantees a perfect exam score.",
+              "Studying is unnecessary if one sleeps regularly.",
+              "Volunteers who stayed awake remembered more word pairs.",
+              "Deep sleep only occurs in the morning."
+            ],
+            "answer": 0,
+            "explanation": "The passage says information that was never understood cannot be strengthened, so sleep cannot rescue poor study habits."
+          },
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "What do the researchers recommend?",
+            "options": [
+              "Reviewing difficult material before bed and keeping a regular sleep schedule.",
+              "Studying only in the early morning.",
+              "Sleeping longer on weekends to catch up.",
+              "Avoiding difficult material altogether.",
+              "Staying awake for the same period as volunteers."
+            ],
+            "answer": 0,
+            "explanation": "The last sentence recommends reviewing difficult material before bed and keeping a regular sleep schedule."
+          }
+        ]
+      },
+      {
+        "id": "urban-gardening",
+        "title": "Gardens in the City",
+        "text": "In many crowded cities, residents are turning rooftops, balconies, and vacant lots into small gardens. Supporters point to several benefits. Fresh vegetables grown nearby need little transport, so they arrive with fewer emissions and often at lower cost. Gardens also cool the surrounding air and absorb rainwater, which reduces flooding. Perhaps most importantly, tending plants gives neighbours a reason to meet. Critics, however, note that urban soil may contain lead or other pollutants, and that a few balcony pots cannot feed a family. Experts therefore suggest testing the soil, using raised beds with clean soil, and treating urban gardens as a supplement to, not a replacement for, regular food supplies.",
+        "questions": [
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "What is the purpose of the passage?",
+            "options": [
+              "To describe both the benefits and the limits of urban gardening.",
+              "To persuade readers to stop buying vegetables.",
+              "To explain how to build a raised bed step by step.",
+              "To argue that cities should ban gardens.",
+              "To report the results of a soil experiment."
+            ],
+            "answer": 0,
+            "explanation": "The passage lists benefits cited by supporters, concerns raised by critics, and advice from experts."
+          },
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "Which benefit of urban gardens is mentioned in the passage?",
+            "options": [
+              "They absorb rainwater and so help reduce flooding.",
+              "They remove all pollution from the soil.",
+              "They make vegetables more expensive.",
+              "They replace regular food supplies.",
+              "They increase the need for transport."
+            ],
+            "answer": 0,
+            "explanation": "The passage says gardens “absorb rainwater, which reduces flooding”."
+          },
+          {
+            "conceptId": "utbk-english-main-idea",
+            "stem": "Which concern do critics raise?",
+            "options": [
+              "Urban soil may be polluted and a few pots cannot feed a family.",
+              "Neighbours may meet too often.",
+              "Gardens use too much transport.",
+              "Rooftops are too cool for plants.",
+              "Rainwater makes soil unsafe."
+            ],
+            "answer": 0,
+            "explanation": "Critics note that urban soil may contain lead or other pollutants and that a few balcony pots cannot feed a family."
+          },
+          {
+            "conceptId": "utbk-english-inference",
+            "stem": "The writer’s tone toward urban gardening can best be described as ...",
+            "options": ["balanced", "hostile", "sarcastic", "nostalgic", "carefree"],
+            "answer": 0,
+            "explanation": "The writer presents views of supporters, critics, and experts without taking an extreme side."
+          },
+          {
+            "conceptId": "utbk-english-inference",
+            "stem": "The phrase “a supplement to, not a replacement for” suggests that urban gardens should ...",
+            "options": [
+              "add to other food sources instead of taking their place",
+              "be abandoned once vegetables are cheap",
+              "be the only source of food for a family",
+              "be built only on rooftops",
+              "be tested for lead every day"
+            ],
+            "answer": 0,
+            "explanation": "A supplement adds to something; a replacement takes its place. Experts want gardens to add to regular food supplies."
+          }
+        ]
+      }
+    ]
+  }
+}

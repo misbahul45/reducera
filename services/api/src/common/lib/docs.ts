@@ -24,7 +24,6 @@ export const ApiDocs = (options: ApiOperationOptions) => {
     decorators.push(ApiBearerAuth());
   }
 
-
   if (options.body) {
     const bodySchema = generateSchema(options.body);
     decorators.push(ApiBody({
@@ -32,7 +31,6 @@ export const ApiDocs = (options: ApiOperationOptions) => {
     }));
   }
 
-  // Tambahkan params jika ada
   if (options.params) {
     options.params.forEach((param: ApiParamOption) => {
       const paramConfig: any = {
@@ -113,7 +111,6 @@ export const ApiDocs = (options: ApiOperationOptions) => {
     }));
   }
 
-  // Tambahkan error responses
   decorators.push(ApiResponse({
     status: 400,
     description: 'Bad Request - Validation Error',
@@ -183,7 +180,6 @@ export const ApiDocs = (options: ApiOperationOptions) => {
   return applyDecorators(...decorators);
 };
 
-// Helper function untuk response dengan data null
 const createNullDataResponse = (message: string, description: string) => {
   return applyDecorators(
     ApiResponse({
@@ -305,7 +301,6 @@ export const ApiProtectedDocs = (options: ApiOperationOptions) => {
   return ApiDocs({ ...options, isPublic: false });
 };
 
-
 export const ApiCrudDocs = {
   create: (dataSchema: ZodSchema, bodySchema: ZodSchema, itemName = 'Item') => ApiDocs({
     summary: `Create ${itemName}`,
@@ -390,7 +385,6 @@ export const ApiCrudDocs = {
     );
   },
 };
-
 
 export const ApiPaginatedResponse = (itemschema: ZodSchema, itemName?: string) => {
   const paginatedSchema = createPaginatedSchema(itemschema, itemName);

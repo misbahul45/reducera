@@ -66,7 +66,6 @@ describe('AccountingSandboxService — pure validation (golden tests)', () => {
   });
 
   it('AC-153 trial balance: empty input produces empty result (skipped without DB)', () => {
-    // requires PrismaService; covered by integration test in __tests__/db-invariants
     expect(true).toBe(true);
   });
 

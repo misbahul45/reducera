@@ -12,6 +12,13 @@ export const CONTENT_TRANSITIONS: Readonly<Record<ContentStatus, readonly Conten
 
 export const EDITABLE_CONTENT_STATES: readonly ContentStatus[] = [ContentStatus.DRAFT, ContentStatus.REJECTED];
 
+export const TAGGABLE_CONTENT_STATES: readonly ContentStatus[] = [
+  ContentStatus.DRAFT,
+  ContentStatus.REJECTED,
+  ContentStatus.PENDING_REVIEW,
+  ContentStatus.PUBLISHED,
+];
+
 export const READABLE_BY_BUYERS: readonly ContentStatus[] = [ContentStatus.PUBLISHED, ContentStatus.ARCHIVED];
 
 export function canTransitionContent(from: ContentStatus, to: ContentStatus): boolean {
@@ -24,6 +31,16 @@ export function assertContentTransition(from: ContentStatus, to: ContentStatus):
       `Content cannot move from ${from} to ${to}`,
       409,
       AppErrorCode.INVALID_STATE_TRANSITION,
+    );
+  }
+}
+
+export function assertTaggable(status: ContentStatus): void {
+  if (!TAGGABLE_CONTENT_STATES.includes(status)) {
+    throw new AppError(
+      `Concept tags of content in state ${status} cannot be changed`,
+      409,
+      AppErrorCode.CONTENT_LOCKED,
     );
   }
 }

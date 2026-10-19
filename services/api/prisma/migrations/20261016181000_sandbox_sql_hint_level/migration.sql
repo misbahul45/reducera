@@ -1,0 +1,1 @@
+ALTER TABLE "SandboxSqlProgress" ADD COLUMN "hintLevel" INTEGER NOT NULL DEFAULT 0;

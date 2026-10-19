@@ -4,8 +4,8 @@ import { errorHandler } from '@/common/lib/utils';
 import { Query } from '@/common/interfaces';
 
 import { PersonalityQuizzesRepo } from './personality-quizzes.repo';
-import { CreatePersonalityQuizType, UpdatePersonalityQuizType, PersonalityQuizUserAttemptSchema, PersonalityQuizResultSchema } from './personality-quizzes.dto';
-import z from 'zod';
+import { CreatePersonalityQuizType, UpdatePersonalityQuizType, PersonalityQuizSubmission } from './personality-quizzes.dto';
+import { gradePlacement, PlacementQuestion } from './placement-grading';
 import { QueueService } from '@/v1/queue/queue.service';
 import { UserStepsJobSchema } from '@/v1/queue/queue-payloads';
 
@@ -107,80 +107,57 @@ export class PersonalityQuizzesService {
     });
   }
 
-  submitAttempt(data:{
-    userId: string
-    topicId: string
-    lessonId: string
-    learningStyleId: string
-    quizId:string
-  }, values: z.infer<typeof PersonalityQuizUserAttemptSchema>) {
+  submitAttempt(
+    data: { userId: string; learningStyleId: string; quizId: string },
+    values: PersonalityQuizSubmission,
+  ) {
     return errorHandler(async () => {
+      const quiz = await this.personalityQuizzesRepo.findForSubmission(data.quizId);
+      if (!quiz || quiz.userId !== data.userId) {
+        throw new AppError('Personality quiz not found', 404, AppErrorCode.NOT_FOUND);
+      }
+      if (quiz.takenAt) {
+        throw new AppError('Personality quiz was already submitted', 409, AppErrorCode.INVALID_STATE_TRANSITION);
+      }
+
+      const topicId = quiz.lesson?.subTopic?.topicId;
+      if (!topicId) {
+        throw new AppError('The lesson of this quiz has no topic', 422, AppErrorCode.VALIDATION_ERROR);
+      }
+
       const job = UserStepsJobSchema.parse({
         userId: data.userId,
-        topicId: data.topicId,
-        lessonId: data.lessonId,
+        topicId,
+        lessonId: quiz.lessonId,
         learningStyleId: data.learningStyleId,
         quizId: data.quizId,
       });
-      const quiz = await this.personalityQuizzesRepo.findOne("id", data.quizId);
-      if (!quiz) {
-        throw new AppError(
-          "Personality quiz not found",
-          404,
-          AppErrorCode.NOT_FOUND
-        );
+      const ownsStyle = await this.personalityQuizzesRepo.ownsLearningStyle(data.userId, topicId, job.learningStyleId);
+      if (!ownsStyle) {
+        throw new AppError('Enrol in the topic and take its learning style first', 403, AppErrorCode.ENTITLEMENT_REQUIRED);
       }
 
-      const scores: Record<string, number> = {};
-
-      values.forEach((item) => {
-        if (!item.answer) return;
-
-        const category = item.answer.trim();
-        if (!scores[category]) scores[category] = 0;
-
-        if (item.userAnswer.trim() === item.answer.trim()) {
-          scores[category] += 1;
-        }
+      const stored = Array.isArray(quiz.questions) ? (quiz.questions as unknown as PlacementQuestion[]) : [];
+      const graded = gradePlacement(stored, values);
+      const claimed = await this.personalityQuizzesRepo.claimAttempt(quiz.id, {
+        userAttempt: graded.attempt,
+        result: graded.result,
+        takenAt: new Date(),
       });
+      if (!claimed) {
+        throw new AppError('Personality quiz was already submitted', 409, AppErrorCode.INVALID_STATE_TRANSITION);
+      }
 
-      const maxScore = values.length;
-      const totalScore = Object.values(scores).reduce((a, b) => a + b, 0);
-      const percentage = (totalScore / maxScore) * 100;
-
-      const level =
-        percentage <= 50
-          ? "beginner"
-          : percentage <= 70
-          ? "intermediate"
-          : percentage <= 90
-          ? "advanced"
-          : "expert";
-      const normalizedScores: Record<string, number> = {};
-      Object.keys(scores).forEach((key) => {
-        normalizedScores[key] = scores[key] * 10;
-      });
-
-      const result: z.infer<typeof PersonalityQuizResultSchema> = {
-        scores: normalizedScores,
-        level,
-      };
-
-      const submitAnswer = await this.personalityQuizzesRepo.update(data.quizId, {
-        userAttempt: values,
-        result,
-        takenAt:new Date()
-      });
-      
-      await this.queueService.addUserStepsJob(job)
-
-      if (!submitAnswer) {
-        throw new AppError("Personality quiz error", 400);
+      try {
+        await this.queueService.addUserStepsJob(job);
+      } catch (error) {
+        await this.personalityQuizzesRepo.releaseAttempt(quiz.id);
+        throw error;
       }
 
       return {
-        message: "successfully sending answer",
-        data: submitAnswer,
+        message: 'successfully sending answer',
+        data: await this.personalityQuizzesRepo.findOne('id', quiz.id),
       };
     });
   }

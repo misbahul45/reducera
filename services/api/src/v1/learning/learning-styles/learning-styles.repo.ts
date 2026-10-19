@@ -49,21 +49,18 @@ export class LearningStylesRepo {
 
       const where: any = { userId };
 
-      // Tambahkan filter selain q, page, limit, sort, include
       for (const key in q) {
         if (!['q', 'page', 'limit', 'sort', 'include'].includes(key)) {
           where[key] = q[key];
         }
       }
 
-      // Sorting
       let orderBy: any = undefined;
       if (q.sort) {
         const [field, direction = 'asc'] = q.sort.split(':');
         orderBy = { [field]: direction };
       }
 
-      // Include relations
       let include: any = undefined;
       if (q.include) {
         const includes = Array.isArray(q.include)
@@ -98,7 +95,6 @@ export class LearningStylesRepo {
       };
     });
   }
-
 
   async create(values: CreateLearningStyleProfileType) {
     return errorHandler(async () => {
@@ -145,7 +141,6 @@ export class LearningStylesRepo {
       });
     });
   }
-
 
   async update(id: string, values: UpdateLearningStyleProfileType) {
     return errorHandler(async () => {

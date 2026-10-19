@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { extendApi } from '@anatine/zod-openapi'
+import { ChatCitationsSchema } from '../../chat/chat-message-extras'
 
 const PersonalityQuizQuestionSchema = z.object({
   question: z.string(),
@@ -10,7 +11,8 @@ const PersonalityQuizQuestionSchema = z.object({
     ["easy", "medium", "hard", "hots"] as const
   ),
   options: z.array(z.string()).optional().nullable(),
-  answer: z.string().nullable().optional()
+  answer: z.string().nullable().optional(),
+  sources: z.array(z.number().int().min(1).max(50)).max(6).optional()
 })
 
 export const PersonalityQuizUserAttemptSchema = z.array(
@@ -20,6 +22,18 @@ export const PersonalityQuizUserAttemptSchema = z.array(
     answer: z.string().nullable().optional()
   })
 )
+
+export const PersonalityQuizSubmissionSchema = z
+  .array(
+    z.object({
+      question: z.string().trim().min(1).max(4000),
+      userAnswer: z.string().trim().min(1).max(4000),
+    }),
+  )
+  .min(1)
+  .max(50)
+
+export type PersonalityQuizSubmission = z.infer<typeof PersonalityQuizSubmissionSchema>
 
 export const PersonalityQuizResultSchema = z.object({
   scores: z.record(z.string(), z.number()).optional(),
@@ -33,6 +47,7 @@ const basePersonalityQuizSchema = z.object({
   lessonId: z.string().uuid(),
   title: z.string(),
   questions: z.array(PersonalityQuizQuestionSchema),
+  sources: ChatCitationsSchema.optional().nullable(),
   userAttempt: z.union([
     PersonalityQuizUserAttemptSchema,
     z.literal("JSON_NULL")
@@ -74,7 +89,7 @@ export const CreatePersonalityQuizDto = extendApi(basePersonalityQuizSchema, {
 export type CreatePersonalityQuizType = z.infer<typeof CreatePersonalityQuizDto>
 
 export const UpdatePersonalityQuizDto = extendApi(
-  basePersonalityQuizSchema.partial(),
+  basePersonalityQuizSchema.omit({ sources: true }).partial(),
   {
     title: 'UpdatePersonalityQuizDto',
     example: {

@@ -9,7 +9,7 @@ import {
   UpdatePersonalityQuizType,
 } from "./personality-quizzes.dto";
 import { NotificationsRepo } from "@/v1/notifications/notifications.repo";
-import { NotificationType, PersonalityQuiz } from "@prisma/client";
+import { NotificationType, PersonalityQuiz, Prisma } from "@prisma/client";
 
 @Injectable()
 export class PersonalityQuizzesRepo {
@@ -103,8 +103,9 @@ export class PersonalityQuizzesRepo {
       const data = validation(CreatePersonalityQuizDto, values);
 
       return await this.prisma.$transaction(async (tx) => {
+        const { sources, ...rest } = data;
         const result = await tx.personalityQuiz.create({
-          data,
+          data: { ...rest, ...(sources ? { sources } : {}) },
         });
 
         const getLesson = await tx.lesson.findFirst({
@@ -140,6 +141,50 @@ export class PersonalityQuizzesRepo {
     return errorHandler(async () => {
       return await this.prisma.personalityQuiz.delete({
         where: { id },
+      });
+    });
+  }
+
+  async findForSubmission(id: string) {
+    return errorHandler(async () => {
+      return await this.prisma.personalityQuiz.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          userId: true,
+          lessonId: true,
+          questions: true,
+          takenAt: true,
+          lesson: { select: { subTopic: { select: { topicId: true } } } },
+        },
+      });
+    });
+  }
+
+  async ownsLearningStyle(userId: string, topicId: string, learningStyleId: string) {
+    return errorHandler(async () => {
+      const count = await this.prisma.learningStyleProfile.count({
+        where: { id: learningStyleId, userTopic: { userId, topicId } },
+      });
+      return count > 0;
+    });
+  }
+
+  async claimAttempt(id: string, attempt: { userAttempt: Prisma.InputJsonValue; result: Prisma.InputJsonValue; takenAt: Date }) {
+    return errorHandler(async () => {
+      const claimed = await this.prisma.personalityQuiz.updateMany({
+        where: { id, takenAt: null },
+        data: attempt,
+      });
+      return claimed.count === 1;
+    });
+  }
+
+  async releaseAttempt(id: string) {
+    return errorHandler(async () => {
+      await this.prisma.personalityQuiz.update({
+        where: { id },
+        data: { userAttempt: Prisma.DbNull, result: Prisma.DbNull, takenAt: null },
       });
     });
   }

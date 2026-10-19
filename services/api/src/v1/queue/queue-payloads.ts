@@ -33,19 +33,8 @@ export const KnowledgeJobSchema = credentialFree(
     .strict(),
 );
 
-export const ContentEmbeddingJobSchema = credentialFree(
-  z
-    .object({
-      contentId: id,
-      chatId: id,
-      textContent: z.string(),
-    })
-    .strict(),
-);
-
 export type UserStepsJob = z.infer<typeof UserStepsJobSchema>;
 export type KnowledgeJob = z.infer<typeof KnowledgeJobSchema>;
-export type ContentEmbeddingJob = z.infer<typeof ContentEmbeddingJobSchema>;
 
 export const readUserStepsJob = (data: unknown): UserStepsJob => z.object(UserStepsJobSchema.shape).parse(data);
 

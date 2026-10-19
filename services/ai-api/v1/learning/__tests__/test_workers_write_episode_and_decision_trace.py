@@ -6,6 +6,7 @@ import pytest
 from celery.exceptions import Reject
 
 from errors.types import LLMError
+from v1.learning.service import ChatPrompt
 
 CHAT_PAYLOAD = {
     "chatId": "c-1",
@@ -21,7 +22,7 @@ CHAT_PAYLOAD = {
 }
 
 
-def _generated_state():
+def _generated_state(**extra):
     state = MagicMock()
     state.get.side_effect = lambda key: {
         "generate": {
@@ -30,7 +31,8 @@ def _generated_state():
             "data": "ok",
             "citations": [{"lessonId": "l-1", "score": 0.9}],
             "metadata": {"topicId": "t-1"},
-        }
+        },
+        **extra,
     }.get(key)
     state.session_id = "sess-1"
     state.acting_user_id = "u-1"
@@ -84,7 +86,7 @@ def test_chat_worker_reads_the_ids_the_router_sends_and_records_the_turn(scripte
     scripted_llm.reply("flash", "jawaban tutor")
 
     with patch.object(workers, "pipeline", fake_pipeline), patch(
-        "v1.learning.service.get_propmpt_material", return_value="prompt"
+        "v1.learning.service.build_chat_prompt", return_value=ChatPrompt(text="prompt")
     ) as build_prompt, patch.object(workers, "update_message_chat") as update, patch.object(
         workers, "write_episode"
     ) as write_episode, patch.object(workers, "write_decision_trace") as write_decision_trace:
@@ -109,7 +111,7 @@ def test_chat_worker_escalates_to_thinking_when_flash_fails_and_says_so_in_the_t
     scripted_llm.fail("flash", "gateway timeout").reply("thinking", "jawaban dalam")
 
     with patch.object(workers, "pipeline", MagicMock()), patch(
-        "v1.learning.service.get_propmpt_material", return_value="prompt"
+        "v1.learning.service.build_chat_prompt", return_value=ChatPrompt(text="prompt")
     ), patch.object(workers, "update_message_chat"), patch.object(workers, "write_episode"), patch.object(
         workers, "write_decision_trace"
     ) as write_decision_trace:
@@ -129,7 +131,7 @@ def test_chat_worker_marks_the_message_failed_instead_of_faking_a_completed_answ
     scripted_llm.fail("flash", "provider down").fail("thinking", "provider down")
 
     with patch.object(workers, "pipeline", fake_pipeline), patch(
-        "v1.learning.service.get_propmpt_material", return_value="prompt"
+        "v1.learning.service.build_chat_prompt", return_value=ChatPrompt(text="prompt")
     ), patch.object(workers, "update_message_chat") as update, patch.object(
         workers, "write_episode"
     ) as write_episode:
@@ -152,3 +154,59 @@ def test_chat_worker_rejects_a_payload_missing_required_fields(missing):
             workers.generating_new_content.run(payload)
 
     update.assert_not_called()
+
+
+def test_generate_content_material_worker_records_strategy_usage_and_versions_the_pipeline_carried():
+    from config.model_router import RoutedResult
+    from v1.learning import workers
+    from v1.learning.service import LESSON_PROMPT_VERSION
+
+    routed = RoutedResult(
+        text="ok",
+        mode="thinking",
+        escalated=False,
+        attempts=(),
+        policy_version="routing-v9",
+        complexity=0.4,
+        model="gateway-thinking",
+        tokens_in=900,
+        tokens_out=1500,
+        latency_ms=8123.6,
+    )
+    snapshot = {
+        "concepts": [{"conceptId": "c2"}],
+        "strategy": {"conceptId": "c2", "strategy": "GUIDED_EXAMPLE", "reasonCodes": ["MID_MASTERY"], "difficultyTarget": 0.5},
+    }
+    state = _generated_state(routed=routed, snapshot=snapshot)
+
+    with patch.object(workers, "GenerateContentMaterialPipeline", return_value=state), patch.object(
+        workers, "generate_content_material_pipeline", return_value=state
+    ), patch.object(workers, "write_episode") as write_episode, patch.object(
+        workers, "write_decision_trace"
+    ) as write_decision_trace, patch.object(workers, "create_content_material"):
+        workers.generate_content_material_task.run(
+            {
+                "userId": "u-1",
+                "stepId": "s-1",
+                "userStepId": "us-1",
+                "topicId": "t-1",
+                "lessonId": "l-1",
+                "learningStyleId": "ls-1",
+                "messageId": "m-1",
+                "chatId": "c-1",
+                "session_id": "sess-1",
+                "acting_user_id": "u-1",
+                "tenant_id": "tenant-1",
+                "trace_id": "trace-1",
+                "idempotency_key": "k-1",
+            }
+        )
+
+    episode = write_episode.call_args.args[0]
+    trace = write_decision_trace.call_args.args[0]
+    assert (episode.model, episode.tokens_in, episode.tokens_out, episode.latency_ms) == ("gateway-thinking", 900, 1500, 8124)
+    assert episode.prompt_version == LESSON_PROMPT_VERSION
+    assert episode.metadata["teachingStrategy"] == "GUIDED_EXAMPLE"
+    assert episode.metadata["conceptIds"] == ["c2"]
+    assert trace.reason_codes == ["MID_MASTERY"]
+    assert trace.selected_action == "GUIDED_EXAMPLE"

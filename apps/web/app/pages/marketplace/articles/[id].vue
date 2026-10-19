@@ -129,6 +129,12 @@ useHead({
       </ul>
     </header>
 
+    <section v-if="article.concepts?.length" class="rc-story__concepts" aria-label="Konsep yang dibahas">
+      <ul class="rc-conceptlist">
+        <li v-for="concept in article.concepts" :key="concept.id" class="rc-chip rc-chip--info">{{ concept.title }}</li>
+      </ul>
+    </section>
+
     <figure v-if="article.coverImage?.url" class="rc-story__cover">
       <img :src="article.coverImage.url" alt="" width="1280" height="720" decoding="async" fetchpriority="high" />
     </figure>

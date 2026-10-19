@@ -79,6 +79,18 @@ export interface PayoutView {
   paidAt: string | null;
 }
 
+export interface ConceptTagView {
+  id: string;
+  title: string;
+}
+
+export interface StudioConceptLink {
+  conceptId: string;
+  title: string;
+  level: number;
+  status: 'PROPOSED' | 'APPROVED' | 'REJECTED';
+}
+
 export interface MarketplaceArticleView {
   id: string;
   title: string;
@@ -92,6 +104,7 @@ export interface MarketplaceArticleView {
   category: { id: string; name: string } | null;
   author: { id: string; name: string; image: { url: string } | null } | null;
   tenant: { id: string; name: string; slug: string; logo: { url: string } | null } | null;
+  concepts?: ConceptTagView[];
 }
 
 export interface MarketplaceClassView {
@@ -112,6 +125,7 @@ export interface MarketplaceClassView {
   instructor: { id: string; name: string; image: { url: string } | null } | null;
   tenant: { id: string; name: string; slug: string; logo: { url: string } | null } | null;
   sessions?: Array<{ id: string; startsAt: string; endsAt: string; status: string }>;
+  concepts?: ConceptTagView[];
 }
 
 export interface ClassMaterialsView {
@@ -158,6 +172,7 @@ export interface StudioArticle extends StudioArticleSummary {
   currency: string;
   reviewNote: string | null;
   publishedAt: string | null;
+  conceptLinks?: StudioConceptLink[];
   versions: Array<{
     id: string;
     versionNumber: number;
@@ -230,6 +245,7 @@ export interface StudioClass extends StudioClassSummary {
   reviewNote: string | null;
   publishedAt: string | null;
   sessions: StudioClassSession[];
+  conceptLinks?: StudioConceptLink[];
   _count: { enrollments: number };
 }
 

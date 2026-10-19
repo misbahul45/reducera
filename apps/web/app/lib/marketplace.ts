@@ -15,6 +15,8 @@ export interface CatalogCard {
   coverUrl: string | null;
   tone: number;
   initial: string;
+  reason?: string;
+  concepts?: string[];
 }
 
 const DIFFICULTY: Record<string, string> = { BEGINNER: 'Pemula', INTERMEDIATE: 'Menengah', ADVANCED: 'Mahir' };
@@ -28,6 +30,11 @@ export function priceText(accessType: 'FREE' | 'PAID', price: string | number | 
 }
 
 const SUMMARY_LENGTH = 140;
+const CONCEPT_CHIPS = 3;
+
+export function conceptTitles(concepts: ReadonlyArray<{ title: string }> | undefined): string[] {
+  return (concepts ?? []).slice(0, CONCEPT_CHIPS).map((concept) => concept.title);
+}
 
 export function articleCard(article: MarketplaceArticleView): CatalogCard {
   const published = article.publishedAt ? formatDate(article.publishedAt) : '';
@@ -44,6 +51,7 @@ export function articleCard(article: MarketplaceArticleView): CatalogCard {
     coverUrl: article.coverImage?.url ?? null,
     tone: coverTone(article.title),
     initial: coverInitial(article.title),
+    concepts: conceptTitles(article.concepts),
   };
 }
 
@@ -62,6 +70,72 @@ export function classCard(item: MarketplaceClassView): CatalogCard {
     coverUrl: item.coverImage?.url ?? null,
     tone: coverTone(item.title),
     initial: coverInitial(item.title),
+    concepts: conceptTitles(item.concepts),
+  };
+}
+
+export type NeedKind = 'WEAK' | 'NEXT' | 'DUE' | 'READY';
+
+export interface RecommendationView {
+  product: {
+    kind: 'article' | 'class';
+    id: string;
+    title: string;
+    excerpt: string | null;
+    description: string | null;
+    coverUrl: string | null;
+    creator: string;
+    accessType: 'FREE' | 'PAID';
+    price: number | null;
+    currency: string;
+    difficulty: string | null;
+    format: string | null;
+  };
+  score: number;
+  reason: string;
+  personalized: boolean;
+  matchedConcepts: Array<{ conceptId: string; title: string; kind: NeedKind; score: number | null }>;
+  difficultyFit: 'MATCH' | 'NEAR' | 'FAR' | 'NOT_APPLICABLE';
+}
+
+export interface RecommendationResult {
+  algorithm: string;
+  averageMastery: number;
+  preferredDifficulty: string;
+  needs: Array<{ conceptId: string; title: string; kind: NeedKind; score: number | null }>;
+  recommendations: RecommendationView[];
+}
+
+const FIT_NOTE: Record<RecommendationView['difficultyFit'], string> = {
+  MATCH: 'Levelnya pas untukmu.',
+  NEAR: 'Levelnya sedikit berbeda dari levelmu sekarang.',
+  FAR: 'Levelnya jauh dari levelmu sekarang.',
+  NOT_APPLICABLE: '',
+};
+
+export function recommendationNote(item: Pick<RecommendationView, 'personalized' | 'difficultyFit'>): string {
+  return item.personalized ? FIT_NOTE[item.difficultyFit] : '';
+}
+
+export function recommendationCard(item: RecommendationView): CatalogCard {
+  const { product } = item;
+  const isClass = product.kind === 'class';
+  const meta = isClass ? ['Kelas', ...classMeta({ difficulty: product.difficulty ?? '', format: product.format ?? '', durationMinutes: null })] : ['Artikel'];
+  const note = recommendationNote(item);
+  return {
+    kind: product.kind,
+    id: product.id,
+    title: product.title,
+    summary: plainText(isClass ? product.description : product.excerpt, SUMMARY_LENGTH),
+    creator: product.creator,
+    priceLabel: priceText(product.accessType, product.price, product.currency),
+    free: product.accessType === 'FREE',
+    meta: meta.join(' · '),
+    to: isClass ? `/marketplace/classes/${product.id}` : `/marketplace/articles/${product.id}`,
+    coverUrl: product.coverUrl,
+    tone: coverTone(product.title),
+    initial: coverInitial(product.title),
+    reason: note ? `${item.reason} ${note}` : item.reason,
   };
 }
 

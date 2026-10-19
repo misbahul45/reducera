@@ -6,14 +6,12 @@ import { errorHandler, validation } from '@/common/lib/utils';
 import { CreateContentDto, CreateContentDtoType } from './contents.dto';
 import { ChatMessagesRepo } from '@/v1/chat/chat-messages/chat-messages.repo';
 import { AppError, AppErrorCode } from '@/common/lib/error';
-import { QueueService } from '@/v1/queue/queue.service';
 
 @Injectable()
 export class ContentsRepo {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatMessagesRepo: ChatMessagesRepo,
-    private readonly queueService: QueueService,
   ) {}
 
   async findAll(q: Query) {
@@ -105,36 +103,14 @@ export class ContentsRepo {
 
   async update(id: string, values: Prisma.ContentUpdateInput) {
     return errorHandler(async () => {
-      const existingContent = await this.prisma.content.findUnique({
-        where: { id },
-        include: { message: true },
-      });
+      const existingContent = await this.prisma.content.findUnique({ where: { id } });
       if (!existingContent) throw new Error('Content not found');
 
-      const updateData = { ...values };
-      const shouldUpdateEmbeddings = values.data !== undefined;
-
-      const updatedContent = await this.prisma.content.update({
+      return await this.prisma.content.update({
         where: { id },
-        data: updateData,
+        data: values,
         include: { message: true },
       });
-
-      if (shouldUpdateEmbeddings) {
-        const textContent = values.data as string | undefined;
-
-        const chatId = updatedContent.message?.chatId ?? updatedContent.chatId;
-
-        if (textContent && chatId) {
-          await this.queueService.addContentEmbeddingJob({
-            contentId: updatedContent.id,
-            chatId,
-            textContent,
-          });
-        }
-      }
-
-      return updatedContent;
     });
   }
 

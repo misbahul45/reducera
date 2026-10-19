@@ -1,21 +1,34 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   REASON_MAX,
   REASON_MIN,
   auditActionLabel,
   canChangeAccount,
+  canDecideTags,
+  canaryProblem,
   contentActions,
   dayEndIso,
   dayStartIso,
+  formatMillis,
+  formatRate,
+  gateLabel,
   prettyJson,
   evidenceProblem,
   EVIDENCE_MAX_BYTES,
   pageWindow,
+  pendingTagsLabel,
   payoutActions,
+  promptActions,
   reasonProblem,
   refundActions,
   roleLabel,
   statusMeta,
+  TEMPLATE_OPTIONAL,
+  TEMPLATE_REQUIRED,
+  aiProposalProblem,
+  templateProblem,
   tenantAction,
 } from '~/lib/admin';
 
@@ -82,6 +95,21 @@ describe('contentActions', () => {
     expect(contentActions('PUBLISHED')).toEqual(['suspend', 'archive']);
     expect(contentActions('SUSPENDED')).toEqual(['reinstate', 'archive']);
     for (const status of ['DRAFT', 'REJECTED', 'ARCHIVED']) expect(contentActions(status)).toEqual([]);
+  });
+});
+
+describe('tag decisions', () => {
+  it('opens only for published content that has proposed tags', () => {
+    expect(canDecideTags('PUBLISHED', 2)).toBe(true);
+    expect(canDecideTags('PUBLISHED', 0)).toBe(false);
+    expect(canDecideTags('PUBLISHED', undefined)).toBe(false);
+    for (const status of ['PENDING_REVIEW', 'SUSPENDED', 'ARCHIVED', 'DRAFT', 'REJECTED']) expect(canDecideTags(status, 3)).toBe(false);
+  });
+
+  it('labels the waiting tag count and stays silent when there are none', () => {
+    expect(pendingTagsLabel(3)).toBe('3 tag menunggu');
+    expect(pendingTagsLabel(0)).toBe('');
+    expect(pendingTagsLabel(undefined)).toBe('');
   });
 });
 
@@ -185,5 +213,103 @@ describe('prettyJson', () => {
     expect(prettyJson({ a: 1 })).toBe('{\n  "a": 1\n}');
     expect(prettyJson(null)).toBe('');
     expect(prettyJson(undefined)).toBe('');
+  });
+});
+
+describe('prompt governance helpers', () => {
+  it('offers only the actions the state table allows for each status', () => {
+    expect(promptActions('DRAFT')).toEqual(['canary', 'reject']);
+    expect(promptActions('EXPERIMENTAL')).toEqual(['evaluate', 'reject']);
+    expect(promptActions('VALIDATED')).toEqual(['approve', 'reject']);
+    expect(promptActions('ACTIVE')).toEqual(['rollback']);
+    expect(promptActions('REJECTED')).toEqual([]);
+    expect(promptActions('ROLLED_BACK')).toEqual([]);
+    expect(promptActions('ARCHIVED')).toEqual([]);
+  });
+
+  it('never offers approval before a candidate has passed the gate', () => {
+    for (const status of ['DRAFT', 'EXPERIMENTAL', 'ACTIVE', 'REJECTED', 'ROLLED_BACK', 'ARCHIVED']) {
+      expect(promptActions(status)).not.toContain('approve');
+    }
+  });
+
+  it('gives every prompt, gate and run status a label and a tone', () => {
+    for (const status of ['DRAFT', 'EXPERIMENTAL', 'VALIDATED', 'ACTIVE', 'REJECTED', 'ROLLED_BACK', 'ARCHIVED']) {
+      expect(statusMeta('prompt', status).label).not.toBe(status);
+    }
+    for (const status of ['PASS', 'FAIL', 'INSUFFICIENT_DATA', 'NOT_MEASURED']) expect(statusMeta('gate', status).label).not.toBe(status);
+    for (const status of ['PENDING', 'ACCEPTED', 'REJECTED', 'DEFERRED']) expect(statusMeta('optimizationRun', status).label).not.toBe(status);
+  });
+
+  it('keeps the canary share between 1 and 50 percent', () => {
+    expect(canaryProblem(1)).toBeNull();
+    expect(canaryProblem(50)).toBeNull();
+    expect(canaryProblem(0)).toMatch(/1 sampai 50/);
+    expect(canaryProblem(51)).toMatch(/1 sampai 50/);
+    expect(canaryProblem(2.5)).toMatch(/bulat/);
+  });
+
+  const valid = `${'Ajarkan dengan teliti. '.repeat(12)} {{user_step_title}} {{domain_block}} {{learner_section}} {{user_input}} {{rag}} {{web}} {{memory}} {{conversation}} {{current_material}}`;
+
+  it('accepts a template with every required placeholder', () => {
+    expect(templateProblem(valid)).toBeNull();
+    expect(templateProblem(valid.replace('{{learner_section}}', ''))).toBeNull();
+    expect(templateProblem(`${valid} {{learner_name}}`)).toBeNull();
+  });
+
+  it('requires the conversation and the current material like the API does', () => {
+    expect(templateProblem(valid.replace('{{conversation}}', ''))).toMatch(/\{\{conversation\}\}/);
+    expect(templateProblem(valid.replace('{{current_material}}', ''))).toMatch(/\{\{current_material\}\}/);
+  });
+
+  it('names the first thing wrong with a template', () => {
+    expect(templateProblem('pendek')).toMatch(/minimal/);
+    expect(templateProblem(valid.replace('{{rag}}', ''))).toMatch(/\{\{rag\}\}/);
+    expect(templateProblem(`${valid} {{secret}}`)).toMatch(/tidak dikenal/);
+    expect(templateProblem(`${valid} {{memory`)).toMatch(/rusak/);
+  });
+
+  it('formats rates and latencies and shows a dash for missing numbers', () => {
+    expect(formatRate(0.567)).toBe('57%');
+    expect(formatRate(null)).toBe('—');
+    expect(formatMillis(850)).toBe('850 ms');
+    expect(formatMillis(7373)).toBe('7.4 dtk');
+    expect(formatMillis(undefined)).toBe('—');
+  });
+
+  it('labels each gate criterion in Indonesian and falls back to the id', () => {
+    expect(gateLabel('learning_outcome')).toBe('Hasil belajar setelah jawaban');
+    expect(gateLabel('unknown_criterion')).toBe('unknown_criterion');
+  });
+});
+
+describe('the template contract of the web matches the API', () => {
+  const source = readFileSync(resolve(__dirname, '../../../../../services/api/src/v1/optimization/prompt-contracts.ts'), 'utf8');
+  const listOf = (key: string): string[] => {
+    const block = source.match(new RegExp(`${key}:\\s*\\[([^\\]]*)\\]`));
+    return [...(block?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((match) => match[1] as string);
+  };
+
+  it('has the same required and optional placeholders', () => {
+    expect([...TEMPLATE_REQUIRED]).toEqual(listOf('required'));
+    expect([...TEMPLATE_OPTIONAL]).toEqual(listOf('optional'));
+  });
+});
+
+describe('aiProposalProblem', () => {
+  it('turns the refusals of the API into plain Indonesian', () => {
+    expect(aiProposalProblem('Only 6 turns of tutor-chat-builtin-3 are measured; an improvement needs at least 30.', 'x')).toBe(
+      'Baru 6 jawaban dari tutor-chat-builtin-3 yang terukur. Usulan AI butuh minimal 30.',
+    );
+    expect(aiProposalProblem('There are already 3 AI proposals waiting for this prompt. Reject or start one of them first.', 'x')).toContain('Sudah ada 3 usulan AI');
+    expect(aiProposalProblem('The proposal failed the safety checks: A protected sentence was removed: y', 'x')).toContain('tidak lolos pemeriksaan keamanan');
+    expect(aiProposalProblem('The model proposed a template that failed the safety checks. Try again.', 'x')).toContain('tidak lolos pemeriksaan keamanan');
+    expect(aiProposalProblem('The AI service could not produce a proposal right now. Try again later.', 'x')).toContain('belum bisa membuat usulan');
+  });
+
+  it('keeps any other message and falls back when there is none', () => {
+    expect(aiProposalProblem('Forbidden resource', 'x')).toBe('Forbidden resource');
+    expect(aiProposalProblem('', 'cadangan')).toBe('cadangan');
+    expect(aiProposalProblem(null, 'cadangan')).toBe('cadangan');
   });
 });

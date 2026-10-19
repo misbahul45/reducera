@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { resolveLearningIds } from '~/lib/learning-ids';
+import { missingIdsProblem, resolveLearningIds } from '~/lib/learning-ids';
 
 const LESSON = '5787aef0-0df5-4395-a372-92c3b5dfec09';
 const USER = 'c6c571d7-40ae-4998-9699-4803d04a0c57';
@@ -57,5 +57,20 @@ describe('resolveLearningIds', () => {
 
     expect(ids).toEqual({ topicId: TOPIC, learningStyleId: '' });
     expect(s.learningStyleIdOf).not.toHaveBeenCalled();
+  });
+});
+
+describe('missingIdsProblem', () => {
+  it('lets a lesson with a topic and a learning style start', () => {
+    expect(missingIdsProblem({ topicId: TOPIC, learningStyleId: STYLE })).toBeNull();
+  });
+
+  it('says the learning style is missing when only the topic is known', () => {
+    expect(missingIdsProblem({ topicId: TOPIC, learningStyleId: '' })).toContain('Gaya belajarmu belum diisi');
+  });
+
+  it('asks to reopen the lesson when the topic itself cannot be found', () => {
+    expect(missingIdsProblem({ topicId: '', learningStyleId: '' })).toContain('Course untuk pelajaran ini belum ditemukan');
+    expect(missingIdsProblem({ topicId: '', learningStyleId: STYLE })).toContain('Course untuk pelajaran ini belum ditemukan');
   });
 });

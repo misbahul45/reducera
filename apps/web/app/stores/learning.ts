@@ -1,4 +1,3 @@
-// ~/stores/learning.ts
 export const useLearning = defineStore('learning', {
    persist: true,
   state: () => ({
@@ -44,6 +43,7 @@ export const useLearning = defineStore('learning', {
       this.subTopicId = ''
       this.lessonId = ''
       this.stepId = ''
+      this.userStepId = ''
       this.learningStyleId = ''
     }
   }

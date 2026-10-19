@@ -17,14 +17,10 @@ export interface MisconceptionState {
 }
 
 export const MISCONCEPTION_RULES = {
-  /** Minimum observations to consider a misconception */
   TENTATIVE_THRESHOLD: 2,
-  /** Minimum observations + distinct evidence to CONFIRM */
   CONFIRM_OBSERVATIONS: 4,
   CONFIRM_DISTINCT_EVIDENCE: 2,
-  /** Consecutive correct on the same concept key to auto-resolve */
   AUTO_RESOLVE_STREAK: 5,
-  /** Stale if not seen for N days */
   STALE_DAYS: 60,
 } as const;
 

@@ -107,7 +107,6 @@ export class SubTopicsRepo {
 
     async findOneWithNavigation(id: string, userId?: string) {
         return errorHandler(async () => {
-            // Ambil current subTopic
             const current = await this.prisma.subTopic.findFirst({
             where: { id },
             include: {
@@ -118,7 +117,6 @@ export class SubTopicsRepo {
 
             if (!current) return null;
 
-            // Ambil next subTopic
             const next = await this.prisma.subTopic.findFirst({
             where: {
                 topicId: current.topicId,
@@ -131,7 +129,6 @@ export class SubTopicsRepo {
             },
             });
 
-            // Ambil prev subTopic
             const previous = await this.prisma.subTopic.findFirst({
             where: {
                 topicId: current.topicId,
@@ -144,7 +141,6 @@ export class SubTopicsRepo {
             },
             });
 
-            // Cek apakah next unlocked
             let nextUnlocked = true;
             if (userId && next) {
             const prevProgress = await this.prisma.subTopicProgress.findFirst({
@@ -157,7 +153,6 @@ export class SubTopicsRepo {
             nextUnlocked = !!prevProgress;
             }
 
-            // Cek apakah previous sudah completed
             let prevCompleted = true;
             if (userId && previous) {
             const prevProgress = await this.prisma.subTopicProgress.findFirst({

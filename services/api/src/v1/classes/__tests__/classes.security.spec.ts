@@ -33,8 +33,8 @@ describe('Classes HTTP contract', () => {
   let memberships: Record<string, Array<{ tenantId: string; role: string }>>;
 
   beforeEach(async () => {
-    authoring = mocks(['create', 'list', 'findOne', 'update', 'submitReview', 'withdraw', 'archive', 'addSession', 'updateSession', 'cancelSession', 'enrollments']);
-    moderation = mocks(['queue', 'findOne', 'approve', 'reject', 'suspend', 'reinstate', 'archive']);
+    authoring = mocks(['create', 'list', 'findOne', 'update', 'setConcepts', 'submitReview', 'withdraw', 'archive', 'addSession', 'updateSession', 'cancelSession', 'enrollments']);
+    moderation = mocks(['queue', 'findOne', 'approve', 'approveConcepts', 'rejectConcepts', 'reject', 'suspend', 'reinstate', 'archive']);
     marketplace = mocks(['list', 'findOne', 'access', 'materials']);
     enrollments = mocks(['enrollFree', 'cancelFree', 'attend', 'complete', 'listMine']);
     memberships = {
@@ -149,11 +149,40 @@ describe('Classes HTTP contract', () => {
     });
   });
 
+  describe('concept tags of an existing class', () => {
+    const url = `/classes/${CLASS}/concepts`;
+
+    it('are set by a tenant member for the tenant of the membership', async () => {
+      await http().put(url).send({ conceptIds: ['a'] }).expect(401);
+      await http().put(url).set(asUser(STUDENT_A)).send({ conceptIds: ['a'] }).expect(403);
+      expect(authoring.setConcepts).not.toHaveBeenCalled();
+
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: ['a'] }).expect(200);
+      expect(authoring.setConcepts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: TEACHER_A.id }),
+        expect.objectContaining({ tenantId: TENANT_A }),
+        CLASS,
+        ['a'],
+        expect.any(String),
+      );
+    });
+
+    it('refuse a forged tenant, a malformed id and any other body', async () => {
+      await http().put(url).set({ ...asUser(TEACHER_A), 'x-tenant-id': TENANT_B }).send({ conceptIds: [] }).expect(403);
+      await http().put('/classes/not-a-uuid/concepts').set(asUser(TEACHER_A)).send({ conceptIds: [] }).expect(400);
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: ['a'], status: 'PUBLISHED' }).expect(400);
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).expect(400);
+      expect(authoring.setConcepts).not.toHaveBeenCalled();
+    });
+  });
+
   describe('review commands are for administrators', () => {
     const commands: Array<[string, string, object]> = [
       ['get', '/admin/classes', {}],
       ['get', `/admin/classes/${CLASS}`, {}],
       ['post', `/admin/classes/${CLASS}/approve`, {}],
+      ['post', `/admin/classes/${CLASS}/approve-concepts`, {}],
+      ['post', `/admin/classes/${CLASS}/reject-concepts`, { reason: 'Tag tidak sesuai isi' }],
       ['post', `/admin/classes/${CLASS}/reject`, { reason: 'Needs a clearer syllabus' }],
       ['post', `/admin/classes/${CLASS}/suspend`, { reason: 'Complaint received' }],
       ['post', `/admin/classes/${CLASS}/reinstate`, {}],
@@ -170,6 +199,18 @@ describe('Classes HTTP contract', () => {
       await call(method, path, body, STUDENT_A).expect(403);
       await call(method, path, body, TEACHER_A).expect(403);
       expect(Object.values(moderation).every((fn) => fn.mock.calls.length === 0)).toBe(true);
+    });
+
+    it('lets an administrator decide on pending concept tags and filters the queue by them', async () => {
+      await call('post', `/admin/classes/${CLASS}/approve-concepts`, {}, ADMIN_A).expect(201);
+      await call('post', `/admin/classes/${CLASS}/reject-concepts`, {}, ADMIN_A).expect(400);
+      await call('post', `/admin/classes/${CLASS}/reject-concepts`, { reason: 'Tag tidak sesuai isi' }, ADMIN_A).expect(201);
+      expect(moderation.approveConcepts).toHaveBeenCalledWith(expect.objectContaining({ id: ADMIN_A.id }), CLASS, undefined, expect.any(String));
+      expect(moderation.rejectConcepts).toHaveBeenCalledWith(expect.anything(), CLASS, 'Tag tidak sesuai isi', expect.any(String));
+
+      await call('get', '/admin/classes?status=PUBLISHED&pendingTags=true', {}, ADMIN_A).expect(200);
+      expect(moderation.queue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pendingTags: 'true' }));
+      await call('get', '/admin/classes?pendingTags=maybe', {}, ADMIN_A).expect(400);
     });
 
     it('requires a reason to reject or suspend', async () => {

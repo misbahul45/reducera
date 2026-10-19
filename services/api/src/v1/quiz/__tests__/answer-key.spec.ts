@@ -15,6 +15,18 @@ describe('canSeeAnswerKey', () => {
   });
 });
 
+describe('withoutAnswerKey hides what would reveal the key', () => {
+  it('removes the tags of the distractors, which show every wrong option', () => {
+    const tagged = { ...question('a'), distractors: { B: 'debit_credit_swap' } };
+
+    const cleaned = withoutAnswerKey({ data: { data: [tagged] } }).data.data[0];
+
+    expect('distractors' in cleaned).toBe(false);
+    expect('correctAnswer' in cleaned).toBe(false);
+    expect(cleaned.options).toEqual(['A', 'B']);
+  });
+});
+
 describe('withoutAnswerKey', () => {
   it('removes correctAnswer from every question in a list response and keeps the rest', () => {
     const response = { message: 'ok', data: { data: [question('a'), question('b')], pagination: { total: 2 } } };

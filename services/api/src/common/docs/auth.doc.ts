@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { extendApi } from '@anatine/zod-openapi';
 
-// Response Schemas untuk Auth
 export const LoginResponseSchema = extendApi(
   z.object({
     id: z.string().describe('Unique user identifier'),

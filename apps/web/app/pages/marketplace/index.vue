@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MarketplaceCard from '~/components/marketplace/MarketplaceCard.vue';
+import RecommendedShelf from '~/components/marketplace/RecommendedShelf.vue';
 import PageHeader from '~/components/play/PageHeader.vue';
 import PlayButton from '~/components/play/PlayButton.vue';
 import { articleCard, catalogPages, classCard, interleave, SORT_OPTIONS, type CatalogCard } from '~/lib/marketplace';
@@ -97,6 +98,8 @@ function clearFilters() {
 <template>
   <div class="rc-stack">
     <PageHeader title="Marketplace" subtitle="Artikel dan kelas akuntansi dari kreator ReduCera." />
+
+    <RecommendedShelf />
 
     <form class="rc-toolbar" role="search" aria-label="Cari di marketplace" @submit.prevent="set({ q: search })">
       <label class="rc-toolbar__grow">

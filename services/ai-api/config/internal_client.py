@@ -85,6 +85,9 @@ class InternalApiClient:
     def patch(self, path: str, *, json_body: dict) -> Any:
         return self.send("PATCH", path, json_body=json_body).get("data")
 
+    def put(self, path: str, *, json_body: dict) -> Any:
+        return self.send("PUT", path, json_body=json_body).get("data")
+
     @staticmethod
     def _unwrap(response: requests.Response, url: str) -> dict:
         status = response.status_code

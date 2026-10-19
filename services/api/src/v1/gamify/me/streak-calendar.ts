@@ -1,4 +1,4 @@
-import { DEFAULT_STREAK_CONFIG, EMPTY_STREAK, StreakConfig, StreakState, daysBetween, foldQualifiedDay } from '../streaks/streak-fold';
+import { StreakState, daysBetween } from '../streaks/streak-fold';
 
 export type CalendarDayState = 'done' | 'frozen' | 'missed' | 'today';
 
@@ -7,32 +7,33 @@ export interface CalendarDay {
   state: CalendarDayState;
 }
 
+export interface StreakDayRecord {
+  date: string;
+  streakCount: number;
+}
+
 export type StreakStatus = 'NONE' | 'DONE_TODAY' | 'AT_RISK' | 'SAVED_BY_FREEZE' | 'BROKEN';
 
 export const shiftDate = (date: string, days: number): string =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
-const coveredDays = (dates: ReadonlyArray<string>, config: StreakConfig): Set<string> => {
+const coveredDays = (records: ReadonlyArray<StreakDayRecord>): Set<string> => {
   const covered = new Set<string>();
-  let state: StreakState = EMPTY_STREAK;
-  for (const date of [...new Set(dates)].sort()) {
-    const step = foldQualifiedDay(state, date, config);
-    if (step.freezesUsed > 0 && state.lastDate) {
-      for (let n = 1; n <= step.freezesUsed; n += 1) covered.add(shiftDate(state.lastDate, n));
+  const ordered = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1];
+    const next = ordered[index];
+    const gap = daysBetween(previous.date, next.date);
+    if (gap > 1 && next.streakCount === previous.streakCount + 1) {
+      for (let n = 1; n < gap; n += 1) covered.add(shiftDate(previous.date, n));
     }
-    state = step.state;
   }
   return covered;
 };
 
-export const streakCalendar = (
-  dates: ReadonlyArray<string>,
-  today: string,
-  length = 7,
-  config: StreakConfig = DEFAULT_STREAK_CONFIG,
-): CalendarDay[] => {
-  const done = new Set(dates);
-  const frozen = coveredDays(dates, config);
+export const streakCalendar = (records: ReadonlyArray<StreakDayRecord>, today: string, length = 7): CalendarDay[] => {
+  const done = new Set(records.map((record) => record.date));
+  const frozen = coveredDays(records);
   return Array.from({ length }, (_, n) => {
     const date = shiftDate(today, n - (length - 1));
     if (done.has(date)) return { date, state: 'done' as const };

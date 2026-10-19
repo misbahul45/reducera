@@ -95,7 +95,6 @@ def test_assert_url_allowed_raises_on_blocked():
     with patch("config.url_allowlist._default_allowlist", al):
         with pytest.raises(ValueError, match="not allowed"):
             assert_url_allowed("https://attacker.com/x")
-        # does not raise
         assert_url_allowed("https://cdn.example.com/x")
 
 

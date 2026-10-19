@@ -45,9 +45,12 @@ const visible = computed(() => {
       </div>
 
       <EmptyState v-if="visible.length === 0" title="Belum ada yang cocok" message="Selesaikan penilaian untuk membuka pencapaian berikutnya." icon-name="i-lucide-badge-check" cta-label="Mulai belajar" cta-to="/learn/topics" />
-      <div v-else class="rc-grid rc-grid--wide">
-        <AchievementTile v-for="item in visible" :key="item.code" :item="item" />
-      </div>
+      <section v-else aria-labelledby="achievements-list-h">
+        <h2 id="achievements-list-h" class="sr-only">Daftar pencapaian</h2>
+        <div class="rc-grid rc-grid--wide">
+          <AchievementTile v-for="item in visible" :key="item.code" :item="item" />
+        </div>
+      </section>
     </template>
   </div>
 </template>

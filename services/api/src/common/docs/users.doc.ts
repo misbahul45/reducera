@@ -1,7 +1,6 @@
 import { extendApi } from "@anatine/zod-openapi";
 import z from "zod";
 
-// Base User Schema
 export const BaseUserSchema = z.object({
   id: z.string().describe('Unique user identifier'),
   name: z.string().describe('User full name'),
@@ -12,12 +11,10 @@ export const BaseUserSchema = z.object({
   role: z.enum(['STUDENT', 'ADMIN', 'TEACHER']).describe('User role'),
   isActive: z.boolean().describe('User account status'),
   
-  // Gamification fields
   totalPoints: z.number().describe('Total points earned by user'),
   souls: z.number().describe('User souls count'),
   stars: z.number().describe('User stars count'),
   
-  // Streak fields
   currentStreak: z.number().describe('Current streak count'),
   longestStreak: z.number().describe('Longest streak achieved'),
   lastStreakDate: z.date().nullable().describe('Last streak activity date'),
@@ -26,7 +23,6 @@ export const BaseUserSchema = z.object({
   updatedAt: z.date().describe('Last account update date'),
 });
 
-// User Detail Schema with relations
 export const UserDetailSchema = extendApi(
   BaseUserSchema.extend({
     userTopics: z.array(z.object({
@@ -132,7 +128,6 @@ export const UserDetailSchema = extendApi(
   }
 );
 
-// User List Schema for paginated results
 export const UsersListSchema = extendApi(
   z.object({
     data: z.array(BaseUserSchema.extend({

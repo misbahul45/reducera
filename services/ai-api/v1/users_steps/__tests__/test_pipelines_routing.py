@@ -19,7 +19,7 @@ PERSONALITY = {
 
 STEPS = {"data": [{"userId": "u-1", "stepTemplateId": "s-1", "title": "Mulai dari debit", "isDone": False, "order": 1}]}
 
-QUIZ = {"quiz": [{"question": "Soal?", "type": "input", "difficulty": "easy", "options": [], "answer": "A"}]}
+QUIZ = {"quiz": [{"question": "Soal?", "type": "input", "difficulty": "easy", "options": [], "answer": "A", "sources": [1]}]}
 
 
 def lp_state(**extra):

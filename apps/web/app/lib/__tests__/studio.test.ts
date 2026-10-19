@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articlePayload, articleProblem, classProblem, contentCounts, httpsUrlProblem, isEditable, nextStep, priceProblem, sessionProblem, sumCounts, toLocalInput } from '~/lib/studio';
+import { articlePayload, articleProblem, canTagSeparately, classProblem, contentCounts, httpsUrlProblem, isEditable, liveTagHint, liveTagSavedMessage, nextStep, priceProblem, sessionProblem, sumCounts, toLocalInput } from '~/lib/studio';
 
 describe('contentCounts', () => {
   it('counts each status the creator cares about and the total', () => {
@@ -95,10 +95,18 @@ describe('priceProblem', () => {
 });
 
 describe('articlePayload', () => {
-  const form = { title: '  Jurnal  ', subtitle: ' ringkas ', body: 'isi', accessType: 'PAID' as const, price: 25000 };
+  const form = { title: '  Jurnal  ', subtitle: ' ringkas ', body: 'isi', accessType: 'PAID' as const, price: 25000, conceptIds: ['c1', 'c2'] };
 
   it('trims text and keeps the price for a paid article', () => {
-    expect(articlePayload(form)).toEqual({ title: 'Jurnal', content: 'isi', excerpt: 'ringkas', accessType: 'PAID', price: 25000 });
+    expect(articlePayload(form)).toEqual({ title: 'Jurnal', content: 'isi', excerpt: 'ringkas', accessType: 'PAID', price: 25000, conceptIds: ['c1', 'c2'] });
+  });
+
+  it('always sends the chosen concepts, so removing them all clears the tags', () => {
+    expect(articlePayload({ ...form, conceptIds: [] }).conceptIds).toEqual([]);
+  });
+
+  it('sends a copy of the concepts', () => {
+    expect(articlePayload(form).conceptIds).not.toBe(form.conceptIds);
   });
 
   it('never sends a price for a free article', () => {
@@ -107,7 +115,7 @@ describe('articlePayload', () => {
 });
 
 describe('articleProblem', () => {
-  const form = { title: 'Jurnal penyesuaian', subtitle: '', body: 'isi', accessType: 'FREE' as const, price: null };
+  const form = { title: 'Jurnal penyesuaian', subtitle: '', body: 'isi', accessType: 'FREE' as const, price: null, conceptIds: [] };
 
   it('passes a complete free article', () => {
     expect(articleProblem(form)).toBeNull();
@@ -150,5 +158,32 @@ describe('httpsUrlProblem', () => {
     expect(httpsUrlProblem('javascript:alert(1)')).not.toBeNull();
     expect(httpsUrlProblem('https://meet.example/a b')).not.toBeNull();
     expect(httpsUrlProblem(`https://x.test/${'a'.repeat(700)}`)).not.toBeNull();
+  });
+});
+
+describe('canTagSeparately', () => {
+  it('opens the tag editor for content that is waiting or live, and nothing else', () => {
+    expect(canTagSeparately('PENDING_REVIEW')).toBe(true);
+    expect(canTagSeparately('PUBLISHED')).toBe(true);
+    for (const status of ['DRAFT', 'REJECTED', 'SUSPENDED', 'ARCHIVED']) expect(canTagSeparately(status)).toBe(false);
+  });
+
+  it('never overlaps with the states the autosave form already covers', () => {
+    for (const status of ['DRAFT', 'REJECTED', 'PENDING_REVIEW', 'PUBLISHED', 'SUSPENDED', 'ARCHIVED']) {
+      expect(isEditable(status) && canTagSeparately(status)).toBe(false);
+    }
+  });
+});
+
+describe('live tag copy', () => {
+  it('tells the author that new tags on a published piece wait for an administrator and removals are immediate', () => {
+    expect(liveTagHint('PUBLISHED')).toContain('setelah admin menyetujuinya');
+    expect(liveTagHint('PUBLISHED')).toContain('langsung hilang');
+    expect(liveTagSavedMessage('PUBLISHED')).toContain('menunggu persetujuan admin');
+  });
+
+  it('says the tags are reviewed together with the piece while it is in the queue', () => {
+    expect(liveTagHint('PENDING_REVIEW')).toContain('ikut ditinjau');
+    expect(liveTagSavedMessage('PENDING_REVIEW')).toContain('ikut ditinjau');
   });
 });

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { TenantRole } from '@prisma/client';
 import { TraceId } from '@/common/authz/trace-id.decorator';
 import { ZodPipe } from '@/common/pipes/zod.pipe';
@@ -6,6 +6,7 @@ import { AuthUser } from '@/common/interfaces/auth.interface';
 import { CurrentTenant, TenantScoped } from '@/common/tenancy/tenant.guard';
 import { TenantContext } from '@/common/tenancy/tenant-context';
 import { GetUser } from '../auth/auth.decorator';
+import { ConceptTagsBody, ConceptTagsBodyDto } from '../marketplace/marketplace.dto';
 import { ClassAuthoringService } from './class-authoring.service';
 import {
   CreateClassDto,
@@ -67,6 +68,17 @@ export class ClassesController {
   @Post(':id/submit-review')
   submitReview(@Param('id', ParseUUIDPipe) id: string, @CurrentTenant() context: TenantContext, @GetUser() user: AuthUser, @TraceId() traceId: string) {
     return this.authoring.submitReview(user, context, id, traceId);
+  }
+
+  @Put(':id/concepts')
+  setConcepts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(ConceptTagsBodyDto)) dto: ConceptTagsBody,
+    @CurrentTenant() context: TenantContext,
+    @GetUser() user: AuthUser,
+    @TraceId() traceId: string,
+  ) {
+    return this.authoring.setConcepts(user, context, id, dto.conceptIds, traceId);
   }
 
   @Post(':id/withdraw')

@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/config/prisma/prisma.service';
 import { errorHandler, validation } from '@/common/lib/utils';
 import { Query } from '@/common/interfaces';
-import { CreateChatMessageDto, CreateChatMessageDtoType, UpdateChatMessageDto, UpdateChatMessageDtoType } from './chat-messages.dto';
+import { AppError, AppErrorCode } from '@/common/lib/error';
+import { ATTACHMENT_VIEW_SELECT } from '../chat-attachments/attachment-rules';
+import { linkAttachments } from '../chat-attachments/chat-attachment-links';
+import { CreateChatMessageDto, CreateChatMessageDtoType, InternalUpdateChatMessageDto, InternalUpdateChatMessageDtoType, UpdateChatMessageDto, UpdateChatMessageDtoType } from './chat-messages.dto';
 
 @Injectable()
 export class ChatMessagesRepo {
@@ -19,6 +23,9 @@ export class ChatMessagesRepo {
                 this.prisma.chatMessage.findMany({
                     where: {
                         chatId,
+                    },
+                    include: {
+                        attachments: { select: ATTACHMENT_VIEW_SELECT, orderBy: { createdAt: 'asc' } },
                     },
                     orderBy: {
                         createdAt: "asc",
@@ -56,8 +63,20 @@ export class ChatMessagesRepo {
 
     async create(values:CreateChatMessageDtoType){
         return errorHandler(async()=>{
-            const data=validation(CreateChatMessageDto, values)
-            return await this.prisma.chatMessage.create({data})
+            const { attachmentIds = [], ...data } = validation(CreateChatMessageDto, values)
+            if (attachmentIds.length > 0 && data.role !== 'USER') {
+                throw new AppError('Only a learner message can carry images', 422, AppErrorCode.VALIDATION_ERROR)
+            }
+            if (attachmentIds.length === 0) return await this.prisma.chatMessage.create({data})
+
+            return await this.prisma.$transaction(async (tx) => {
+                const message = await tx.chatMessage.create({data})
+                await linkAttachments(tx, data.chatId, message.id, attachmentIds)
+                return await tx.chatMessage.findUniqueOrThrow({
+                    where: { id: message.id },
+                    include: { attachments: { select: ATTACHMENT_VIEW_SELECT, orderBy: { createdAt: 'asc' } } },
+                })
+            })
         })
     }
 
@@ -67,6 +86,22 @@ export class ChatMessagesRepo {
             return await this.prisma.chatMessage.update({
                 where:{id},
                 data
+            })
+        })
+    }
+
+    async updateReply(id:string, values:InternalUpdateChatMessageDtoType){
+        return errorHandler(async()=>{
+            const { text, status, citations, actions } = validation(InternalUpdateChatMessageDto, values)
+            const json = (value: unknown) => (value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue))
+            return await this.prisma.chatMessage.update({
+                where:{id},
+                data:{
+                    text,
+                    ...(status !== undefined ? { status } : {}),
+                    ...(citations !== undefined ? { citations: json(citations) } : {}),
+                    ...(actions !== undefined ? { actions: json(actions) } : {}),
+                }
             })
         })
     }

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { extendApi } from '@anatine/zod-openapi';
 
-// Common parameter schemas
 export const UuidParamSchema = extendApi(
   z.object({
     id: z.string().uuid().describe('UUID identifier'),
@@ -22,7 +21,6 @@ export const StringParamSchema = extendApi(
   }
 );
 
-// Common query schemas
 export const SearchQuerySchema = extendApi(
   z.object({
     search: z.string().optional().describe('Search term'),

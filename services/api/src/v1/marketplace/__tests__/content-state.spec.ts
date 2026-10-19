@@ -5,6 +5,8 @@ import {
   canTransitionContent,
   EDITABLE_CONTENT_STATES,
   READABLE_BY_BUYERS,
+  TAGGABLE_CONTENT_STATES,
+  assertTaggable,
 } from '../content-state';
 
 describe('content state machine', () => {
@@ -61,5 +63,21 @@ describe('content state machine', () => {
 
   it('buyers keep reading archived content but never suspended or unreviewed content', () => {
     expect([...READABLE_BY_BUYERS].sort()).toEqual(['ARCHIVED', 'PUBLISHED']);
+  });
+});
+
+describe('concept tags and the content state', () => {
+  it.each(['DRAFT', 'REJECTED', 'PENDING_REVIEW', 'PUBLISHED'] as ContentStatus[])('allow tags to change while %s', (status) => {
+    expect(TAGGABLE_CONTENT_STATES).toContain(status);
+    expect(() => assertTaggable(status)).not.toThrow();
+  });
+
+  it.each(['SUSPENDED', 'ARCHIVED'] as ContentStatus[])('lock the tags of %s content', (status) => {
+    expect(TAGGABLE_CONTENT_STATES).not.toContain(status);
+    expect(() => assertTaggable(status)).toThrow(expect.objectContaining({ statusCode: 409, code: 'CONTENT_LOCKED' }));
+  });
+
+  it('are a superset of the editable states, so authoring never loses the right to tag', () => {
+    for (const status of EDITABLE_CONTENT_STATES) expect(TAGGABLE_CONTENT_STATES).toContain(status);
   });
 });

@@ -1,9 +1,6 @@
 import { extendApi } from '@anatine/zod-openapi';
 import z from 'zod';
 
-// =====================================================================
-// 1. ChatMessage Schema
-// =====================================================================
 export const BaseChatMessageSchema = z.object({
   id: z.string().describe('Unique message identifier'),
   chatId: z.string().describe('Related chat ID'),
@@ -59,9 +56,6 @@ export const ChatMessageListSchema = extendApi(
   }
 );
 
-// =====================================================================
-// 2. Chat Schema
-// =====================================================================
 export const BaseChatSchema = z.object({
   id: z.string().describe('Unique chat identifier'),
   stepId: z.string().describe('Related step ID'),

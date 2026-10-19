@@ -34,3 +34,14 @@ export const formatNotificationTime = (value: string | Date | null | undefined):
 const ICONS: Record<string, ThemeIconName> = { STREAK: 'streak', QUIZ: 'xp', ACHIEVEMENT: 'badge' };
 
 export const notificationIcon = (type: string): ThemeIconName | null => ICONS[type] ?? null;
+
+export interface NotificationAction {
+  to: string;
+  label: string;
+}
+
+const ACTIONS: Record<string, NotificationAction> = {
+  REVIEW: { to: '/learn/profile/my-learning', label: 'Mulai ulasan' },
+};
+
+export const notificationAction = (type: string): NotificationAction | null => ACTIONS[type] ?? null;

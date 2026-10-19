@@ -28,10 +28,11 @@ const assessment = (score: number, evidenceCount: number, paid = 0) => ({
 });
 
 describe('default rows', () => {
-  it('are the four rules of the catalog at version 1, with their values as data', () => {
+  it('are the five rules of the catalog at version 1, with their values as data', () => {
     const byCode = Object.fromEntries(DEFAULT_REWARD_RULE_ROWS.map((r) => [r.code, r]));
 
-    expect(Object.keys(byCode).sort()).toEqual(['CONCEPT_PASSED', 'MASTERY_PROGRESS', 'PATH_NODE_MASTERED', 'STREAK_BONUS_7']);
+    expect(Object.keys(byCode).sort()).toEqual(['CONCEPT_PASSED', 'MASTERY_PROGRESS', 'PATH_NODE_MASTERED', 'STREAK_BONUS_7', 'STREAK_FREEZE_EARNED']);
+    expect(byCode.STREAK_FREEZE_EARNED).toMatchObject({ version: 1, eventType: 'STREAK_DAY_QUALIFIED', rewardKind: 'XP', amount: 7, params: { maxHeld: 2 } });
     expect(byCode.MASTERY_PROGRESS).toMatchObject({ version: 1, rewardKind: 'XP', amount: 50, params: { perUnit: 100, baseline: 0.5 } });
     expect(byCode.CONCEPT_PASSED).toMatchObject({ version: 1, rewardKind: 'XP', amount: 50 });
     expect(byCode.STREAK_BONUS_7).toMatchObject({ version: 1, rewardKind: 'XP', amount: 50, params: { every: 7 } });
@@ -80,6 +81,25 @@ describe('buildRuleSet', () => {
 
     expect(set.streakBonus).toEqual({ version: 2, points: 70, every: 14 });
     expect(set.nodeMastered).toEqual({ version: 2, stars: 2 });
+  });
+
+  it('reads the freeze cadence from the amount and the number held from the params', () => {
+    const set = buildRuleSet([row({ code: 'STREAK_FREEZE_EARNED', version: 2, eventType: 'STREAK_DAY_QUALIFIED', amount: 5, params: { maxHeld: 4 } })]);
+
+    expect(set.streakFreeze).toEqual({ version: 2, every: 5, maxHeld: 4 });
+  });
+
+  it('allows a freeze rule that holds none, and falls back for a value that is not usable', () => {
+    expect(buildRuleSet([row({ code: 'STREAK_FREEZE_EARNED', version: 2, amount: 7, params: { maxHeld: 0 } })]).streakFreeze).toEqual({ version: 2, every: 7, maxHeld: 0 });
+
+    for (const params of [null, {}, { maxHeld: -1 }, { maxHeld: 1.5 }, { maxHeld: 'x' }]) {
+      expect(buildRuleSet([row({ code: 'STREAK_FREEZE_EARNED', version: 2, amount: 7, params })]).streakFreeze).toEqual({ version: 2, every: 7, maxHeld: 2 });
+    }
+    expect(buildRuleSet([row({ code: 'STREAK_FREEZE_EARNED', version: 2, amount: 0, params: { maxHeld: 2 } })]).streakFreeze).toEqual({ version: 2, every: 7, maxHeld: 2 });
+  });
+
+  it('turns the freeze off when every row of its code is inactive', () => {
+    expect(buildRuleSet([row({ code: 'STREAK_FREEZE_EARNED', version: 1, active: false })]).streakFreeze).toBeNull();
   });
 
   it('ignores a row of an unknown code', () => {
@@ -138,6 +158,7 @@ describe('nodeMasteredGrant', () => {
       sourceType: 'NODE',
       sourceId: 'sub-1',
       subTopicId: 'sub-1',
+      oncePerCause: true,
     });
   });
 

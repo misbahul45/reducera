@@ -15,9 +15,13 @@ import { QuizEvaluationService } from '@/v1/quiz/services/quiz-evaluation.servic
 import { AttemptStatus, Prisma } from '@prisma/client';
 import { ConceptRegistryService } from '@/v1/learner-model/concepts/concept-registry.service';
 import { LearnerEventsService } from '@/v1/learner-model/events/learner-events.service';
+import { StrategyOutcomeService } from '@/v1/learner-model/strategy/strategy-outcome.service';
 import { RewardEngineService } from '@/v1/gamify/rewards/reward-engine.service';
 import { AssessmentGamifyOutcome, AssessmentGamifyService } from '@/v1/gamify/assessment-gamify.service';
 import { QuizAccessService } from '../quiz-access.service';
+import { MisconceptionCode, distractorCodeOf } from '../misconception-codes';
+
+const DEFAULT_PASSING_SCORE = 70;
 
 @Injectable()
 export class QuizAttemptsService {
@@ -32,6 +36,7 @@ export class QuizAttemptsService {
     @Optional() private readonly rewards?: RewardEngineService,
     @Optional() private readonly gamify?: AssessmentGamifyService,
     @Optional() private readonly access?: QuizAccessService,
+    @Optional() private readonly strategyOutcomes?: StrategyOutcomeService,
   ) {}
 
   create(values: CreateQuizAttemptType) {
@@ -113,13 +118,19 @@ export class QuizAttemptsService {
         where: { id: attempt.quizId },
         select: {
           id: true,
+          passingScore: true,
           topicId: true,
           lessonId: true,
           subTopicId: true,
           subTopic: { select: { topicId: true } },
           lesson: { select: { subTopicId: true, subTopic: { select: { topicId: true } } } },
           step: { select: { lessonId: true, lesson: { select: { subTopicId: true, subTopic: { select: { topicId: true } } } } } },
-          questions: { select: { id: true, questionType: true, correctAnswer: true, options: true, points: true } },
+          userStepProgress: {
+            select: {
+              stepTemplate: { select: { lessonId: true, lesson: { select: { subTopicId: true, subTopic: { select: { topicId: true } } } } } },
+            },
+          },
+          questions: { select: { id: true, questionType: true, correctAnswer: true, options: true, distractors: true, points: true } },
         },
       });
       if (!quiz) {
@@ -129,7 +140,23 @@ export class QuizAttemptsService {
       const questionMap = new Map(quiz.questions.map((q) => [q.id, q]));
       let scoreTotal = 0;
       let pointsTotal = 0;
-      const perAnswer: { questionId: string; isCorrect: boolean; pointsEarned: number; patternCode: string | null }[] = [];
+      const perAnswer: {
+        questionId: string;
+        isCorrect: boolean;
+        pointsEarned: number;
+        patternCode: string | null;
+        distractorCode: MisconceptionCode | null;
+      }[] = [];
+      const viaUserStep = quiz.userStepProgress?.stepTemplate ?? null;
+      const lessonId = quiz.lessonId ?? quiz.step?.lessonId ?? viaUserStep?.lessonId ?? null;
+      const subTopicId = quiz.subTopicId ?? quiz.lesson?.subTopicId ?? quiz.step?.lesson.subTopicId ?? viaUserStep?.lesson.subTopicId ?? null;
+      const topicId =
+        quiz.topicId ??
+        quiz.subTopic?.topicId ??
+        quiz.lesson?.subTopic.topicId ??
+        quiz.step?.lesson.subTopic.topicId ??
+        viaUserStep?.lesson.subTopic.topicId ??
+        null;
 
       for (const q of quiz.questions) {
         pointsTotal += q.points;
@@ -148,6 +175,7 @@ export class QuizAttemptsService {
           isCorrect: evaluation.isCorrect,
           pointsEarned: evaluation.pointsEarned,
           patternCode: evaluation.isCorrect ? null : this.classifyPattern(q.questionType, userAnswer, q.correctAnswer as unknown),
+          distractorCode: evaluation.isCorrect ? null : distractorCodeOf(q.distractors, userAnswer),
         });
         await tx.answer.upsert({
           where: { attemptId_questionId: { attemptId: attempt.id, questionId: q.id } },
@@ -184,10 +212,11 @@ export class QuizAttemptsService {
           attemptNumber: attempt.attemptNumber,
           quizId: quiz.id,
           score: scoreTotal / pointsTotal,
+          passed: scorePercent >= (quiz.passingScore ?? DEFAULT_PASSING_SCORE),
           items: quiz.questions.length,
-          lessonId: quiz.lessonId ?? quiz.step?.lessonId ?? null,
-          subTopicId: quiz.subTopicId ?? quiz.lesson?.subTopicId ?? quiz.step?.lesson.subTopicId ?? null,
-          topicId: quiz.topicId ?? quiz.subTopic?.topicId ?? quiz.lesson?.subTopic.topicId ?? quiz.step?.lesson.subTopic.topicId ?? null,
+          lessonId,
+          subTopicId,
+          topicId,
         });
       }
 
@@ -196,12 +225,23 @@ export class QuizAttemptsService {
         isCorrectMap[a.questionId] = a.isCorrect;
       }
 
-      return { score: scorePercent, isCorrect: isCorrectMap, perAnswer, topicId: quiz.topicId, gamify };
+      return { score: scorePercent, isCorrect: isCorrectMap, perAnswer, topicId, gamify };
     });
 
     const misconception = this.misconception;
     if (misconception) {
       for (const a of result.perAnswer) {
+        if (!a.isCorrect && a.distractorCode) {
+          const chosen = input.answers[a.questionId];
+          await misconception.recordTagged({
+            userId: input.userId,
+            topicId: result.topicId ?? undefined,
+            code: a.distractorCode,
+            questionId: a.questionId,
+            userAnswer: typeof chosen === 'string' ? chosen : JSON.stringify(chosen ?? null),
+          });
+          continue;
+        }
         if (!a.isCorrect && a.patternCode) {
           const userAnswerForRecord = input.answers[a.questionId];
           await misconception.recordFromAnswer({
@@ -237,6 +277,7 @@ export class QuizAttemptsService {
       attemptNumber: number;
       quizId: string;
       score: number;
+      passed: boolean;
       items: number;
       lessonId: string | null;
       subTopicId: string | null;
@@ -267,6 +308,15 @@ export class QuizAttemptsService {
         },
         tx,
       );
+      if (!stored.duplicate) {
+        await this.strategyOutcomes?.attribute(tx, {
+          userId: evidence.userId,
+          conceptId,
+          eventKey: `assessment:${evidence.attemptId}:${conceptId}`,
+          scoreBefore: stored.before.score,
+          scoreAfter: stored.state.score,
+        });
+      }
       const rewarded = await this.rewards?.onAssessment(
         {
           userId: evidence.userId,
@@ -282,7 +332,7 @@ export class QuizAttemptsService {
       xpGained += rewarded?.points ?? 0;
     }
     if (conceptIds.length === 0 || !this.gamify) return undefined;
-    return this.gamify.afterAssessment({ userId: evidence.userId, subTopicId: evidence.subTopicId, at: new Date(), xpGained }, tx);
+    return this.gamify.afterAssessment({ userId: evidence.userId, subTopicId: evidence.subTopicId, at: new Date(), xpGained, passed: evidence.passed }, tx);
   }
 
   findOne(id: string, q:Query) {

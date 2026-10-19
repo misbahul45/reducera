@@ -83,10 +83,6 @@ export class QuestionBlueprintService {
 }
 
 export class ThreeValuedValidatorService {
-  /**
-   * Generator -> Validator gate (master prompt §29).
-   * Independent from the LLM; deterministic checks.
-   */
   gateQuestion(args: {
     blueprint: QuestionBlueprint;
     answer: string;

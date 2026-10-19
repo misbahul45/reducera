@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { RewardLedgerService } from '../rewards/reward-ledger.service';
 import { streakBonus } from '../rewards/reward-rules';
 import { RewardRulesService } from '../rewards/reward-rules.service';
-import { DEFAULT_STREAK_CONFIG, EMPTY_STREAK, StreakState, foldQualifiedDay, localDateOf } from './streak-fold';
+import { streakConfigFrom } from './streak-config';
+import { EMPTY_STREAK, StreakState, foldQualifiedDay, localDateOf } from './streak-fold';
 
 export interface StreakOutcome extends StreakState {
   extended: boolean;
@@ -29,6 +30,24 @@ export class StreakEngineService {
     private readonly rules: RewardRulesService,
   ) {}
 
+  async standing(userId: string, tx: Prisma.TransactionClient): Promise<StreakOutcome> {
+    const rows = await tx.$queryRaw<LearnerStreakRow[]>`
+      SELECT "timezone", "currentStreak", "longestStreak", "streakFreezes", "lastStreakDate"
+      FROM "User" WHERE id = ${userId}`;
+    const learner = rows[0];
+    if (!learner) return { ...EMPTY_STREAK, extended: false, freezeEarned: false, freezesUsed: 0, bonusPoints: 0 };
+    return {
+      current: learner.currentStreak,
+      longest: learner.longestStreak,
+      freezes: learner.streakFreezes,
+      lastDate: learner.lastStreakDate ? learner.lastStreakDate.toISOString().slice(0, 10) : null,
+      extended: false,
+      freezeEarned: false,
+      freezesUsed: 0,
+      bonusPoints: 0,
+    };
+  }
+
   async onQualified(input: { userId: string; at: Date }, tx: Prisma.TransactionClient): Promise<StreakOutcome> {
     const rows = await tx.$queryRaw<LearnerStreakRow[]>`
       SELECT "timezone", "currentStreak", "longestStreak", "streakFreezes", "lastStreakDate"
@@ -43,7 +62,8 @@ export class StreakEngineService {
       lastDate: learner.lastStreakDate ? learner.lastStreakDate.toISOString().slice(0, 10) : null,
     };
     const date = localDateOf(input.at, learner.timezone);
-    const step = foldQualifiedDay(before, date, DEFAULT_STREAK_CONFIG);
+    const rules = await this.rules.current(tx);
+    const step = foldQualifiedDay(before, date, streakConfigFrom(rules));
     if (!step.extended) return { ...before, extended: false, freezeEarned: false, freezesUsed: 0, bonusPoints: 0 };
 
     await tx.streakHistory.createMany({
@@ -60,7 +80,7 @@ export class StreakEngineService {
       },
     });
 
-    const bonus = streakBonus(input.userId, step.state.current, asDate(date), await this.rules.current(tx));
+    const bonus = streakBonus(input.userId, step.state.current, asDate(date), rules);
     let bonusPoints = 0;
     if (bonus) {
       const result = await this.ledger.grant({ userId: input.userId, ...bonus }, tx);

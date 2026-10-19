@@ -7,6 +7,7 @@ import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { PolicyService } from '@/common/authz/policy.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { TenantProvisioningService } from '@/v1/tenants/tenant-provisioning.service';
+import { CreatorEligibilityService } from '../../eligibility/creator-eligibility.service';
 import {
   ADMIN_A,
   STUDENT_A,
@@ -17,7 +18,8 @@ import {
 } from '@/test-utils/http-harness';
 
 const APP_ID = '44444444-4444-4444-8444-444444444444';
-const valid = { fullName: 'Applicant Name', expertise: 'Accounting' };
+const TOPIC_ID = '66666666-6666-4666-8666-666666666666';
+const valid = { fullName: 'Applicant Name', expertise: 'Accounting', expertiseTopicId: TOPIC_ID };
 
 describe('Teacher applications security', () => {
   let app: INestApplication;
@@ -27,6 +29,7 @@ describe('Teacher applications security', () => {
   let tx: any;
   let prisma: any;
   let provisioning: { provisionForOwner: jest.Mock };
+  let eligibility: { check: jest.Mock };
 
   beforeEach(async () => {
     stored = { id: APP_ID, userId: STUDENT_A.id, status: 'PENDING', fullName: 'Applicant Name' };
@@ -63,6 +66,7 @@ describe('Teacher applications security', () => {
     provisioning = {
       provisionForOwner: jest.fn().mockResolvedValueOnce({ tenantId: 'tenant-1', created: true }).mockResolvedValue({ tenantId: 'tenant-1', created: false }),
     };
+    eligibility = { check: jest.fn().mockResolvedValue({ eligible: true, score: 0.9, passedConcepts: 4, totalConcepts: 4 }) };
     app = await createHttpApp({
       controllers: [ApplicationsController],
       withOwnershipGuard: true,
@@ -71,6 +75,7 @@ describe('Teacher applications security', () => {
         PolicyService,
         AuditService,
         { provide: TenantProvisioningService, useValue: provisioning },
+        { provide: CreatorEligibilityService, useValue: eligibility },
         { provide: ApplicationsRepo, useValue: repo },
         { provide: PrismaService, useValue: prisma },
       ],
@@ -102,6 +107,37 @@ describe('Teacher applications security', () => {
         expect(repo.create).not.toHaveBeenCalled();
       },
     );
+
+    it('checks the mastery of the applicant on the topic they claim expertise in', async () => {
+      await request(app.getHttpServer()).post('/applications').set(asUser(STUDENT_A)).send(valid).expect(201);
+
+      expect(eligibility.check).toHaveBeenCalledWith({ userId: STUDENT_A.id, topicId: TOPIC_ID });
+    });
+
+    it('refuses an applicant who has not mastered the topic and stores nothing', async () => {
+      eligibility.check.mockResolvedValue({ eligible: false, score: 0.4, passedConcepts: 1, totalConcepts: 4 });
+
+      const res = await request(app.getHttpServer()).post('/applications').set(asUser(STUDENT_A)).send(valid).expect(422);
+
+      expect(res.body.error.code).toBe('MASTERY_THRESHOLD_NOT_MET');
+      expect(repo.create).not.toHaveBeenCalled();
+    });
+
+    it('requires a topic to claim expertise in', async () => {
+      const { expertiseTopicId, ...withoutTopic } = valid;
+
+      await request(app.getHttpServer()).post('/applications').set(asUser(STUDENT_A)).send(withoutTopic).expect(400);
+
+      expect(expertiseTopicId).toBe(TOPIC_ID);
+      expect(eligibility.check).not.toHaveBeenCalled();
+      expect(repo.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a topic id that is not a UUID', async () => {
+      await request(app.getHttpServer()).post('/applications').set(asUser(STUDENT_A)).send({ ...valid, expertiseTopicId: 'accounting' }).expect(400);
+
+      expect(repo.create).not.toHaveBeenCalled();
+    });
 
     it('rejects a second application', async () => {
       repo.findByUserId.mockResolvedValue({ id: APP_ID });

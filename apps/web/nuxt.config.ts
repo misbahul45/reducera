@@ -138,7 +138,7 @@ export default defineNuxtConfig({
       }
     }
   },
-  css: ['~/assets/css/main.css', '~/assets/css/play.css', '~/assets/css/landing.css', '~/assets/css/admin.css', '~/assets/css/market.css', '~/assets/css/article.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/play.css', '~/assets/css/landing.css', '~/assets/css/admin.css', '~/assets/css/market.css', '~/assets/css/article.css', '~/assets/css/sandbox.css'],
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {

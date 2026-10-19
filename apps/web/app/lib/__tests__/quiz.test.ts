@@ -90,3 +90,27 @@ describe('resultSummary', () => {
     expect(resultSummary(undefined)).toEqual({ correct: 0, total: 0, percent: 0 });
   });
 });
+
+describe('sources of a question', () => {
+  it('keeps the checked citations a question was written from and nothing else', () => {
+    const [question] = normalizeQuestions([
+      row('a', {
+        sources: [
+          { index: 1, kind: 'TOPIC', title: 'Konsep: Jurnal Umum', refType: 'CONCEPT', refId: 'c1' },
+          { index: 2, kind: 'WEB', title: 'Bad', url: 'javascript:alert(1)' },
+          'bukan sumber',
+        ],
+      }),
+    ]);
+
+    expect(question!.sources.map((source) => [source.index, source.kind, source.url])).toEqual([
+      [1, 'TOPIC', undefined],
+      [2, 'WEB', undefined],
+    ]);
+  });
+
+  it('has no sources for a question that carries none', () => {
+    expect(normalizeQuestions([row('a')])[0]!.sources).toEqual([]);
+    expect(normalizeQuestions([row('a', { sources: null })])[0]!.sources).toEqual([]);
+  });
+});

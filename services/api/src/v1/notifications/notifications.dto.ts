@@ -2,7 +2,6 @@ import { partialWithoutDefaults } from '@/common/lib/zod-partial';
 import { z } from 'zod'
 import { extendApi } from '@anatine/zod-openapi'
 
-// Enum mirror dari Prisma
 export const NotificationTypeEnum = z.enum([
   'STREAK',
   'QUIZ',
@@ -10,7 +9,6 @@ export const NotificationTypeEnum = z.enum([
   'SYSTEM',
 ])
 
-// 🔹 Base schema (untuk reuse di Create & Update)
 const baseNotificationSchema = z.object({
   userId: z
     .string()
@@ -34,7 +32,6 @@ const baseNotificationSchema = z.object({
     .describe('True jika notifikasi bersifat global (tanpa userId)'),
 })
 
-// 🔸 Create DTO
 export const CreateNotificationDto = extendApi(
   z.union([
     baseNotificationSchema,
@@ -62,7 +59,6 @@ export const CreateNotificationDto = extendApi(
 )
 export type CreateNotificationType = z.infer<typeof CreateNotificationDto>
 
-// 🔸 Update DTO
 export const UpdateNotificationDto = extendApi(
   partialWithoutDefaults(baseNotificationSchema),
   {
@@ -75,7 +71,6 @@ export const UpdateNotificationDto = extendApi(
   },
 )
 export type UpdateNotificationType = z.infer<typeof UpdateNotificationDto>
-
 
 export const ReadNotificationDto = extendApi(
   z.object({

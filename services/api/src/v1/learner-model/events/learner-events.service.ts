@@ -27,6 +27,7 @@ export interface AppendResult {
   eventId: string;
   streamSeq: number;
   duplicate: boolean;
+  before: ConceptState;
   state: ConceptState;
 }
 
@@ -123,11 +124,13 @@ export class LearnerEventsService {
     });
     if (existing) {
       const row = await tx.conceptMastery.findUnique({ where: { userId_conceptId: { userId: input.userId, conceptId: input.conceptId } } });
+      const settled = row ? toState(row) : EMPTY_CONCEPT_STATE;
       return {
         eventId: existing.id,
         streamSeq: existing.streamSeq ?? 0,
         duplicate: true,
-        state: row ? toState(row) : EMPTY_CONCEPT_STATE,
+        before: settled,
+        state: settled,
       };
     }
 
@@ -152,7 +155,8 @@ export class LearnerEventsService {
 
     const key = { userId_conceptId: { userId: input.userId, conceptId: input.conceptId } };
     const row = await tx.conceptMastery.findUnique({ where: key });
-    const state = foldAssessment(row ? toState(row) : EMPTY_CONCEPT_STATE, payload, { occurredAt, streamSeq });
+    const before = row ? toState(row) : EMPTY_CONCEPT_STATE;
+    const state = foldAssessment(before, payload, { occurredAt, streamSeq });
     await tx.conceptMastery.upsert({
       where: key,
       create: { userId: input.userId, conceptId: input.conceptId, ...projectionValues(state) },
@@ -160,7 +164,7 @@ export class LearnerEventsService {
     });
     await tx.learnerStream.update({ where: { userId: input.userId }, data: { lastSeq: streamSeq } });
 
-    return { eventId: stored.id, streamSeq, duplicate: false, state };
+    return { eventId: stored.id, streamSeq, duplicate: false, before, state };
   }
 
   private async lockStream(tx: Prisma.TransactionClient, userId: string): Promise<StreamHead> {

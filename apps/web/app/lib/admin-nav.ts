@@ -8,10 +8,13 @@ export interface AdminNavItem {
 export const ADMIN_NAV: ReadonlyArray<AdminNavItem> = [
   { id: 'dashboard', label: 'Beranda', to: '/admin/dashboard', icon: 'i-lucide-layout-dashboard' },
   { id: 'analytics', label: 'Analitik', to: '/admin/analytics', icon: 'i-lucide-chart-column' },
+  { id: 'metrics', label: 'Metrik belajar', to: '/admin/metrics', icon: 'i-lucide-activity' },
   { id: 'payments', label: 'Pembayaran', to: '/admin/payments', icon: 'i-lucide-credit-card' },
   { id: 'payouts', label: 'Pencairan', to: '/admin/payouts', icon: 'i-lucide-banknote' },
   { id: 'refunds', label: 'Pengembalian dana', to: '/admin/refunds', icon: 'i-lucide-undo-2' },
   { id: 'moderation', label: 'Moderasi', to: '/admin/moderation', icon: 'i-lucide-shield-check' },
+  { id: 'optimization', label: 'Optimasi AI', to: '/admin/optimization', icon: 'i-lucide-sparkles' },
+  { id: 'gamify', label: 'Gamifikasi', to: '/admin/gamify', icon: 'i-lucide-trophy' },
   { id: 'applications', label: 'Pendaftar kreator', to: '/admin/applications', icon: 'i-lucide-user-check' },
   { id: 'users', label: 'Pengguna', to: '/admin/users', icon: 'i-lucide-users' },
   { id: 'tenants', label: 'Tenant', to: '/admin/tenants', icon: 'i-lucide-building-2' },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CreatorProfileView, MarketplaceArticleView, MarketplaceClassView } from '~/interfaces/commerce';
-import { articleCard, catalogPages, classAction, classCard, classMeta, creatorCards, externalUrl, interleave, priceText } from '~/lib/marketplace';
+import { articleCard, catalogPages, classAction, classCard, classMeta, creatorCards, externalUrl, interleave, priceText, recommendationCard, recommendationNote, conceptTitles } from '~/lib/marketplace';
 
 const article = (overrides: Partial<MarketplaceArticleView> = {}): MarketplaceArticleView => ({
   id: 'a1',
@@ -198,4 +198,65 @@ describe('creatorCards', () => {
   it('is empty when the creator has published nothing', () => {
     expect(creatorCards({ id: 'u9', fullName: 'Rina', bio: null, portfolioUrl: null, articles: [], classes: [], badges: [] })).toEqual([]);
   });
+});
+
+describe('recommendation cards', () => {
+  const article = (overrides: Record<string, unknown> = {}) => ({
+    product: { kind: 'article' as const, id: 'a1', title: 'Jurnal Penyesuaian', excerpt: '<p>Ringkas</p>', description: null, coverUrl: 'https://img.test/a1.png', creator: 'Rina Kreator', accessType: 'PAID' as const, price: 25000, currency: 'IDR', difficulty: null, format: null },
+    score: 0.8,
+    reason: 'Membahas "Jurnal penyesuaian", penguasaanmu baru 31%.',
+    personalized: true,
+    matchedConcepts: [{ conceptId: 'c1', title: 'Jurnal penyesuaian', kind: 'WEAK' as const, score: 0.31 }],
+    difficultyFit: 'NOT_APPLICABLE' as const,
+    ...overrides,
+  })
+
+  it('maps an article to a card that links to its marketplace page and keeps the server reason', () => {
+    const card = recommendationCard(article())
+
+    expect(card).toMatchObject({
+      kind: 'article',
+      to: '/marketplace/articles/a1',
+      free: false,
+      summary: 'Ringkas',
+      meta: 'Artikel',
+      creator: 'Rina Kreator',
+      coverUrl: 'https://img.test/a1.png',
+      reason: 'Membahas "Jurnal penyesuaian", penguasaanmu baru 31%.',
+    })
+  })
+
+  it('maps a class and adds the level note only when it was personalised', () => {
+    const klass = {
+      product: { kind: 'class' as const, id: 'c1', title: 'Kelas Neraca', excerpt: null, description: 'Belajar neraca', coverUrl: null, creator: 'Budi', accessType: 'FREE' as const, price: null, currency: 'IDR', difficulty: 'BEGINNER', format: 'LIVE' },
+      score: 0.7,
+      reason: 'Membahas "Neraca", konsep berikutnya di jalur belajarmu.',
+      personalized: true,
+      matchedConcepts: [],
+      difficultyFit: 'MATCH' as const,
+    }
+
+    expect(recommendationCard(klass)).toMatchObject({ kind: 'class', to: '/marketplace/classes/c1', free: true, priceLabel: 'Gratis', meta: 'Kelas · Pemula · Live' })
+    expect(recommendationCard(klass).reason).toBe('Membahas "Neraca", konsep berikutnya di jalur belajarmu. Levelnya pas untukmu.')
+    expect(recommendationCard({ ...klass, personalized: false, reason: 'Terbaru di marketplace.' }).reason).toBe('Terbaru di marketplace.')
+  })
+
+  it('notes how far a class is from the level of the learner', () => {
+    expect(recommendationNote({ personalized: true, difficultyFit: 'NEAR' })).toBe('Levelnya sedikit berbeda dari levelmu sekarang.')
+    expect(recommendationNote({ personalized: true, difficultyFit: 'FAR' })).toBe('Levelnya jauh dari levelmu sekarang.')
+    expect(recommendationNote({ personalized: true, difficultyFit: 'NOT_APPLICABLE' })).toBe('')
+    expect(recommendationNote({ personalized: false, difficultyFit: 'MATCH' })).toBe('')
+  })
+
+  it('never invents a popularity claim', () => {
+    expect(recommendationCard(article()).reason).not.toMatch(/populer|kalangan/i)
+  })
+});
+
+describe('concept chips', () => {
+  it('lists up to three concept titles and none when the product is untagged', () => {
+    expect(conceptTitles([{ title: 'A' }, { title: 'B' }, { title: 'C' }, { title: 'D' }])).toEqual(['A', 'B', 'C'])
+    expect(conceptTitles([])).toEqual([])
+    expect(conceptTitles(undefined)).toEqual([])
+  })
 });

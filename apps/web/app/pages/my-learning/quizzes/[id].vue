@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { useQueryClient } from '@tanstack/vue-query'
 import { computed, reactive, ref } from 'vue'
+import SourceList from '~/components/my-learning/SourceList.vue'
 import EmptyState from '~/components/ui/EmptyState.vue'
 import RenderMarkdown from '~/components/ui/RenderMarkdown.vue'
-import { rewardHeadline } from '~/lib/gamify'
-import { QK } from '~/lib/query-keys'
+import type { RewardLine } from '~/lib/gamify'
 import { buildSubmission, canSubmit, isAnswered, normalizeQuestions, resultSummary, type Answers } from '~/lib/quiz'
 import { authMessage } from '~/lib/auth-form'
 import { quizService, type QuizAttemptRow, type QuizSubmitResult } from '~/services/learning/quiz'
 
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
-const queryClient = useQueryClient()
+const { announce } = useRewardAnnouncement()
 
 const quizId = computed(() => String(route.params.id || ''))
 
@@ -37,7 +35,9 @@ const message = ref('')
 const current = computed(() => questions.value[index.value])
 const isLast = computed(() => index.value === questions.value.length - 1)
 const summary = computed(() => resultSummary(result.value?.isCorrect))
-const rewards = computed(() => (result.value?.gamify ? rewardHeadline(result.value.gamify) : []))
+const passingScore = computed(() => quiz.value?.passingScore ?? 70)
+const passed = computed(() => summary.value.percent >= passingScore.value)
+const rewards = ref<RewardLine[]>([])
 
 useHead({ title: computed(() => `${quiz.value?.title ?? 'Kuis'} | ReduCera`) })
 
@@ -71,13 +71,7 @@ async function submit() {
     }
     result.value = sent.data
     phase.value = 'done'
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: QK.gamify.me() }),
-      queryClient.invalidateQueries({ queryKey: QK.gamify.achievements() }),
-    ])
-    if (rewards.value.length) {
-      toast.add({ title: 'Kuis selesai', description: rewards.value.map((line) => line.text).join(' · '), color: 'success', icon: 'i-lucide-party-popper' })
-    }
+    rewards.value = await announce('Kuis selesai', sent.data.gamify)
   } finally {
     busy.value = false
   }
@@ -85,6 +79,7 @@ async function submit() {
 
 function retry() {
   result.value = null
+  rewards.value = []
   phase.value = 'intro'
 }
 </script>
@@ -153,22 +148,15 @@ function retry() {
       </PlayCard>
 
       <template v-else-if="phase === 'done'">
-        <PlayCard as="section" aria-labelledby="quiz-result" :tone="summary.percent >= (quiz?.passingScore ?? 70) ? 'success' : 'default'">
+        <PlayCard as="section" aria-labelledby="quiz-result" :tone="passed ? 'success' : 'default'">
           <h2 id="quiz-result" class="rc-h2">Hasilmu</h2>
           <p class="rc-bignum">{{ summary.percent }}%</p>
           <p class="rc-hint">{{ summary.correct }} dari {{ summary.total }} soal benar.</p>
-          <PlayProgress :value="summary.percent" label="Nilai kuis" :tone="summary.percent >= (quiz?.passingScore ?? 70) ? 'success' : 'info'" />
+          <PlayProgress :value="summary.percent" label="Nilai kuis" :tone="passed ? 'success' : 'info'" />
+          <p v-if="!passed" class="rc-hint">Nilai lulus kuis ini {{ passingScore }}%. Hari streak hanya dihitung bila kamu lulus.</p>
         </PlayCard>
 
-        <PlayCard v-if="rewards.length" as="section" tone="gold" aria-labelledby="quiz-rewards">
-          <h2 id="quiz-rewards" class="rc-h2">Hadiah</h2>
-          <ul class="rc-rewards">
-            <li v-for="line in rewards" :key="line.text" class="rc-rewards__line">
-              <GameIcon :name="line.icon" :size="32" decorative />
-              <span>{{ line.text }}</span>
-            </li>
-          </ul>
-        </PlayCard>
+        <RewardSummary :lines="rewards" heading-id="quiz-rewards" />
 
         <PlayCard as="section" aria-labelledby="quiz-review">
           <h2 id="quiz-review" class="rc-h2">Per soal</h2>
@@ -179,7 +167,15 @@ function retry() {
                 :class="result?.isCorrect?.[question.id] ? 'rc-review__ok' : 'rc-review__no'"
                 aria-hidden="true"
               />
-              <span>Soal {{ number + 1 }}: {{ result?.isCorrect?.[question.id] ? 'benar' : 'belum tepat' }}</span>
+              <div class="rc-review__body">
+                <span>Soal {{ number + 1 }}: {{ result?.isCorrect?.[question.id] ? 'benar' : 'belum tepat' }}</span>
+                <SourceList
+                  v-if="question.sources.length"
+                  :citations="question.sources"
+                  :prefix="`review-${question.id}`"
+                  title="Dasar soal ini"
+                />
+              </div>
             </li>
           </ol>
         </PlayCard>

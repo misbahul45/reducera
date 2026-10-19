@@ -25,7 +25,7 @@ const items = computed(() =>
 
 <template>
   <section class="rc-card" aria-labelledby="detail-contents">
-    <h2 id="detail-contents" class="rc-h2">Isi topik</h2>
+    <h2 id="detail-contents" class="rc-h2">Isi course</h2>
     <ol v-if="items.length" class="rc-contents">
       <li v-for="(item, index) in items" :key="item.id" class="rc-contents__item">
         <span class="rc-contents__num" aria-hidden="true">{{ index + 1 }}</span>

@@ -33,6 +33,10 @@ class DecisionTraceCreate(BaseModel):
 
     policy_version: str = "unknown-v0"
     prompt_version: str = "unknown-v0"
+    model: str = "unknown-v0"
+    latency_ms: Optional[int] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
 
     reason_codes: List[str] = Field(default_factory=list)
     selected_action: Optional[str] = None

@@ -1,7 +1,6 @@
 import { extendApi } from '@anatine/zod-openapi';
 import z from 'zod';
 
-// Base schema (tanpa relasi)
 export const BaseSubTopicSchema = z.object({
   id: z.string().describe('Unique subtopic identifier'),
   title: z.string().describe('Subtopic title'),
@@ -14,7 +13,6 @@ export const BaseSubTopicSchema = z.object({
   updatedAt: z.date().describe('Last update timestamp'),
 });
 
-// Detail schema (dengan lessons dan count)
 export const SubTopicDetailSchema = extendApi(
   BaseSubTopicSchema.extend({
     lessons: z.array(z.object({
@@ -57,7 +55,6 @@ export const SubTopicDetailSchema = extendApi(
   }
 );
 
-// List schema (dengan pagination)
 export const SubTopicsListSchema = extendApi(
   z.object({
     data: z.array(BaseSubTopicSchema.extend({

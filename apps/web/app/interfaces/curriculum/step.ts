@@ -18,7 +18,6 @@ export interface BaseStep {
   createdAt: Date | string
   updatedAt: Date | string
 
-  // Count data jika kamu sering ambil aggregator
   userStepsCount: number
   resourcesCount: number
 }
@@ -44,7 +43,6 @@ export interface StepsListResponse<
     : BaseStep)[]
   pagination: PaginationMeta
 }
-
 
 export interface StepsListResponse<
   IncludeRelations extends boolean = false

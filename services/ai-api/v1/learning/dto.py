@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -40,6 +40,31 @@ class CitationDto(BaseModel):
         return self
 
 
+class SourceCitationDto(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel, populate_by_name=True, extra="forbid")
+
+    index: int = Field(ge=1, le=50)
+    kind: Literal["MATERIAL", "WEB", "TOPIC"]
+    title: str = Field(min_length=1, max_length=200)
+    url: Optional[str] = Field(default=None, max_length=500)
+    snippet: Optional[str] = Field(default=None, max_length=300)
+    lesson_id: Optional[str] = Field(default=None, max_length=64)
+    ref_type: Optional[Literal["RESOURCE", "CONCEPT", "TOPIC", "SUBTOPIC"]] = None
+    ref_id: Optional[str] = Field(default=None, max_length=64)
+    via: Optional[List[Literal["LEXICAL", "SEMANTIC", "WEB", "SCOPE"]]] = Field(default=None, max_length=4)
+
+    @model_validator(mode="after")
+    def _kind_needs_its_locator(self):
+        if self.kind == "WEB":
+            if not (self.url and self.url.lower().startswith(("http://", "https://"))):
+                raise ValueError("a web citation needs an http or https link")
+        elif self.url:
+            raise ValueError("only a web citation has a link")
+        if self.kind == "TOPIC" and not (self.ref_type and self.ref_id):
+            raise ValueError("a topic citation names the record it comes from")
+        return self
+
+
 class GenerateContentMaterialResponseDto(BaseModel):
     model_config = ConfigDict(
         alias_generator=_to_camel,
@@ -59,7 +84,7 @@ class GenerateContentMaterialResponseDto(BaseModel):
     chat_id: str
     chat_message_id: str
     data: Any
-    citations: Optional[List[CitationDto]] = []
+    citations: Optional[List[Union[CitationDto, SourceCitationDto]]] = []
     metadata: Optional[Dict[str, Any]] = None
 
 
@@ -131,6 +156,8 @@ class GenerateContentMaterialPipeline(BaseModel):
     context: Optional[str] = None
     memory: Optional[str] = None
     analysis: Optional[str] = None
+    snapshot: Optional[dict] = None
+    routed: Optional[Any] = None
 
 
 __all__ = [

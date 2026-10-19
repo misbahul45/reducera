@@ -1,5 +1,7 @@
 import type { PaginationMeta } from "../api"
 import type { BaseChat, ContentDetailResponse } from "./chat"
+import type { ChatAttachment } from "./chatAttachment"
+import type { ChatAction, ChatCitation } from "./chatExtras"
 
 export interface BaseChatMessage {
   id: string
@@ -7,6 +9,9 @@ export interface BaseChatMessage {
   text?: string | null
   role: string
   status: string
+  citations?: ChatCitation[] | null
+  actions?: ChatAction[] | null
+  attachments?: ChatAttachment[] | null
   createdAt: Date | string
   updatedAt: Date | string
 }

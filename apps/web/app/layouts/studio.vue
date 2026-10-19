@@ -3,12 +3,15 @@ import PlayButton from '~/components/play/PlayButton.vue';
 import { STUDIO_NAV, studioNavActive } from '~/lib/studio-nav';
 import { SIGNED_IN_HOME } from '~/lib/route-meta';
 import { authService } from '~/services/auth';
+import { useLearning } from '~/stores/learning';
 
 const route = useRoute();
-const user = useState<{ id: string } | null>('user', () => null);
+const user = useState<{ id: string; role?: string } | null>('user', () => null);
+const isAdmin = computed(() => user.value?.role === 'ADMIN');
 
 async function logout() {
   await authService.logout();
+  useLearning().resetAll();
   user.value = null;
   await navigateTo('/login');
 }
@@ -25,7 +28,7 @@ async function logout() {
         <PlayButton variant="secondary" size="sm" @click="logout">Keluar</PlayButton>
       </div>
     </header>
-    <nav class="rc-studio__nav" aria-label="Navigasi studio">
+    <nav v-if="!isAdmin" class="rc-studio__nav" aria-label="Navigasi studio">
       <NuxtLink
         v-for="item in STUDIO_NAV"
         :key="item.id"
@@ -39,7 +42,9 @@ async function logout() {
       </NuxtLink>
     </nav>
     <main id="main" class="rc-studio__main">
-      <slot />
+      <StudioTenantGate>
+        <slot />
+      </StudioTenantGate>
     </main>
   </div>
 </template>

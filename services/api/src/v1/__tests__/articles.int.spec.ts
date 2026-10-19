@@ -186,7 +186,7 @@ describeDb('articles on a real database (requires TEST_DATABASE_URL)', () => {
       expect((await s.articleAuthoring.submitReview(teacher(w.author), w.authorCtx, created.id, 't')).message).toMatch(/already/);
       await expect(s.articleAuthoring.update(teacher(w.author), w.authorCtx, created.id, { title: 'Sneaky edit' }, 't')).rejects.toMatchObject({ statusCode: 409, code: 'CONTENT_LOCKED' });
 
-      const queue = await s.articleModeration.queue(admin(w.reviewer), { page: 1, limit: 50, status: 'PENDING_REVIEW' });
+      const queue = await s.articleModeration.queue(admin(w.reviewer), { page: 1, limit: 50, status: 'PENDING_REVIEW', tenantId: w.tenant });
       expect(queue.data.data.map((a) => a.id)).toContain(created.id);
       await expect(s.articleModeration.queue(teacher(w.author), { page: 1, limit: 50, status: 'PENDING_REVIEW' })).rejects.toMatchObject({ status: 403 });
       await expect(s.articleModeration.approve(teacher(w.author), created.id, undefined, 't')).rejects.toMatchObject({ status: 403 });

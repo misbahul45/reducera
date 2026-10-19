@@ -1,7 +1,6 @@
 import type { PaginationMeta } from "./api"
 import type { User } from './auth'
 
-// Base notification minimal
 export interface BaseNotification {
   id: string
   userId?: string | null
@@ -38,10 +37,10 @@ export interface CurrentNotificationResponse<
   current: NotificationDetailResponse<IncludeRelations> | null
 }
 
-
 export enum NotificationType {
   STREAK = 'STREAK',
   QUIZ = 'QUIZ',
   ACHIEVEMENT = 'ACHIEVEMENT',
   SYSTEM = 'SYSTEM',
+  REVIEW = 'REVIEW',
 }

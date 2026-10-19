@@ -2,8 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { JobsOptions, Queue } from "bullmq";
 import {
-  ContentEmbeddingJob,
-  ContentEmbeddingJobSchema,
   KnowledgeJob,
   KnowledgeJobSchema,
   UserStepsJob,
@@ -23,16 +21,11 @@ export const JOB_OPTIONS: JobsOptions = {
 export class QueueService {
   constructor(
     @InjectQueue("knowledge") private readonly knowledgeQueue: Queue,
-    @InjectQueue("content") private readonly contentQueue: Queue,
     @InjectQueue('user-steps') private readonly userStepsQueue:Queue
   ) {}
 
   async addKnowledgeJob(data: KnowledgeJob) {
     await this.knowledgeQueue.add("embed", KnowledgeJobSchema.parse(data), JOB_OPTIONS);
-  }
-
-  async addContentEmbeddingJob(data: ContentEmbeddingJob) {
-    await this.contentQueue.add("embed", ContentEmbeddingJobSchema.parse(data), JOB_OPTIONS);
   }
 
   async addUserStepsJob(data: UserStepsJob) {

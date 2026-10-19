@@ -11,6 +11,7 @@ import type {
 } from '~/interfaces/curriculum/lessons'
 import { lessonsService } from '~/services/curriculum/lessons'
 import { plainText } from '~/lib/topics'
+import LessonStepPath from '~/components/my-learning/LessonStepPath.vue'
 import { lessonProgressService } from '~/services/learning/lessonsProgress'
 
 const route = useRoute()
@@ -62,18 +63,19 @@ const startLesson = () => {
   router.push(`/my-learning/steps?lessonId=${currentLesson.value?.id}`)
 }
 
-watch(currentLesson, async (newVal) => {
-  if (!newVal) return
+onMounted(() => {
+  const lesson = currentLesson.value
+  if (!lesson) return
 
   const items = resLessonProgress.value?.data?.data ?? []
 
   if (items.length === 0) {
     call({
       userId: user.value?.id!,
-      lessonId: newVal.id
+      lessonId: lesson.id
     })
   }
-}, { immediate: true })
+})
 
 const description = computed(() => plainText(currentLesson.value?.description, 260))
 const lessonQuiz = computed(() => (currentLesson.value as { quiz?: { id: string } | null } | null)?.quiz ?? null)
@@ -102,6 +104,11 @@ useHead({ title: computed(() => `${currentLesson.value?.title ?? 'Pelajaran'} | 
         <p class="rc-bignum">{{ resourcesCount }}</p>
       </PlayCard>
     </div>
+
+    <section v-if="user?.id" aria-labelledby="lesson-path">
+      <h2 id="lesson-path" class="rc-h2">Jalur langkah</h2>
+      <LessonStepPath :lesson-id="lessonId" :user-id="user.id" />
+    </section>
 
     <div class="rc-lessons__nav">
       <PlayButton size="lg" @click="startLesson">Mulai belajar</PlayButton>

@@ -6,6 +6,7 @@ disediakan untuk development di host langsung (tanpa Docker).
 """
 import os
 from celery import Celery
+from celery.signals import worker_init
 
 
 def _broker_url() -> str:
@@ -22,6 +23,13 @@ def _result_backend() -> str:
     )
 
 
+DEFAULT_QUEUE = "celery"
+CHAT_QUEUE = "chat"
+CHAT_TASKS = (
+    "v1.learning.generate_new_content",
+    "v1.learning.run_chat_action",
+)
+
 celery_app = Celery(
     "worker",
     broker=_broker_url(),
@@ -33,7 +41,6 @@ celery_app = Celery(
     ],
 )
 
-# Serialize JSON untuk cross-language safety
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -41,6 +48,8 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
+    task_default_queue=DEFAULT_QUEUE,
+    task_routes={name: {"queue": CHAT_QUEUE} for name in CHAT_TASKS},
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
@@ -51,3 +60,14 @@ celery_app.conf.update(
 def debug_startup(sender, **kwargs):
     print("[CELERY] Worker started, included modules:", sender.conf.include)
     print(f"[CELERY] Broker: {sender.conf.broker_url}")
+
+
+@worker_init.connect
+def preload_local_embedding(**kwargs):
+    from config.envs import ENVS
+
+    if ENVS["EMBEDDING_PROVIDER"] != "local" or not ENVS["LOCAL_EMBEDDING_PRELOAD"]:
+        return
+    from config.embedding_pipeline import embed_model
+
+    embed_model.warm_up()

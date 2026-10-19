@@ -94,6 +94,10 @@ describe('InternalDecisionTracesController', () => {
       deterministic_outputs: { retrieved_count: 3 },
       policy_version: 'policy-v1',
       prompt_version: 'tutor-v1',
+      model: 'gateway-flash',
+      latency_ms: 1234,
+      tokens_in: 900,
+      tokens_out: 210,
       reason_codes: ['RAG_HIT', 'BALANCE_VALIDATED'],
       selected_action: 'tutor_explain',
       metadata: { e2e: true },
@@ -115,6 +119,23 @@ describe('InternalDecisionTracesController', () => {
     expect(callArg.create.userId).toBe('user-z');
     expect(callArg.create.agentVersion).toBe('tutor:lesson-journal');
     expect(callArg.create.policyVersion).toBe('policy-v1');
+    expect(callArg.create).toMatchObject({ modelName: 'gateway-flash', latencyMs: 1234, inputTokens: 900, outputTokens: 210 });
+    expect(callArg.update).toMatchObject({ modelName: 'gateway-flash', latencyMs: 1234, inputTokens: 900, outputTokens: 210 });
+  });
+
+  it('keeps the unknown placeholders and null usage when the caller sends none', async () => {
+    const payload = { trace_id: randomUUID(), acting_user_id: 'user-z', agent_name: 'tutor', prompt_hash: 'sha256:abc' };
+    const body = JSON.stringify(payload);
+    await request(app.getHttpServer())
+      .post(target)
+      .set(sign('POST', target, body))
+      .set('content-type', 'application/json')
+      .set(IDEMPOTENCY_KEY_HEADER, 'e2e-dt-002')
+      .set('Idempotency-Key', 'e2e-dt-002')
+      .send(body)
+      .expect(201);
+
+    expect(decisionTraceUpsertMock.mock.calls[0][0].create).toMatchObject({ modelName: 'unknown-v0', latencyMs: null, inputTokens: null, outputTokens: null });
   });
 
   it('upserts idempotently on the same traceId (no duplicate)', async () => {

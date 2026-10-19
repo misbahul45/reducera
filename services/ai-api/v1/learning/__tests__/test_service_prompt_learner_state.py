@@ -29,7 +29,7 @@ def collaborators():
     fakes = {
         "config.embedding_pipeline": _module("config.embedding_pipeline", get_embedding_pipeline=lambda: pipeline),
         "utils.tools.memory": _module("utils.tools.memory", memory_manager=memory),
-        "utils.tools.web_search": _module("utils.tools.web_search", tool_web_search=MagicMock(return_value="")),
+        "utils.tools.web_search": _module("utils.tools.web_search", tool_web_search_results=MagicMock(return_value=[])),
     }
     with patch.dict(sys.modules, fakes), patch(
         "v1.learning.service.get_user_step", return_value={"title": "Topik"}
@@ -52,7 +52,7 @@ def test_the_learner_state_block_is_part_of_the_chat_prompt_inside_its_derived_f
     assert '<learner_state trust="derived">' in prompt
     section = prompt.split('<learner_state trust="derived">')[1].split("</learner_state>")[0]
     assert 'concept c2 "Journal Entries"' in section
-    assert reader.call_args.kwargs == {"user_step_id": "us-1"}
+    assert reader.call_args.kwargs == {"user_step_id": "us-1", "intent": "DOUBT"}
     assert reader.call_args.args[0].acting_user_id == "user-1"
     assert renderer.call_args.args[1] == SNAPSHOT
 

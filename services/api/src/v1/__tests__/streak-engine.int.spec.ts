@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { AuditService } from '@/common/authz/audit.service';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { RewardLedgerService } from '@/v1/gamify/rewards/reward-ledger.service';
+import { RewardRuleRow, buildRuleSet } from '@/v1/gamify/rewards/reward-rules';
 import { RewardRulesService } from '@/v1/gamify/rewards/reward-rules.service';
 import { StreakEngineService } from '@/v1/gamify/streaks/streak-engine.service';
 import { replayStreak } from '@/v1/gamify/streaks/streak-fold';
@@ -50,6 +51,27 @@ describeDb('streak engine (requires TEST_DATABASE_URL)', () => {
     expect(await history(user)).toEqual(['2026-10-01']);
     const row = await prisma.streakHistory.findFirstOrThrow({ where: { userId: user } });
     expect(row).toMatchObject({ activityType: 'QUIZ', streakCount: 1 });
+  });
+
+  it('reports the streak as it stands without writing a day, for an assessment that was not passed', async () => {
+    const user = await newUser();
+    await qualify(user, day(1));
+    await qualify(user, day(2));
+
+    const standing = await prisma.$transaction((tx) => engine.standing(user, tx));
+
+    expect(standing).toMatchObject({ current: 2, longest: 2, extended: false, freezeEarned: false, freezesUsed: 0, bonusPoints: 0, lastDate: '2026-10-02' });
+    expect(await history(user)).toEqual(['2026-10-01', '2026-10-02']);
+    expect(await learner(user)).toMatchObject({ currentStreak: 2 });
+  });
+
+  it('answers an empty streak for a learner who has none yet', async () => {
+    const user = await newUser();
+
+    const standing = await prisma.$transaction((tx) => engine.standing(user, tx));
+
+    expect(standing).toMatchObject({ current: 0, longest: 0, extended: false, lastDate: null });
+    expect(await history(user)).toEqual([]);
   });
 
   it('counts a second event on the same local day as nothing', async () => {
@@ -138,6 +160,56 @@ describeDb('streak engine (requires TEST_DATABASE_URL)', () => {
     const replayed = replayStreak(await history(user));
 
     expect({ current: stored.currentStreak, longest: stored.longestStreak, freezes: stored.streakFreezes, lastDate: stored.lastStreakDate?.toISOString().slice(0, 10) }).toEqual(replayed);
+  });
+
+  describe('with the freeze rule changed', () => {
+    const engineWith = (rows: RewardRuleRow[]) =>
+      new StreakEngineService(new RewardLedgerService(prisma, new AuditService(prisma)), { current: async () => buildRuleSet(rows) } as never);
+    const freezeRow = (overrides: Partial<RewardRuleRow>): RewardRuleRow => ({
+      code: 'STREAK_FREEZE_EARNED',
+      version: 2,
+      eventType: 'STREAK_DAY_QUALIFIED',
+      rewardKind: 'XP',
+      amount: 3,
+      dailyCap: null,
+      params: { maxHeld: 1 },
+      active: true,
+      ...overrides,
+    });
+    const qualifyWith = (tuned: StreakEngineService, userId: string, at: string) => prisma.$transaction((tx) => tuned.onQualified({ userId, at: new Date(at) }, tx));
+
+    it('earns a freeze on the cadence of the rule and stops at the number it allows', async () => {
+      const tuned = engineWith([freezeRow({})]);
+      const user = await newUser();
+
+      for (let n = 1; n <= 3; n += 1) await qualifyWith(tuned, user, day(n));
+      expect(await learner(user)).toMatchObject({ currentStreak: 3, streakFreezes: 1 });
+
+      for (let n = 4; n <= 6; n += 1) await qualifyWith(tuned, user, day(n));
+      expect(await learner(user)).toMatchObject({ currentStreak: 6, streakFreezes: 1 });
+    });
+
+    it('earns no freeze at all when the rule is off, and a missed day then resets', async () => {
+      const tuned = engineWith([freezeRow({ version: 1, active: false })]);
+      const user = await newUser();
+      for (let n = 1; n <= 7; n += 1) await qualifyWith(tuned, user, day(n));
+      expect(await learner(user)).toMatchObject({ currentStreak: 7, streakFreezes: 0 });
+
+      const outcome = await qualifyWith(tuned, user, day(9));
+
+      expect(outcome).toMatchObject({ current: 1, longest: 7, freezesUsed: 0 });
+    });
+
+    it('still spends a freeze the learner already holds when the rule is later switched off', async () => {
+      const user = await newUser();
+      for (let n = 1; n <= 7; n += 1) await qualify(user, day(n));
+      expect(await learner(user)).toMatchObject({ streakFreezes: 1 });
+
+      const off = engineWith([freezeRow({ version: 1, active: false })]);
+      const outcome = await qualifyWith(off, user, day(9));
+
+      expect(outcome).toMatchObject({ current: 8, freezes: 0, freezesUsed: 1 });
+    });
   });
 
   it('does nothing for a user that does not exist', async () => {

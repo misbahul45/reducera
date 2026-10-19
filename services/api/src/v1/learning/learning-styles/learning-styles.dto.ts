@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import { extendApi } from '@anatine/zod-openapi'
 
-// 🔹 Base Schema (digunakan untuk Create & Update)
 const baseLearningStyleProfileSchema = z.object({
   userTopicId: z
     .string()
@@ -54,7 +53,6 @@ const baseLearningStyleProfileSchema = z.object({
     .describe('Tanggal/waktu tes dilakukan'),
 })
 
-// 🔸 Create DTO
 export const CreateLearningStyleProfileDto = extendApi(baseLearningStyleProfileSchema, {
   title: 'CreateLearningStyleProfileDto',
   example: {
@@ -69,7 +67,6 @@ export const CreateLearningStyleProfileDto = extendApi(baseLearningStyleProfileS
 })
 export type CreateLearningStyleProfileType = z.infer<typeof CreateLearningStyleProfileDto>
 
-// 🔸 Update DTO (semua opsional)
 export const UpdateLearningStyleProfileDto = extendApi(baseLearningStyleProfileSchema.partial(), {
   title: 'UpdateLearningStyleProfileDto',
   example: {

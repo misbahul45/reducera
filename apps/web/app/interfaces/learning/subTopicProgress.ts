@@ -21,7 +21,6 @@ export interface SubTopicProgress {
   startedAt: string | Date;
   completedAt?: string | Date | null;
 
-  // relations
   user?: User;
   subTopic?: BaseSubTopic;
 }

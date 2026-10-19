@@ -13,6 +13,7 @@ describeDb('reward ledger service (requires TEST_DATABASE_URL)', () => {
   let ledger: RewardLedgerService;
   const users: string[] = [];
   const topics: string[] = [];
+  const concepts: string[] = [];
 
   const newUser = async () => {
     const id = await insertUser(pool);
@@ -54,6 +55,7 @@ describeDb('reward ledger service (requires TEST_DATABASE_URL)', () => {
     await prisma.leaderboardScore.deleteMany({ where: { userId: { in: users } } });
     await prisma.user.deleteMany({ where: { id: { in: users } } });
     await prisma.topic.deleteMany({ where: { id: { in: topics } } });
+    await prisma.concept.deleteMany({ where: { id: { in: concepts } } });
     await prisma.$disconnect();
     await pool.end();
   });
@@ -119,6 +121,128 @@ describeDb('reward ledger service (requires TEST_DATABASE_URL)', () => {
       expect(results.filter((r) => !r.duplicate)).toHaveLength(1);
       expect(new Set(results.map((r) => r.entry.id)).size).toBe(1);
       expect((await rows(user)).map((r) => r.score)).toEqual([7]);
+    });
+
+    describe('once per cause across rule versions', () => {
+      const conceptGrant = (userId: string, conceptId: string, version: number, overrides: Partial<GrantInput> = {}): GrantInput =>
+        grantInput(userId, {
+          ruleId: 'CONCEPT_PASSED',
+          ruleVersion: version,
+          points: 50,
+          idempotencyKey: `reward:CONCEPT_PASSED:v${version}:${userId}:${conceptId}`,
+          conceptId,
+          oncePerCause: true,
+          ...overrides,
+        });
+
+      const newConcept = async () => {
+        const concept = await prisma.concept.create({ data: { id: `opc-${randomUUID()}`, title: 'Once per cause fixture', level: 1, sortOrder: 1 } });
+        concepts.push(concept.id);
+        return concept.id;
+      };
+
+      it('pays nothing under version 2 for a cause already paid under version 1', async () => {
+        const user = await newUser();
+        const concept = await newConcept();
+        const first = await ledger.grant(conceptGrant(user, concept, 1));
+
+        const second = await ledger.grant(conceptGrant(user, concept, 2, { points: 80 }));
+
+        expect(second.duplicate).toBe(true);
+        expect(second.entry.id).toBe(first.entry.id);
+        expect(await sumOf(user)).toBe(50);
+        expect(await prisma.gamificationLedger.count({ where: { userId: user } })).toBe(1);
+      });
+
+      it('still pays a different concept under the new version', async () => {
+        const user = await newUser();
+        const paid = await newConcept();
+        const fresh = await newConcept();
+        await ledger.grant(conceptGrant(user, paid, 1));
+
+        const result = await ledger.grant(conceptGrant(user, fresh, 2, { points: 80 }));
+
+        expect(result.duplicate).toBe(false);
+        expect(await sumOf(user)).toBe(130);
+      });
+
+      it('does not pay a reversed cause again under a newer version', async () => {
+        const user = await newUser();
+        const concept = await newConcept();
+        const first = await ledger.grant(conceptGrant(user, concept, 1));
+        await ledger.reverse({ entryId: first.entry.id, reason: 'fixture reversal', actorId: user, actorRole: Role.ADMIN });
+
+        const again = await ledger.grant(conceptGrant(user, concept, 2));
+
+        expect(again.duplicate).toBe(true);
+        expect(await sumOf(user)).toBe(0);
+      });
+
+      it('does not mix learners or rules', async () => {
+        const one = await newUser();
+        const other = await newUser();
+        const concept = await newConcept();
+        await ledger.grant(conceptGrant(one, concept, 1));
+
+        const otherLearner = await ledger.grant(conceptGrant(other, concept, 2));
+        const otherRule = await ledger.grant(
+          grantInput(one, { ruleId: 'MASTERY_PROGRESS', conceptId: concept, points: 5, oncePerCause: true }),
+        );
+
+        expect(otherLearner.duplicate).toBe(false);
+        expect(otherRule.duplicate).toBe(false);
+      });
+
+      it('pays one node star across versions, keyed by the sub-topic', async () => {
+        const user = await newUser();
+        const { subTopicId } = await newTopic();
+        const star = (version: number) =>
+          grantInput(user, {
+            kind: 'STAR',
+            ruleId: 'PATH_NODE_MASTERED',
+            ruleVersion: version,
+            points: 1,
+            idempotencyKey: `reward:PATH_NODE_MASTERED:v${version}:${user}:${subTopicId}`,
+            sourceType: 'NODE',
+            sourceId: subTopicId,
+            subTopicId,
+            oncePerCause: true,
+          });
+
+        const first = await ledger.grant(star(1));
+        const second = await ledger.grant(star(2));
+
+        expect(first.duplicate).toBe(false);
+        expect(second.duplicate).toBe(true);
+        expect((await prisma.user.findUniqueOrThrow({ where: { id: user } })).stars).toBe(1);
+      });
+
+      it('pays once when two versions arrive at the same time', async () => {
+        const user = await newUser();
+        const concept = await newConcept();
+
+        const results = await Promise.all([1, 2, 3, 4].map((version) => ledger.grant(conceptGrant(user, concept, version))));
+
+        expect(results.filter((r) => !r.duplicate)).toHaveLength(1);
+        expect(await sumOf(user)).toBe(50);
+      });
+
+      it('leaves a grant without the flag exactly as before', async () => {
+        const user = await newUser();
+        const concept = await newConcept();
+        await ledger.grant(conceptGrant(user, concept, 1));
+
+        const result = await ledger.grant(conceptGrant(user, concept, 2, { oncePerCause: undefined }));
+
+        expect(result.duplicate).toBe(false);
+        expect(await sumOf(user)).toBe(100);
+      });
+
+      it('refuses a once-per-cause grant that names no cause', async () => {
+        const user = await newUser();
+
+        await expect(ledger.grant(grantInput(user, { oncePerCause: true }))).rejects.toBeInstanceOf(AppError);
+      });
     });
 
     it('adds up concurrent grants with different keys without losing an increment', async () => {

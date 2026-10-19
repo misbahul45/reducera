@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { ClassProduct, ContentStatus, Prisma, TenantStatus } from '@prisma/client';
+import { ClassProduct, ContentStatus, Prisma, ReviewStatus, TenantStatus } from '@prisma/client';
 import { AppError, AppErrorCode } from '@/common/lib/error';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { Actor, PolicyService } from '@/common/authz/policy.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { DomainEventBus } from '@/common/events/domain-event-bus';
 import { assertContentTransition } from '../marketplace/content-state';
+import { approveConceptLinks, conceptLinksOf, dropPendingConceptLinks, pendingConceptIds } from '../marketplace/product-concept-links';
 import { CLASS_AGGREGATE, ClassPublishedPayload, ContentEvents } from '../marketplace/content-events';
 import { assertClassReady } from './class-readiness';
 import { AdminClassQueryDtoType } from './classes.dto';
@@ -30,7 +31,10 @@ const reviewSelect = {
   updatedAt: true,
   tenant: { select: { id: true, name: true, slug: true, status: true } },
   instructor: { select: { id: true, name: true, email: true } },
+  _count: { select: { conceptLinks: { where: { status: ReviewStatus.PROPOSED } } } },
 } satisfies Prisma.ClassProductSelect;
+
+const withPendingTags = <T extends { _count: { conceptLinks: number } }>({ _count, ...row }: T) => ({ ...row, pendingConceptTags: _count.conceptLinks });
 
 @Injectable()
 export class ClassModerationService {
@@ -43,7 +47,11 @@ export class ClassModerationService {
 
   async queue(actor: Actor, query: AdminClassQueryDtoType) {
     this.policy.assertAdmin(actor);
-    const where: Prisma.ClassProductWhereInput = { status: query.status, ...(query.tenantId && { tenantId: query.tenantId }) };
+    const where: Prisma.ClassProductWhereInput = {
+      status: query.status,
+      ...(query.tenantId && { tenantId: query.tenantId }),
+      ...(query.pendingTags === 'true' && { conceptLinks: { some: { status: ReviewStatus.PROPOSED } } }),
+    };
     const [data, total] = await Promise.all([
       this.prisma.classProduct.findMany({
         where,
@@ -56,7 +64,7 @@ export class ClassModerationService {
     ]);
     return {
       message: 'Successfully retrieved the class queue',
-      data: { data, pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
+      data: { data: data.map(withPendingTags), pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
     };
   }
 
@@ -69,17 +77,85 @@ export class ClassModerationService {
     if (!cls) {
       throw new AppError('Class not found', 404, AppErrorCode.NOT_FOUND);
     }
-    return { message: 'Successfully retrieved class', data: cls };
+    const conceptLinks = await conceptLinksOf(this.prisma, { kind: 'class', id });
+    return { message: 'Successfully retrieved class', data: { ...withPendingTags(cls), conceptLinks } };
   }
 
   approve(actor: Actor, id: string, note: string | undefined, traceId?: string) {
     return this.review(actor, id, ContentStatus.PUBLISHED, 'CLASS_APPROVED', note, traceId, async (tx, cls, now) => {
       await this.assertPublishable(tx, cls);
+      await approveConceptLinks(tx, { kind: 'class', id: cls.id }, now);
       return {
         data: { publishedAt: cls.publishedAt ?? now },
         after: () => this.publishedEvent(tx, cls, actor, traceId),
       };
     });
+  }
+
+  async approveConcepts(actor: Actor, id: string, note: string | undefined, traceId?: string) {
+    this.policy.assertAdmin(actor);
+    const product = { kind: 'class', id } as const;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const cls = await this.lockPublished(tx, id);
+      const pending = await pendingConceptIds(tx, product);
+      if (pending.length === 0) return { changed: false, conceptIds: pending };
+      await approveConceptLinks(tx, product, new Date());
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId: cls.tenantId,
+          action: 'CLASS_CONCEPTS_APPROVED',
+          entityType: 'ClassProduct',
+          entityId: id,
+          after: { conceptIds: pending },
+          reason: note ?? null,
+          traceId,
+        },
+        tx,
+      );
+      return { changed: true, conceptIds: pending };
+    });
+    return { message: result.changed ? 'Concept tags approved' : 'No concept tags are waiting', data: { id, ...result } };
+  }
+
+  async rejectConcepts(actor: Actor, id: string, reason: string, traceId?: string) {
+    this.policy.assertAdmin(actor);
+    const product = { kind: 'class', id } as const;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const cls = await this.lockPublished(tx, id);
+      const pending = await pendingConceptIds(tx, product);
+      if (pending.length === 0) return { changed: false, conceptIds: pending };
+      await dropPendingConceptLinks(tx, product);
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId: cls.tenantId,
+          action: 'CLASS_CONCEPTS_REJECTED',
+          entityType: 'ClassProduct',
+          entityId: id,
+          before: { conceptIds: pending },
+          reason,
+          traceId,
+        },
+        tx,
+      );
+      return { changed: true, conceptIds: pending };
+    });
+    return { message: result.changed ? 'Concept tags rejected' : 'No concept tags are waiting', data: { id, ...result } };
+  }
+
+  private async lockPublished(tx: Prisma.TransactionClient, id: string) {
+    await tx.$queryRaw`SELECT id FROM "ClassProduct" WHERE id = ${id} FOR UPDATE`;
+    const cls = await tx.classProduct.findUnique({ where: { id }, select: { id: true, status: true, tenantId: true } });
+    if (!cls) {
+      throw new AppError('Class not found', 404, AppErrorCode.NOT_FOUND);
+    }
+    if (cls.status !== ContentStatus.PUBLISHED) {
+      throw new AppError('Only a published class has concept tags to decide on their own', 409, AppErrorCode.INVALID_STATE_TRANSITION);
+    }
+    return cls;
   }
 
   reject(actor: Actor, id: string, reason: string, traceId?: string) {

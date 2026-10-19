@@ -16,6 +16,7 @@ model User {
   password      String?
   role          Role         @default(STUDENT)
   isActive      Boolean      @default(true)
+  reviewReminders Boolean    @default(true)
 
   // gamification & streak
   totalPoints    Int       @default(0)
@@ -37,6 +38,7 @@ model User {
   lessonProgresses   LessonProgress[]
   quizAttempts       QuizAttempt[]
   personalityQuizzes PersonalityQuiz[]
+  notes              Note[]
   userSteps          UserStep[]
   stepProgresses     StepProgress[]
   streakHistories    StreakHistory[]
@@ -45,6 +47,7 @@ model User {
   dailyActivities    DailyActivityLog[]
   leaderboards       LeaderboardScore[]
   orders             Order[]
+  userTheme          UserTheme?
 
   // teacher
   teacherApplication TeacherApplication?
@@ -64,6 +67,10 @@ model User {
 
   // Sandbox
   sandboxAttempts      SandboxAttempt[]
+  sandboxPractices     SandboxPractice[]
+  sandboxSqlProgress   SandboxSqlProgress[]
+  tryoutSessions       TryoutSession[]
+  sandboxChecks       SandboxCheck[]
   episodes             Episode[]
   adaptivePolicies     AdaptivePolicy[]
   skillNodes           SkillNode[]
@@ -97,6 +104,7 @@ model User {
   aiCreditLedger   AICreditLedgerEntry[]
   learnerStream    LearnerStream?
   conceptMasteries ConceptMastery[]
+  strategyOutcomes StrategyOutcome[]
   rewardLedger     GamificationLedger[]
 
   createdAt DateTime @default(now())
@@ -297,6 +305,7 @@ model PersonalityQuiz {
   lessonId    String
   title       String
   questions   Json
+  sources     Json?
   userAttempt Json?
   result      Json?
   createdAt   DateTime  @default(now())
@@ -344,6 +353,7 @@ model UserStep {
   quizId String? @unique
   quiz   Quiz?   @relation("QuizUserStepProgress", fields: [quizId], references: [id], onDelete: Cascade)
   chat   Chat?
+  notes  Note[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -432,6 +442,7 @@ model LessonProgress {
   lesson       Lesson   @relation(fields: [lessonId], references: [id])
   isDone       Boolean  @default(false)
   introduction String?
+  introductionCitations Json?
   percentage   Float    @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -509,6 +520,8 @@ model Question {
   questionType  QuestionType @default(MULTIPLE_CHOICE)
   options       Json?
   correctAnswer Json
+  distractors   Json?
+  sources       Json?
   points        Int          @default(1)
   sortOrder     Int          @default(0)
 
@@ -631,6 +644,94 @@ model SandboxAttempt {
   @@index([userId])
 }
 
+enum SandboxPracticeStatus {
+  IN_PROGRESS
+  SOLVED
+}
+
+model SandboxPractice {
+  id            String                @id @default(uuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioId    String
+  status        SandboxPracticeStatus @default(IN_PROGRESS)
+  attempts      Int                   @default(0)
+  bestScore     Float                 @default(0)
+  hintLevel     Int                   @default(0)
+  hintAt        DateTime?
+  revealed      Boolean               @default(false)
+  solvedAt      DateTime?
+  solvedUnaided Boolean               @default(false)
+  lastLines     Json?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@unique([userId, scenarioId])
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+}
+
+enum TryoutStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+model TryoutSession {
+  id              String       @id @default(uuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examKey         String
+  seed            Int
+  status          TryoutStatus @default(IN_PROGRESS)
+  plan            Json
+  items           Json
+  answers         Json         @default("{}")
+  durationSeconds Int
+  startedAt       DateTime     @default(now())
+  submittedAt     DateTime?
+  result          Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+model SandboxSqlProgress {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId String
+  attempts   Int       @default(0)
+  solved     Boolean   @default(false)
+  solvedAt   DateTime?
+  hintLevel  Int       @default(0)
+  revealed   Boolean   @default(false)
+  lastSql    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([userId, exerciseId])
+  @@index([userId, solved])
+}
+
+model SandboxCheck {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioId    String
+  attemptNumber Int
+  lines         Json
+  score         Float
+  correct       Boolean
+  findingCodes  String[]
+  hintLevel     Int
+  createdAt     DateTime @default(now())
+
+  @@index([userId, scenarioId, createdAt])
+  @@index([userId, createdAt])
+}
+
 // -----------------------------------------------------------------------------
 // 5. CHAT
 // -----------------------------------------------------------------------------
@@ -640,6 +741,7 @@ model Chat {
   userStep   UserStep      @relation(fields: [userStepId], references: [id], onDelete: Cascade)
   messages   ChatMessage[]
   contents   Content[]
+  attachments ChatAttachment[]
   title      String
   updatedAt  DateTime      @updatedAt
 }
@@ -651,9 +753,29 @@ model ChatMessage {
   text      String?
   role      ChatRole
   status    MessageStatus @default(PENDING)
+  citations Json?
+  actions   Json?
   content   Content?      @relation("MessageToContent")
+  notes     Note[]
+  attachments ChatAttachment[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+}
+
+model ChatAttachment {
+  id        String       @id @default(uuid())
+  chatId    String
+  chat      Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  messageId String?
+  message   ChatMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  name      String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime     @default(now())
+
+  @@index([chatId, createdAt])
+  @@index([messageId])
 }
 
 model Content {
@@ -780,6 +902,7 @@ model Notification {
   type      NotificationType
   isGlobal  Boolean          @default(false)
   readAt    DateTime?
+  dedupeKey String?          @unique
   createdAt DateTime         @default(now())
 
   @@index([userId])
@@ -906,6 +1029,19 @@ model ThemeIcon {
   createdAt DateTime @default(now())
 }
 
+model UserTheme {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mood             String[]
+  intensity        Int
+  tokens           Json
+  atmosphere       Json
+  variants         Json
+  generatorVersion Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 enum LearningStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -1026,6 +1162,7 @@ enum NotificationType {
   QUIZ
   ACHIEVEMENT
   SYSTEM
+  REVIEW
 }
 
 // -----------------------------------------------------------------------------
@@ -1307,6 +1444,8 @@ model Concept {
   masteries     ConceptMastery[]
   events        LearningEvent[]
   rewardLedger  GamificationLedger[]
+  strategyOutcomes StrategyOutcome[]
+  productLinks  ProductConceptLink[]
 
   @@index([domain, level, sortOrder])
 }
@@ -1397,8 +1536,55 @@ model Episode {
   latencyMs       Int?
   createdAt       DateTime  @default(now())
   evaluation      InteractionEvaluation?
+  strategyOutcome StrategyOutcome?
   @@index([userId, createdAt])
   @@index([createdAt])
+}
+
+model StrategyOutcome {
+  id            String   @id @default(uuid())
+  userId        String
+  conceptId     String
+  strategy      String
+  episodeId     String   @unique
+  eventKey      String   @unique
+  promptVersion String
+  chunkClass    String?
+  scoreBefore   Float
+  scoreAfter    Float
+  scoreDelta    Float
+  success       Boolean
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept       Concept  @relation(fields: [conceptId], references: [id], onDelete: Restrict)
+  episode       Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, strategy])
+  @@index([userId, chunkClass])
+  @@index([promptVersion, createdAt])
+}
+
+enum NoteSource {
+  MANUAL
+  CHAT
+}
+
+model Note {
+  id            String       @id @default(uuid())
+  userId        String
+  userStepId    String?
+  chatMessageId String?
+  title         String
+  body          String
+  source        NoteSource   @default(MANUAL)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userStep      UserStep?    @relation(fields: [userStepId], references: [id], onDelete: SetNull)
+  chatMessage   ChatMessage? @relation(fields: [chatMessageId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userStepId])
 }
 
 model InteractionEvaluation {
@@ -1430,6 +1616,7 @@ model PromptVersion {
   modelName       String
   temperature     Float?
   status          PromptStatus   @default(DRAFT)
+  canaryPercent   Int            @default(0)
   createdAt       DateTime       @default(now())
   createdBy       String
   metricsJson     Json?
@@ -1774,6 +1961,7 @@ model Article {
   versions     ArticleVersion[] @relation("ArticleVersions")
   orderItems   OrderItem[]
   entitlements Entitlement[]
+  conceptLinks ProductConceptLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1834,6 +2022,7 @@ model ClassProduct {
   enrollments  ClassEnrollment[]
   orderItems   OrderItem[]
   entitlements Entitlement[]
+  conceptLinks ProductConceptLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1842,6 +2031,24 @@ model ClassProduct {
   @@index([tenantId, status])
   @@index([status, publishedAt])
   @@index([instructorId, status])
+}
+
+model ProductConceptLink {
+  id             String        @id @default(uuid())
+  conceptId      String
+  concept        Concept       @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  articleId      String?
+  article        Article?      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  classProductId String?
+  classProduct   ClassProduct? @relation(fields: [classProductId], references: [id], onDelete: Cascade)
+  status         ReviewStatus  @default(PROPOSED)
+  proposedById   String
+  createdAt      DateTime      @default(now())
+  reviewedAt     DateTime?
+
+  @@unique([articleId, conceptId])
+  @@unique([classProductId, conceptId])
+  @@index([conceptId, status])
 }
 
 model ClassSession {

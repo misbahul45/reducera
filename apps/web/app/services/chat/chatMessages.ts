@@ -1,7 +1,10 @@
 import type { Query, Tokens } from "~/interfaces/api"
 import type { ChatMessageDetailResponse } from "~/interfaces/chats/chat"
 import type { ChatMessagesListResponse } from "~/interfaces/chats/chatMessage"
+import type { RunnableAction } from "~/interfaces/chats/chatExtras"
 import { requestAi } from "~/lib/ai"
+import { actionRequestText, MESSAGE_MAX } from "~/lib/chat"
+import { queryFor } from "~/lib/chat-attachments"
 import { apiUrl, request, toQueryString } from "~/lib/api"
 
 export const chatMessageService = {
@@ -52,18 +55,21 @@ export const chatMessageService = {
       role: string
       userStepId:string
       userId:string
+      attachmentIds?: string[]
     },
     tokens?: Tokens
   ) {
+    const attachmentIds = data.attachmentIds ?? []
 
     const userMessage = await request(
       "/chat/chat-messages",
       "POST",
       {
         chatId: data.chatId,
-        text: data.text || null,
+        ...(data.text ? { text: data.text } : {}),
         status: data.status || "COMPLETED",
         role: data.role,
+        ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
       },
       {},
       true,
@@ -76,7 +82,7 @@ export const chatMessageService = {
       "POST",
       {
         chatId: data.chatId,
-        text: "AI is processing the response...",
+        text: "CORE sedang menyiapkan jawaban…",
         status: "PENDING",
         role: "ASSISTANT",
       },
@@ -92,7 +98,7 @@ export const chatMessageService = {
       "POST",
       {
         chatId: data.chatId,
-        query: data.text || "",
+        query: queryFor(data.text ?? "", attachmentIds.length),
         userStepId: data.userStepId,
         userId: data.userId,
         messageId,
@@ -114,6 +120,52 @@ export const chatMessageService = {
     }
 
     return userMessage
+  },
+
+  async runAction(
+    data: { chatId: string; userStepId: string; userId: string; action: RunnableAction },
+    tokens?: Tokens
+  ) {
+    const request_ = await request(
+      "/chat/chat-messages",
+      "POST",
+      { chatId: data.chatId, text: actionRequestText(data.action).slice(0, MESSAGE_MAX), status: "COMPLETED", role: "USER" },
+      {},
+      true,
+      tokens
+    )
+    if (!request_.success) return request_
+
+    const placeholder = await request<{ id: string }>(
+      "/chat/chat-messages",
+      "POST",
+      { chatId: data.chatId, text: "CORE sedang mengerjakannya…", status: "PENDING", role: "ASSISTANT" },
+      {},
+      true,
+      tokens
+    )
+    if (!placeholder.success || !placeholder.data) return placeholder
+
+    const messageId = placeholder.data.id
+    const dispatched = await requestAi(
+      "/learning/chat/action",
+      "POST",
+      {
+        chatId: data.chatId,
+        userStepId: data.userStepId,
+        userId: data.userId,
+        messageId,
+        action: data.action,
+      },
+      { "Idempotency-Key": crypto.randomUUID() },
+      true,
+      tokens
+    )
+    if (!dispatched.success) {
+      await request(`/chat/chat-messages/${messageId}`, "DELETE", undefined, {}, true, tokens)
+      return dispatched
+    }
+    return placeholder
   },
 
   async update(

@@ -11,15 +11,19 @@ Monorepo with a single root `.git` and a single root `.env` (never create `.env`
 | Dir | Service | Stack | Port |
 |---|---|---|---|
 | `services/api/` | `api` | NestJS 11 + Prisma 7 (PostgreSQL), BullMQ, Socket.IO/SSE, Zod | 3002 |
-| `services/ai-api/` | `ai-api` + `celery-worker` | FastAPI, LangChain/LangGraph, LlamaIndex, Celery, Qdrant | 3003 |
+| `services/ai-api/` | `ai-api` + `celery-worker` + `celery-chat-worker` | FastAPI, LangChain/LangGraph, LlamaIndex, Celery, Qdrant | 3003 |
 | `apps/web/` | `web` | Nuxt 4, Nuxt UI, Pinia, TanStack Query | 3000 |
 | `infra/nginx/`, `infra/postgres/`, `infra/qdrant/` | infra config | | 80/443 |
+
+The compose stack also has `sandbox-db`, a second PostgreSQL (no host port, data in `tmpfs`) that only runs SQL written by learners in the sandbox; `api` reaches it with `SANDBOX_DATABASE_URL` as the restricted role `sandbox_runner`, and it holds no application data. The sandbox hub (`/sandbox`) sends a course to accounting journals, the SQL playground or the UTBK tryout generator (ADR-025).
 
 There is no admin app in this repo, but `ADMIN_URL` is still a required env var (compose passes it and `services/ai-api/main.py` puts it in the CORS origins).
 
 Nginx routes `/` → web, `/api/` → api, `/ai/` → ai-api. API is served under `/api/v1` (Swagger at `/api/v1/docs`); FastAPI routes are mounted under `/ai` (`v1Router` in `services/ai-api/v1/router.py`).
 
 ## Commands
+
+**Docker only.** Every command of this repository runs in a container; the host needs only Docker, `git` and `curl`. Never run `pnpm`, `npm`, `npx`, `node`, `python`, `uv`, `tsx`, `prisma`, `jest`, `vitest` or `pytest` on the host, and never `pnpm add` or `pnpm install` on the host (a different pnpm rewrites the lockfile). The full table and the reasons are in `AGENTS.md` ("Docker-Only Workflow"). Set `POSTGRES_PORT` and `WEB_PORT` in the shell when the default ports are taken.
 
 Full stack (from repo root):
 
@@ -28,38 +32,40 @@ docker compose up -d --build            # dev stack
 docker compose config                   # validate compose (also run with -f docker-compose.prod.yml)
 docker compose ps
 docker compose logs -f api
+docker compose build api && docker compose up -d --no-deps api   # rebuild and restart one service
 docker compose -f docker-compose.prod.yml --profile migrate run --rm api-migrate   # prod prisma migrate deploy
 ```
 
-`services/api/` (pnpm):
+Tool containers (`--profile tools`, one-shot, source mounted from the host, dependencies in named volumes; `api-tools` also sees the whole repository read-only at `/repo` because some specs read the compose files and the AI taxonomy). Prefix every line with `docker compose --profile tools run --rm`:
 
 ```bash
-pnpm dev                                # nest start --watch
-pnpm build                              # prisma generate && nest build && tsc-alias
-pnpm lint                               # eslint --fix
-pnpm test                               # jest (rootDir=src, *.spec.ts)
-pnpm jest src/v1/learner-model          # single file/dir
-pnpm jest -t "test name"                # single test by name
-pnpm test:e2e                           # test/jest-e2e.json
-pnpm prisma migrate dev --name <name>   # new migration; pnpm seed runs prisma/seed.ts via tsx
-pnpm seed:theme                         # also seed:golden-graph
+api-tools pnpm exec tsc --noEmit
+api-tools pnpm jest                                  # rootDir=src, *.spec.ts
+api-tools pnpm jest --runInBand src/v1/learner-model
+api-tools pnpm jest -t "test name"
+api-tools pnpm prisma generate
+api-tools pnpm prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
+api-tools pnpm prisma migrate deploy
+api-tools pnpm seed:theme                            # also seed:golden-graph, seed:topic, seed:concepts, seed:user
+web-tools pnpm install --frozen-lockfile             # after a lockfile change
+web-tools pnpm test                                  # vitest run
+web-tools pnpm vitest run app/lib/__tests__/studio.test.ts
+web-tools pnpm build                                 # then: docker compose build web && docker compose up -d --no-deps web
+ai-tools pytest -q
+ai-tools pytest config/__tests__/test_rate_limit.py::test_name
+ai-tools pytest --noconftest utils/tools/__tests__/test_memory.py   # needs the qdrant service
+repo-tools bash scripts/check-ownership-rules.sh
+repo-tools bash infra/scripts/check-theme-sync.sh
+repo-tools python scripts/check-compose-env.py
 ```
 
-CI (`.github/workflows/ci.yml`) runs only two jobs: `bash scripts/check-ownership-rules.sh` (the `AGENTS.md` detection greps) and the `api` suite (`prisma migrate deploy` against a Postgres 15 service, then `pnpm jest --silent`). `ai-api` and `web` tests are not in CI, so run them locally. Run the ownership script after any cross-service change. `bash infra/scripts/check-theme-sync.sh` fails when `services/api/prisma/seed-data/reducera-ocean.theme.json` and `apps/web/app/theme/reducera-ocean.theme.json` differ; the two copies must stay byte-identical.
+Build the tool images once with `docker compose --profile tools build api-tools web-tools ai-tools`. A temporary script goes under `services/api/prisma/tmp-*.ts`, runs with `api-tools pnpm exec tsx prisma/tmp-name.ts`, and is deleted afterwards. There is no ESLint configuration in `services/api` and no lint script in `apps/web`.
 
-`services/ai-api/` (uv):
+CI (`.github/workflows/ci.yml`) runs only two jobs: `bash scripts/check-ownership-rules.sh` (the `AGENTS.md` detection greps) and the `api` suite (`prisma migrate deploy` against a Postgres 15 service, then `pnpm jest --silent`). `ai-api` and `web` tests are not in CI, so run them through the tool containers. Run the ownership script after any cross-service change. `infra/scripts/check-theme-sync.sh` fails when `services/api/prisma/seed-data/reducera-ocean.theme.json` and `apps/web/app/theme/reducera-ocean.theme.json` differ; the two copies must stay byte-identical.
 
-```bash
-uv run pytest -q
-uv run pytest config/__tests__/test_rate_limit.py::test_name    # single test
-uv run pytest --cov=. --cov-report=term-missing
-uvicorn main:app --reload --port 3003
-celery -A config.celery:celery_app worker --loglevel=info
-```
+Pytest `testpaths` are `tests`, `__tests__`, `config/__tests__`, `utils/tools/__tests__`, and `v1` (tests colocated with features). `python_files` is `test_*.py` and `*_test.py`, with `pythonpath = ["."]` and `--import-mode=importlib`, because most packages have no `__init__.py` (duplicate basenames such as `service.py` collide, and `config/celery.py` would shadow the real `celery` package under the default import mode). `utils/tools/__tests__/test_memory.py` needs a reachable Qdrant, so `conftest.py` ignores it. Every public `ai-api` route that spends LLM budget must authenticate the caller (`config/user_auth.py::authenticated_user`) and bind `userId` to it; `@rate_limit` raises at import time if the endpoint has no `request: Request` parameter.
 
-Pytest `testpaths` are `tests`, `__tests__`, `config/__tests__`, `utils/tools/__tests__`, and `v1` (tests colocated with features). `python_files` is `test_*.py` and `*_test.py`, with `pythonpath = ["."]` and `--import-mode=importlib`, because most packages have no `__init__.py` (duplicate basenames such as `service.py` collide, and `config/celery.py` would shadow the real `celery` package under the default import mode). `utils/tools/__tests__/test_memory.py` needs a reachable Qdrant, so `conftest.py` ignores it; run it with `QDRANT_URL=http://localhost:6333 uv run pytest --noconftest utils/tools/__tests__/test_memory.py`. Every public `ai-api` route that spends LLM budget must authenticate the caller (`config/user_auth.py::authenticated_user`) and bind `userId` to it; `@rate_limit` raises at import time if the endpoint has no `request: Request` parameter.
-
-`apps/web/` (pnpm): `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm test` (`vitest run`, node environment, picks up `app/**/*.test.ts` and `app/**/__tests__/**`), `pnpm vitest run <path>` for one file, `pnpm build:assets` (`scripts/build-brand-assets.mjs`). There is no lint script.
+`apps/web/`: tests are `vitest run` (node environment, picks up `app/**/*.test.ts` and `app/**/__tests__/**`); `web-tools` mounts the whole repository because some tests read files of `services/api`. `pnpm build:assets` (`scripts/build-brand-assets.mjs`) also runs in `web-tools`. There is no host dev server: change the code, rebuild the `web` image and restart it.
 
 Web is SSR (`ssr: true`): content and theme must be in the first HTML, no `Math.random()`/`Date.now()`/`window` during render, server calls use `API_URL_INTERNAL` not the public URL, and no `swr`/`isr`/`prerender` on pages that render user state. Full list in `AGENTS.md` ("Web Rendering Rules").
 
@@ -74,19 +80,19 @@ This is the rule most likely to be broken by a well-meaning change:
 
 No boundary violation is open. `api` has no LLM or embedding code, dependency or credential; the former Gemini call in `common/lib/embeding.ts` had no callers and was deleted. The grep patterns in `AGENTS.md` ("Detection") define violations; run them after cross-service changes.
 
-AI providers (only `ai-api` and `celery-worker` get these): the LLM is one OpenAI-compatible gateway (`OPENAI_API_KEY`, `OPENAI_BASE_URL`; the project uses `https://ai.flaz.id/v1`) with two modes built in `services/ai-api/config/providers.py`: flash (`OPENAI_MODEL_FLASH`, `OPENAI_MAX_TOKENS`, `pipeline.llm`) and thinking (`OPENAI_MODEL_THINKING`, `OPENAI_THINKING_MAX_TOKENS`, `pipeline.llm_thinking`); embeddings are computed remotely by Hugging Face Inference (`HF_TOKEN`, `HF_EMBEDDING_MODEL`, `HF_EMBEDDING_URL`, `EMBEDDING_DIM`). Google Gemini credentials are gone (a `gemini/...` model id served by the gateway is allowed). Changing the embedding model or dimension needs new Qdrant collection names and a re-embed; `ai-api` refuses to start on a vector-size mismatch. A developer's personal `HF_TOKEN` stays in the git-ignored root `.env` only.
+AI providers (only `ai-api` and `celery-worker` get these): the LLM is one OpenAI-compatible gateway (`OPENAI_API_KEY`, `OPENAI_BASE_URL`; the project uses `https://ai.flaz.id/v1`) with two modes built in `services/ai-api/config/providers.py`: flash (`OPENAI_MODEL_FLASH`, `OPENAI_MAX_TOKENS`, `pipeline.llm`) and thinking (`OPENAI_MODEL_THINKING`, `OPENAI_THINKING_MAX_TOKENS`, `pipeline.llm_thinking`); embeddings come from `EMBEDDING_PROVIDER`: `huggingface` (Hugging Face Inference: `HF_TOKEN`, `HF_EMBEDDING_MODEL`, `HF_EMBEDDING_URL`) or `local` (the same `BAAI/bge-m3` on CPU from the read-only `./models/bge-m3` mount, `config/local_embedding.py`, ADR-030; fetch the weights with `ai-tools python scripts/prefetch_embedding_model.py BAAI/bge-m3 /repo/models/bge-m3`), both with `EMBEDDING_DIM`. Google Gemini credentials are gone (a `gemini/...` model id served by the gateway is allowed). Changing the embedding model or dimension needs new Qdrant collection names and a re-embed; `ai-api` refuses to start on a vector-size mismatch. A developer's personal `HF_TOKEN` stays in the git-ignored root `.env` only.
 
 Redis serves three roles: app cache, BullMQ broker (`api`, see `services/api/src/v1/queue/`), and Celery broker (`ai-api`). Embedding/indexing work runs as Celery tasks (`v1/*/workers.py`, `config/celery.py`).
 
-### Dev vs prod discrepancy
+### Celery in dev and prod
 
-`main.py` no longer spawns Celery (`services/ai-api/__tests__/test_main_no_subprocess_spawn.py` fails if `Popen` returns), and the `ai-api` image only runs uvicorn. `docker-compose.prod.yml` has a dedicated `celery-worker`; `docker-compose.yml` does not. So in dev nothing consumes the Celery tasks in `v1/*/workers.py` (resource extract and embedding, lesson content generation, personality quiz generation; the routers enqueue them with `.delay()`) unless you start a worker yourself with the `celery -A config.celery:celery_app worker` command above. Check this first when one of those requests never completes in dev.
+`main.py` does not spawn Celery (`services/ai-api/__tests__/test_main_no_subprocess_spawn.py` fails if `Popen` returns) and the `ai-api` image only runs uvicorn. Both `docker-compose.yml` and `docker-compose.prod.yml` define two workers that consume the tasks in `v1/*/workers.py` (the routers enqueue them with `.delay()`): `celery-worker` takes the default `celery` queue (resource extract and embedding, lesson content generation, personality quiz generation) and `celery-chat-worker` takes the `chat` queue (chat replies and chat actions, routed in `config/celery.py`), so a reply never waits behind the material of a whole learning path. When one of those requests never completes, check `docker compose ps celery-worker celery-chat-worker` first. Recreate both workers together with `ai-api` after a change in `services/ai-api`: the chat and lesson pipelines run in the worker image.
 
 `AGENTS.md` refers to `docker-compose.build.yml` for production builds; that file does not exist in the repo.
 
 ### API layout (`services/api/src`)
 
-`app.module.ts` → `v1/v1.module.ts` aggregates feature modules under `v1/`: learning side (auth, chat, curriculum, learning, learner-model, misconception, quiz, gamify, sse, queue, tutor, teacher) and money/tenancy side (tenants, orders, payments, commerce, entitlements, ledger, payouts, refunds, marketplace, classes, articles, simulator, internal). Cross-cutting code is in `common/` (response interceptor, exception filters, idempotency, logging). Path alias `@/*` → `src/*` (resolved by `tsc-alias` at build). Responses are wrapped globally by `ResponseInterceptor`; validation is Zod-based. Prisma schema/migrations: `services/api/prisma/`.
+`app.module.ts` → `v1/v1.module.ts` aggregates feature modules under `v1/`: learning side (auth, chat, curriculum, learning, learner-model, misconception, quiz, gamify, sse, queue, optimization, teacher) and money/tenancy side (tenants, orders, payments, commerce, entitlements, ledger, payouts, refunds, marketplace, classes, articles, simulator, internal). Cross-cutting code is in `common/` (response interceptor, exception filters, idempotency, logging). Path alias `@/*` → `src/*` (resolved by `tsc-alias` at build). Responses are wrapped globally by `ResponseInterceptor`; validation is Zod-based. Prisma schema/migrations: `services/api/prisma/`.
 
 ### Access control (`services/api`)
 
@@ -113,7 +119,7 @@ Redis serves three roles: app cache, BullMQ broker (`api`, see `services/api/src
 - Never run `prisma format` (it rewrites the whole schema). `prisma migrate dev` is interactive; in scripts use `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` and write the migration folder by hand. Expect `migrate diff` to be empty after `migrate deploy`.
 - The dev database has no migration history; baseline it with `prisma migrate resolve --applied` for the five pre-Phase-1 migrations before `migrate deploy` (steps in `docs/architecture/PHASE_1_REPORT.md`).
 - HTTP tests use `src/test-utils/http-harness.ts` (real Roles/Ownership guards and exception filters, fake login via `x-test-user`). Database tests need a scratch database, never the dev one: set `TEST_DATABASE_URL` (schema at head) and `TEST_LEGACY_DATABASE_URL` (legacy data for the entitlement backfill); without them those suites skip.
-- Python tests without syncing the heavy project: `uv run --no-project --with pytest --with requests --with fastapi --with python-dotenv --with pydantic --with httpx pytest -q config/__tests__`. Some existing tests fail for known reasons (see the Phase 1 report).
+- Python tests run in `ai-tools` (the `deps` stage of the `ai-api` image has the runtime and dev dependencies); the whole suite passes there.
 - `INTERNAL_AI_API_SECRET` must be set in the root `.env` for `api`, `ai-api` and the celery worker.
 
 ### AI layout (`services/ai-api`)
@@ -132,5 +138,6 @@ Feature packages under `v1/` (`learning`, `resources`, `users_steps`), each with
 - Never run `git add`, `git commit`, `git push`, rebase/merge/reset --hard, or amend. Only read git state; report changed and untracked files when done and let the owner stage/commit.
 - Compose/Dockerfile rules (`restart: unless-stopped`, healthchecks on every service, `runner` final stage, non-root `reducera` user, no `latest` tags, prod exposes only nginx ports) are in `AGENTS.md`.
 - Audit structure and callers with `codebase-memory-mcp` (`check_index_coverage`, `search_graph`, `trace_path`), then confirm negative claims with `grep`. Details in `AGENTS.md` ("Code audit").
-- Verify web changes in a real browser through the `playwright` MCP (viewports 375/768/1280, light and dark, reduced motion, zero console errors), not only `pnpm build`. Details in `AGENTS.md` ("Web verification"). Always pass `filename` as `.playwright-mcp/<name>.png` (git-ignored); a bare name lands in the repo root.
+- **Always use Docker** for everything: commands run in the `tools` profile containers, the app runs in the compose stack, and browser checks target that stack. Nothing runs on the host.
+- Verify web changes in a real browser through the `playwright` MCP (viewports 375/768/1280, light and dark, reduced motion, zero console errors), not only a web build. Details in `AGENTS.md` ("Web verification"). Always pass `filename` as `.playwright-mcp/<name>.png` (git-ignored); a bare name lands in the repo root.
 - Before claiming infra work complete: `docker compose config`, prod `config`, `docker compose ps` healthy, `curl http://localhost/nginx-health`, `curl http://localhost/api/v1/docs`.

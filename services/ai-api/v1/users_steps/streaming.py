@@ -15,8 +15,22 @@ class StageEvent:
         return json.dumps({"key": self.key, "state": self.state, "data": self.data}, ensure_ascii=False)
 
 
+@dataclass(frozen=True)
+class SourcesEvent:
+    citations: list[dict[str, Any]] = field(default_factory=list)
+
+    def to_json(self) -> str:
+        return json.dumps(self.citations, ensure_ascii=False)
+
+
+@dataclass(frozen=True)
+class FinalEvent:
+    text: str
+    citations: list[dict[str, Any]] = field(default_factory=list)
+
+
 def chunk_text(chunk: Any) -> Optional[str]:
-    if isinstance(chunk, StageEvent):
+    if isinstance(chunk, (StageEvent, SourcesEvent, FinalEvent)):
         return None
     if hasattr(chunk, "delta") and chunk.delta:
         text = chunk.delta

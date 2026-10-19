@@ -6,7 +6,7 @@ import type {
   PersonalityQuizUserAttemptItem
 } from "~/interfaces/learning/personalityQuiz"
 import { apiUrl, request, toQueryString } from "~/lib/api"
-import { aiUrl } from "~/lib/ai"
+import { aiUrl, requestAi } from "~/lib/ai"
 
 export const personalityQuizService = {
   async findAll(q: Query = {}, tokens?: Tokens) {
@@ -70,6 +70,20 @@ export const personalityQuizService = {
     return new EventSource(
       aiUrl(`/users-steps/generate-question?${qs.toString()}`),
       { withCredentials: true }
+    )
+  },
+
+  async requestQuiz(
+    payload: { lessonId: string; topicId: string; learningStyleId: string; userId: string },
+    tokens?: Tokens
+  ) {
+    return requestAi<{ status: "queued" | "running" | "exists" }>(
+      "/users-steps/personality-quiz",
+      "POST",
+      payload,
+      { "Idempotency-Key": crypto.randomUUID() },
+      true,
+      tokens
     )
   },
 

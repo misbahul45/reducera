@@ -3,10 +3,10 @@ export const idCopy = {
   meta: {
     title: "ReduCera: Ekosistem Belajar Dinamis yang Menyesuaikan Diri denganmu",
     description:
-      "Topik belajar berikutnya dipilih dari penguasaan dan miskonsepsimu. Mulai dari akuntansi: 65 konsep berprasyarat, latihan jurnal, simulator, dan jalur menjadi kreator.",
+      "Course belajar berikutnya dipilih dari penguasaan dan miskonsepsimu. Mulai dari akuntansi: 65 konsep berprasyarat, latihan jurnal, simulator, dan jalur menjadi kreator.",
     ogTitle: "ReduCera: Ekosistem Belajar Dinamis",
-    ogDescription: "Jalur belajarmu berubah karena kamu berubah. Mulai dari satu topik, sisanya menyusul.",
-    imageAlt: "Peta konsep ReduCera dengan topik berikutnya yang dipilih dari penguasaan pembelajar",
+    ogDescription: "Jalur belajarmu berubah karena kamu berubah. Mulai dari satu course, sisanya menyusul.",
+    imageAlt: "Peta konsep ReduCera dengan course berikutnya yang dipilih dari penguasaan pembelajar",
   },
   common: {
     skip: "Lewati ke konten",
@@ -28,7 +28,7 @@ export const idCopy = {
     minutesLong: "{n} menit",
     decisionKinds: {
       remediation: "Pemulihan miskonsepsi",
-      progression: "Lanjut ke topik berikutnya",
+      progression: "Lanjut ke course berikutnya",
       no_exploration: "Mulai dari awal",
     },
     dimensions: {
@@ -106,10 +106,10 @@ export const idCopy = {
       { text: "karena kamu berubah.", em: true },
     ],
     subtitle:
-      "ReduCera adalah ekosistem belajar dinamis. Topik berikutnya dipilih dari penguasaan dan miskonsepsimu, lalu dilatih lewat jurnal, skenario, dan simulator. Tutor AI yang tahu posisimu sedang dibangun di atas fondasi itu.",
+      "ReduCera adalah ekosistem belajar dinamis. Course berikutnya dipilih dari penguasaan dan miskonsepsimu, lalu dilatih lewat jurnal, skenario, dan simulator. Tutor AI yang tahu posisimu sedang dibangun di atas fondasi itu.",
     primary: "Mulai belajar",
     secondary: "Lihat cara kerjanya",
-    note: "Mulai dari satu topik. Sisanya menyusul.",
+    note: "Mulai dari satu course. Sisanya menyusul.",
     stage: {
       ariaLabel: "Simulasi interaktif pengalaman belajar",
       learnerHeading: "Pembelajar contoh",
@@ -135,7 +135,7 @@ export const idCopy = {
       reset: "Mulai ulang",
       closing: "Itulah pembelajaran adaptif.",
       disclosure:
-        "Pratinjau interaktif. Pemilihan topik memakai aturan yang sudah berjalan di API ReduCera. Panjang sesi, mode tanya, tingkat tantangan, dan tema adalah pratinjau fitur yang sedang dibangun.",
+        "Pratinjau interaktif. Pemilihan course memakai aturan yang sudah berjalan di API ReduCera. Panjang sesi, mode tanya, tingkat tantangan, dan tema adalah pratinjau fitur yang sedang dibangun.",
     },
   },
   trust: {
@@ -193,7 +193,7 @@ export const idCopy = {
       { id: "preferences", label: "Preferensi", live: false },
     ],
     outputs: [
-      { id: "lesson", label: "Topik berikutnya", live: true },
+      { id: "lesson", label: "Course berikutnya", live: true },
       { id: "difficulty", label: "Target kesulitan", live: true },
       { id: "hints", label: "Tingkat petunjuk", live: true },
       { id: "chat", label: "Gaya obrolan", live: true },
@@ -209,13 +209,13 @@ export const idCopy = {
     resultTitle: "Sesi untuk {n} menit",
     done: "Selesai.",
     disclosure:
-      "Pratinjau penyusunan sesi. Yang berjalan hari ini adalah pemilihan topik. Penyusunan sesi otomatis berdasarkan waktu sedang dibangun.",
+      "Pratinjau penyusunan sesi. Yang berjalan hari ini adalah pemilihan course. Penyusunan sesi otomatis berdasarkan waktu sedang dibangun.",
   },
   adaptive: {
     heading: "Pelajaran berikutnya tidak ditentukan daftar putar.",
-    lede: "Dua keputusan nyata dari API: topik apa yang dipelajari, lalu bagaimana cara mengajarkannya. Geser nilainya dan lihat keluarannya.",
+    lede: "Dua keputusan nyata dari API: course apa yang dipelajari, lalu bagaimana cara mengajarkannya. Geser nilainya dan lihat keluarannya.",
     topic: {
-      heading: "1. Topik berikutnya",
+      heading: "1. Course berikutnya",
       equationMastery: "Penguasaan Persamaan Akuntansi",
       debitMastery: "Penguasaan Debit dan Kredit",
       newLearner: "Pembelajar baru, belum ada riwayat",
@@ -267,7 +267,7 @@ export const idCopy = {
       columns: ["Kondisi", "Keputusan", "Status"],
       rows: [
         { when: "Dua miskonsepsi terbuka atau lebih", then: "Pemulihan dengan perancah tinggi", status: "rule" },
-        { when: "Topik baru, prasyarat belum terpenuhi", then: "Pulihkan prasyarat dulu", status: "rule" },
+        { when: "Course baru, prasyarat belum terpenuhi", then: "Pulihkan prasyarat dulu", status: "rule" },
         { when: "Ragu, penguasaan rendah", then: "Contoh lengkap, lalu contoh terbimbing", status: "rule" },
         { when: "Ragu, penguasaan sudah baik", then: "Pertanyaan Socratic", status: "rule" },
         { when: "Lebih dari 7 hari tidak mengulang", then: "Ulasan", status: "rule" },
@@ -295,7 +295,7 @@ export const idCopy = {
     illustration: "Percakapan ini ilustrasi, bukan keluaran tutor sungguhan.",
     contextTitle: "Yang dibaca tutor sebelum menjawab",
     context: {
-      topic: "Topik aktif",
+      topic: "Course aktif",
       topicValue: "Debit dan Kredit",
       mastery: "Penguasaan",
       misconception: "Miskonsepsi terbuka",
@@ -433,7 +433,7 @@ export const idCopy = {
     heading: "Belajar tidak selesai saat kamu menguasainya.",
     lede: "Yang kamu kuasai bisa menjadi pelajaran bagi orang lain. Pengetahuan beredar, dan hasilnya kembali memperbaikinya.",
     steps: [
-      { title: "Belajar", text: "Pelajari topik lewat latihan dan skenario.", built: true },
+      { title: "Belajar", text: "Pelajari course lewat latihan dan skenario.", built: true },
       { title: "Kuasai", text: "Penguasaan terbukti dari latihan, bukan dari klik selesai.", built: true },
       { title: "Buat", text: "Tulis artikel, kelas, kuis, atau simulasi.", built: true },
       { title: "Bagikan", text: "Terbitkan lewat tinjauan manusia.", built: true },
@@ -512,7 +512,7 @@ export const idCopy = {
     heading: "Adaptif bukan berarti tanpa kendali.",
     pillars: [
       { title: "AI mengusulkan.", text: "Model menjelaskan, merangkum, dan menyarankan. Ia tidak memutuskan." },
-      { title: "Kebijakan memutuskan.", text: "Aturan deterministik memilih topik, strategi, dan tingkat kesulitan." },
+      { title: "Kebijakan memutuskan.", text: "Aturan deterministik memilih course, strategi, dan tingkat kesulitan." },
       { title: "Bukti memvalidasi.", text: "Nilai dihitung di server dari jawabanmu dan mesin akuntansi." },
       { title: "Manusia mengatur.", text: "Tinjauan manusia untuk konten, pembayaran, dan perubahan sensitif." },
     ],
@@ -548,7 +548,7 @@ export const idCopy = {
       { name: "Level, lencana, streak, dan papan peringkat", status: "available", basis: "Halaman gamifikasi di aplikasi" },
       { name: "Studio kreator dan marketplace", status: "available", basis: "Halaman studio dan marketplace" },
       { name: "Pesanan, pembayaran manual, dompet, dan penarikan", status: "rule", basis: "API sudah ada, alur penuh di antarmuka belum kami verifikasi" },
-      { name: "Pemilihan topik dari penguasaan dan miskonsepsi", status: "rule", basis: "Kebijakan adaptif di API" },
+      { name: "Pemilihan course dari penguasaan dan miskonsepsi", status: "rule", basis: "Kebijakan adaptif di API" },
       { name: "Strategi mengajar, target kesulitan, tingkat petunjuk", status: "rule", basis: "Kebijakan tutor di API" },
       { name: "Tutor berbasis aturan dengan pencatatan Episode", status: "rule", basis: "Rute tutor di API, balasan masih templat" },
       { name: "Tutor AI dengan model bahasa dan sumber materi", status: "building", basis: "Alur obrolan dan pembuatan materi sedang diperbaiki" },
@@ -600,7 +600,7 @@ export const idCopy = {
     },
     punchline: "Sistem berubah karena pembelajarnya berubah.",
     disclosure:
-      "Pratinjau dengan data contoh. Keputusan topik memakai aturan nyata di API. Panjang sesi, mode, dan tantangan adalah pratinjau fitur yang sedang dibangun.",
+      "Pratinjau dengan data contoh. Keputusan course memakai aturan nyata di API. Panjang sesi, mode, dan tantangan adalah pratinjau fitur yang sedang dibangun.",
     cta: "Mulai belajar",
   },
   faq: {
@@ -612,11 +612,11 @@ export const idCopy = {
       },
       {
         q: "Apa bedanya dengan LMS?",
-        a: "LMS biasanya memberi semua orang jalur dan tampilan yang sama. ReduCera memilih topik berikutnya dari penguasaan dan miskonsepsimu, dan arahnya adalah menyesuaikan seluruh pengalaman.",
+        a: "LMS biasanya memberi semua orang jalur dan tampilan yang sama. ReduCera memilih course berikutnya dari penguasaan dan miskonsepsimu, dan arahnya adalah menyesuaikan seluruh pengalaman.",
       },
       {
         q: "Bagaimana pembelajaran adaptif bekerja?",
-        a: "Aturan di API membaca penguasaan dan miskonsepsimu, memilih topik berikutnya, lalu memilih strategi mengajar dan target kesulitan. Aturannya deterministik dan bisa diperiksa.",
+        a: "Aturan di API membaca penguasaan dan miskonsepsimu, memilih course berikutnya, lalu memilih strategi mengajar dan target kesulitan. Aturannya deterministik dan bisa diperiksa.",
       },
       {
         q: "Apakah AI yang menentukan nilaiku?",
@@ -652,7 +652,7 @@ export const idCopy = {
     heading: "Mulai dengan satu pelajaran. Biarkan sistem mempelajari sisanya.",
     primary: "Mulai belajar",
     secondary: "Jelajahi kursus",
-    note: "Satu langkah pertama cukup: pilih satu topik.",
+    note: "Satu langkah pertama cukup: pilih satu course.",
     statement: ["Belajar mengubahmu.", "ReduCera berubah bersamamu."],
   },
   footer: {

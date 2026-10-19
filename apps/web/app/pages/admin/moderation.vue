@@ -6,7 +6,8 @@ import RenderMarkdown from '~/components/ui/RenderMarkdown.vue';
 import StatusBadge from '~/components/ui/StatusBadge.vue';
 import { useQueueActions } from '~/composables/useQueueActions';
 import type { AdminContentRow, ContentKind } from '~/interfaces/admin';
-import { contentActions, statusMeta, type ContentAction } from '~/lib/admin';
+import { canDecideTags, contentActions, pendingTagsLabel, statusMeta, type ContentAction, type TagDecision } from '~/lib/admin';
+import { statusLabel } from '~/lib/concept-picker';
 import { describeApiError } from '~/lib/api-error';
 import { formatDateTime, formatMoney } from '~/lib/format';
 import type { FilterDefs } from '~/lib/query-filters';
@@ -32,17 +33,20 @@ const defs = {
   page: { kind: 'page' },
   type: { kind: 'enum', values: ['article', 'class'] },
   status: { kind: 'enum', values: STATUSES.map((item) => item.value) },
+  tags: { kind: 'enum', values: ['pending'] },
 } satisfies FilterDefs;
 
 const { filters, set } = useQueryFilters(defs);
 const kind = computed<ContentKind>(() => (filters.value.type === 'class' ? 'class' : 'article'));
-const status = computed(() => String(filters.value.status || 'PENDING_REVIEW'));
+const tagsOnly = computed(() => filters.value.tags === 'pending');
+const status = computed(() => (tagsOnly.value ? 'PUBLISHED' : String(filters.value.status || 'PENDING_REVIEW')));
 
 const { rows, pagination, state, error, refresh } = useAdminList(
   'admin:moderation',
   (current) =>
     adminService.content.list(current.type === 'class' ? 'class' : 'article', {
-      status: current.status || 'PENDING_REVIEW',
+      status: current.tags === 'pending' ? 'PUBLISHED' : current.status || 'PENDING_REVIEW',
+      ...(current.tags === 'pending' ? { pendingTags: 'true' } : {}),
       page: current.page,
       limit: 20,
     }),
@@ -50,11 +54,11 @@ const { rows, pagination, state, error, refresh } = useAdminList(
 );
 
 const actions = useQueueActions(async () => {
-  await refresh();
+  await Promise.all([refresh(), refreshDetail()]);
 });
 
 const selectedId = ref<string | null>(null);
-const dialog = ref<{ action: ContentAction; id: string } | null>(null);
+const dialog = ref<{ action: ContentAction | TagDecision; id: string } | null>(null);
 
 watch(kind, () => {
   selectedId.value = null;
@@ -62,7 +66,7 @@ watch(kind, () => {
 
 const selected = computed<AdminContentRow | null>(() => rows.value.find((row) => row.id === selectedId.value) ?? null);
 
-const { data: detail, status: detailStatus, error: detailError } = useAsyncData(
+const { data: detail, status: detailStatus, error: detailError, refresh: refreshDetail } = useAsyncData(
   'admin:moderation:detail',
   async () => (selectedId.value ? adminService.content.get(kind.value, selectedId.value) : null),
   { lazy: true, watch: [selectedId, kind] },
@@ -78,12 +82,14 @@ function select(id: string) {
   actions.clear();
 }
 
-function open(action: ContentAction, id: string) {
+function open(action: ContentAction | TagDecision, id: string) {
   actions.clear();
   dialog.value = { action, id };
 }
 
-const SUCCESS: Record<ContentAction, string> = {
+const SUCCESS: Record<ContentAction | TagDecision, string> = {
+  'approve-tags': 'Tag konsep disetujui.',
+  'reject-tags': 'Tag konsep ditolak.',
   approve: 'Konten disetujui dan terbit.',
   reject: 'Konten ditolak.',
   suspend: 'Konten ditangguhkan.',
@@ -96,6 +102,8 @@ async function confirm(text: string) {
   if (!target) return;
   const call = (): Promise<unknown> => {
     const { action, id } = target;
+    if (action === 'approve-tags') return adminService.content.approveTags(kind.value, id, text || undefined);
+    if (action === 'reject-tags') return adminService.content.rejectTags(kind.value, id, text);
     if (action === 'approve') return adminService.content.approve(kind.value, id, text || undefined);
     if (action === 'reject') return adminService.content.reject(kind.value, id, text);
     if (action === 'suspend') return adminService.content.suspend(kind.value, id, text);
@@ -107,6 +115,8 @@ async function confirm(text: string) {
 }
 
 const DIALOG = {
+  'approve-tags': { title: 'Setujui tag konsep', confirm: 'Setujui tag', destructive: false, required: false, label: 'Catatan (opsional)' },
+  'reject-tags': { title: 'Tolak tag konsep', confirm: 'Tolak tag', destructive: true, required: true, label: 'Alasan' },
   approve: { title: 'Setujui dan terbitkan', confirm: 'Setujui', destructive: false, required: false, label: 'Catatan (opsional)' },
   reject: { title: 'Tolak konten', confirm: 'Tolak', destructive: true, required: true, label: 'Alasan' },
   suspend: { title: 'Tangguhkan konten', confirm: 'Tangguhkan', destructive: true, required: true, label: 'Alasan' },
@@ -137,9 +147,13 @@ const dialogMeta = computed(() => (dialog.value ? DIALOG[dialog.value.action] : 
       </div>
       <label>
         Status
-        <select class="rc-field" :value="status" @change="set({ status: ($event.target as HTMLSelectElement).value })">
+        <select class="rc-field" :value="status" :disabled="tagsOnly" @change="set({ status: ($event.target as HTMLSelectElement).value })">
           <option v-for="item in STATUSES" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
+      </label>
+      <label class="rc-check">
+        <input type="checkbox" :checked="tagsOnly" @change="set({ tags: ($event.target as HTMLInputElement).checked ? 'pending' : '' })" />
+        Hanya yang punya tag menunggu
       </label>
     </div>
 
@@ -173,6 +187,7 @@ const dialogMeta = computed(() => (dialog.value ? DIALOG[dialog.value.action] : 
                       {{ row.title }}
                     </button>
                     <span v-if="row.author" class="rc-table__sub">{{ row.author.name }}</span>
+                    <span v-if="pendingTagsLabel(row.pendingConceptTags)" class="rc-table__sub">{{ pendingTagsLabel(row.pendingConceptTags) }}</span>
                   </td>
                   <td>{{ row.tenant?.name ?? '-' }}</td>
                   <td class="rc-table__num">{{ row.accessType === 'FREE' ? 'Gratis' : formatMoney(row.price, row.currency) }}</td>
@@ -210,7 +225,20 @@ const dialogMeta = computed(() => (dialog.value ? DIALOG[dialog.value.action] : 
                 {{ formatDateTime(session.startsAt) }} – {{ formatDateTime(session.endsAt) }}
               </li>
             </ul>
+            <section v-if="detail.conceptLinks?.length" aria-labelledby="admin-tags-h">
+              <h3 id="admin-tags-h">Konsep yang diklaim</h3>
+              <ul class="rc-list">
+                <li v-for="link in detail.conceptLinks" :key="link.conceptId">
+                  {{ link.title }} · tingkat {{ link.level }} · {{ statusLabel(detail.conceptLinks, link.conceptId) }}
+                </li>
+              </ul>
+            </section>
           </template>
+
+          <div v-if="canDecideTags(selected.status, selected.pendingConceptTags)" class="rc-actions">
+            <PlayButton size="sm" @click="open('approve-tags', selected.id)">Setujui tag</PlayButton>
+            <PlayButton variant="danger" size="sm" @click="open('reject-tags', selected.id)">Tolak tag</PlayButton>
+          </div>
 
           <div v-if="contentActions(selected.status).length" class="rc-actions">
             <PlayButton

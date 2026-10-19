@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import PlayButton from '~/components/play/PlayButton.vue';
+import ConceptPicker from '~/components/studio/ConceptPicker.vue';
+import LiveConceptTags from '~/components/studio/LiveConceptTags.vue';
 import StudioWriter from '~/components/studio/StudioWriter.vue';
 import ErrorState from '~/components/ui/ErrorState.vue';
 import LoadingSkeleton from '~/components/ui/LoadingSkeleton.vue';
@@ -8,7 +10,7 @@ import { statusMeta } from '~/lib/admin';
 import { studioArticlesApi } from '~/lib/api';
 import { describeApiError } from '~/lib/api-error';
 import { formatDateTime } from '~/lib/format';
-import { articlePayload, articleProblem, isEditable } from '~/lib/studio';
+import { articlePayload, articleProblem, canTagSeparately, isEditable } from '~/lib/studio';
 
 definePageMeta({
   title: 'Editor Artikel — ReduCera Studio',
@@ -31,6 +33,7 @@ const form = reactive({
   body: '',
   accessType: 'FREE' as 'FREE' | 'PAID',
   price: null as number | null,
+  conceptIds: [] as string[],
 });
 
 const saveState = ref<'idle' | 'dirty' | 'saving' | 'saved' | 'failed'>('idle');
@@ -59,6 +62,7 @@ watch(
     form.subtitle = value.excerpt ?? '';
     form.accessType = value.accessType;
     form.price = value.price === null || value.price === undefined ? null : Math.round(Number(value.price));
+    form.conceptIds = (value.conceptLinks ?? []).map((link) => link.conceptId);
     savedSnapshot = snapshot();
     saveState.value = 'idle';
     loaded.value = true;
@@ -188,6 +192,17 @@ useHead({ title: () => (form.title ? `${form.title} — Studio` : 'Editor Artike
           <input v-model.number="form.price" type="number" min="1" step="1" class="rc-field" :disabled="!editable" />
         </label>
       </div>
+
+      <ConceptPicker v-if="editable" v-model="form.conceptIds" :links="article.conceptLinks" />
+      <LiveConceptTags
+        v-else-if="canTagSeparately(article.status)"
+        kind="article"
+        :id="article.id"
+        :status="article.status"
+        :links="article.conceptLinks ?? []"
+        @saved="refresh()"
+      />
+      <ConceptPicker v-else v-model="form.conceptIds" :links="article.conceptLinks" disabled />
     </template>
   </div>
 </template>

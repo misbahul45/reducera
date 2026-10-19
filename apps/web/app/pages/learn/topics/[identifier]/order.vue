@@ -12,11 +12,11 @@ import { plainText, priceLabel } from '~/lib/topics';
 import { topicsService } from '~/services/curriculum/topics';
 
 definePageMeta({
-  title: 'Beli Topik — ReduCera',
+  title: 'Beli Course — ReduCera',
   protection: { kind: 'authenticated' },
 });
 
-useHead({ title: 'Beli Topik — ReduCera' });
+useHead({ title: 'Beli Course — ReduCera' });
 
 const route = useRoute();
 const topicId = computed(() => String(route.params.identifier || ''));
@@ -25,7 +25,7 @@ const { data, status, error, refresh } = useAsyncData(
   () => `topic-checkout:${topicId.value}`,
   async () => {
     const [topic, orders] = await Promise.all([topicsService.findOne(topicId.value, {}), ordersApi.list()]);
-    if (!topic.success || !topic.data) throw new Error(topic.message || 'Topik tidak ditemukan');
+    if (!topic.success || !topic.data) throw new Error(topic.message || 'Course tidak ditemukan');
     return { topic: topic.data, state: topicOrderState(orders, topic.data.id) };
   },
   { lazy: true, watch: [topicId] },
@@ -58,10 +58,10 @@ async function buy() {
 <template>
   <div class="rc-stack rc-pay">
     <LoadingSkeleton v-if="status === 'pending' && !data" variant="panel" :count="2" />
-    <ErrorState v-else-if="error || !data" title="Topik tidak dapat dimuat" :message="describeApiError(error, 'Topik tidak ditemukan.')" @retry="refresh()" />
+    <ErrorState v-else-if="error || !data" title="Course tidak dapat dimuat" :message="describeApiError(error, 'Course tidak ditemukan.')" @retry="refresh()" />
 
     <template v-else>
-      <PageHeader :title="data.topic.title" subtitle="Konfirmasi pembelian topik" />
+      <PageHeader :title="data.topic.title" subtitle="Konfirmasi pembelian course" />
 
       <PlayCard as="section" aria-labelledby="topic-order-h">
         <h2 id="topic-order-h" class="rc-h2">Ringkasan</h2>
@@ -69,7 +69,7 @@ async function buy() {
         <p class="rc-orders__total">Harga <strong>{{ priceLabel(data.topic.price) }}</strong></p>
 
         <template v-if="data.state.kind === 'owned'">
-          <p class="rc-alert rc-alert--success" role="status">Topik ini sudah menjadi milikmu.</p>
+          <p class="rc-alert rc-alert--success" role="status">Course ini sudah menjadi milikmu.</p>
           <div class="rc-actions">
             <PlayButton :to="`/my-learning/topics/${data.topic.slug}`">Mulai belajar</PlayButton>
           </div>

@@ -5,6 +5,7 @@ import { JwtAuthGuard } from './v1/auth/guards/jwt.guard';
 import { RolesGuard } from './v1/auth/guards/roles.guard';
 import { OwnershipGuard } from './v1/common/guards/ownership.guard';
 import { ArcjetModule, shield } from '@arcjet/nest';
+import { arcjetKeyFrom } from './common/config/arcjet';
 import { ConfigModule } from '@nestjs/config';
 import { QuizModule } from './v1/quiz/quiz.module';
 import { AuthzModule } from './common/authz/authz.module';
@@ -40,7 +41,7 @@ import { IdempotencyKeyGuard } from './common/idempotency/idempotency-key.guard'
       envFilePath: ".env",
     }),
     ArcjetModule.forRoot({
-      key: process.env.ARCJET_API_KEY!,
+      key: arcjetKeyFrom(process.env)!,
       isGlobal: true,
       rules: [
         shield({ mode: "LIVE" }),

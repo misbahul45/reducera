@@ -29,6 +29,11 @@ scan "ai-api calls api without the signing client" sh -c "
 
 scan "compose gives a service variables that are not its own" python3 scripts/check-compose-env.py
 
+scan "api reaches ai-api without the signing client" sh -c "
+  grep -rnE \"AI_URL\" services/api/src --include=*.ts 2>/dev/null \\
+    | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/common/ai-client/' || true
+"
+
 scan "learner tables written outside the learner events service" sh -c "
   grep -rnE '(conceptMastery|learningEvent|learnerStream)\\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\\b' services/api/src --include=*.ts 2>/dev/null \\
     | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/v1/learner-model/events/learner-events\\.service\\.ts:' || true
@@ -37,6 +42,21 @@ scan "learner tables written outside the learner events service" sh -c "
 scan "reward ledger written outside the reward ledger service" sh -c "
   grep -rnE 'gamificationLedger\\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\\b' services/api/src --include=*.ts 2>/dev/null \\
     | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/v1/gamify/rewards/reward-ledger\\.service\\.ts:' || true
+"
+
+scan "strategy outcomes written outside the strategy outcome service" sh -c "
+  grep -rnE 'strategyOutcome\\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\\b' services/api/src --include=*.ts 2>/dev/null \\
+    | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/v1/learner-model/strategy/strategy-outcome\\.service\\.ts:' || true
+"
+
+scan "prompt versions or optimization runs written outside the prompt registry" sh -c "
+  grep -rnE '(promptVersion|optimizationRun)\\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\\b' services/api/src --include=*.ts 2>/dev/null \\
+    | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/v1/optimization/prompt-registry\\.service\\.ts:' || true
+"
+
+scan "reward rules, level thresholds or achievements written outside the gamify admin services and the seeder" sh -c "
+  grep -rnE '(rewardRule|levelThreshold|achievement)\\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\\b' services/api/src --include=*.ts 2>/dev/null \\
+    | grep -v -E '/__tests__/|\\.spec\\.ts:|^services/api/src/v1/gamify/(admin/(rules|levels|achievements)-admin\\.service|seed/gamify-seeder)\\.ts:' || true
 "
 
 scan "achievement unlocks written outside the achievement evaluator" sh -c "

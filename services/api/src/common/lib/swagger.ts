@@ -20,7 +20,6 @@ export const createApiResponseSchema = <T extends ZodSchema>(dataSchema: T, titl
   );
 };
 
-
 export const createErrorResponseSchema = (title?: string) => {
   return extendApi(
     z.object({
@@ -40,8 +39,6 @@ export const createErrorResponseSchema = (title?: string) => {
   );
 };
 
-
-// Common query builders
 export const COMMON_QUERY_SCHEMAS = {
   PAGINATION: z.object({
     page: z.coerce.number().int().positive().default(1),
@@ -63,12 +60,10 @@ export const COMMON_QUERY_SCHEMAS = {
   }),
 };
 
-// Combine query schemas 
 export const combineQuerySchemas = (...schemas: ZodObject<ZodRawShape>[]) => {
   return schemas.reduce((acc, schema) => acc.merge(schema), z.object({}));
 };
 
-// Utility untuk membuat list response schema
 export const createListResponseSchema = <T extends ZodSchema>(itemSchema: T, title?: string) => {
   return extendApi(
     z.object({

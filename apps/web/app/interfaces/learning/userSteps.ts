@@ -13,12 +13,12 @@ export interface UserStep {
   title: string;
   description?: string | null;
   isDone: boolean;
+  quizId?: string | null;
   order:number;
 
   createdAt: string | Date;
   updatedAt: string | Date;
 
-  // relations
   user?: User;
   stepTemplate?: BaseStep;
 }
@@ -31,7 +31,6 @@ export interface UserStepDetailResponse<
   chat?: IncludeRelations extends true ? BaseChat : undefined;
 }
 
-
 export interface UserStepListResponse<
   IncludeRelations extends boolean = false
 > {
@@ -40,7 +39,6 @@ export interface UserStepListResponse<
     : UserStep)[];
   pagination: PaginationMeta;
 }
-
 
 export interface QuizQuestionBase {
   question: string;

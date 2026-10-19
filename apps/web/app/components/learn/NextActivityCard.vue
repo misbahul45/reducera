@@ -28,7 +28,7 @@ function start() {
     </header>
     <dl class="rc-next-activity-card__meta">
       <div v-if="topicName">
-        <dt>Topik</dt>
+        <dt>Course</dt>
         <dd>{{ topicName }}</dd>
       </div>
       <div v-if="estimatedMinutes">

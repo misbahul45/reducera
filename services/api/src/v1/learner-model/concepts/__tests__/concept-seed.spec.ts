@@ -38,8 +38,8 @@ const links = (overrides: Partial<LinkFile> = {}): LinkFile => ({
   ...overrides,
 });
 
-const issues = (input: { graph?: GoldenGraphFile; aliases?: AliasEntry[]; links?: LinkFile }) =>
-  validateConceptSeed({ graph: input.graph ?? graph(), aliases: input.aliases ?? [alias()], links: input.links ?? links() });
+const issues = (input: { graph?: GoldenGraphFile; aliases?: AliasEntry[]; links?: LinkFile; extraLinks?: LinkFile[] }) =>
+  validateConceptSeed({ graph: input.graph ?? graph(), aliases: input.aliases ?? [alias()], links: input.links ?? links(), extraLinks: input.extraLinks });
 
 describe('concept seed rows', () => {
   it('numbers concepts inside their level and carries level, minutes and description', () => {
@@ -142,5 +142,36 @@ describe('concept seed validation', () => {
     expect(issues({ links: links({ subTopics: [{ title: 'S', status: 'APPROVED', conceptIds: [] }] }) })).toContainEqual(
       expect.stringContaining('sub-topic link S has no concept'),
     );
+  });
+});
+
+describe('concept seed validation of more than one topic', () => {
+  const second = (overrides: Partial<LinkFile> = {}): LinkFile => links({ topicSlug: 'second', ...overrides });
+
+  it('accepts a second topic that links known concepts', () => {
+    expect(issues({ extraLinks: [second({ subTopics: [{ title: 'T', status: 'APPROVED', conceptIds: ['b'] }] })] })).toEqual([]);
+  });
+
+  it('names the topic in front of a problem found in the second file', () => {
+    const found = issues({
+      extraLinks: [
+        second({
+          subTopics: [{ title: 'T', status: 'APPROVED', conceptIds: ['nope'] }],
+          lessons: [{ subTopicTitle: 'T', title: 'L', status: 'APPROVED', conceptIds: [] }],
+        }),
+      ],
+    });
+    expect(found).toEqual(['second: sub-topic link T targets unknown concept nope', 'second: lesson link T / L has no concept']);
+  });
+
+  it('allows the same sub-topic title in two topics but not twice in one topic', () => {
+    expect(issues({ extraLinks: [second()] })).toEqual([]);
+    expect(issues({ extraLinks: [second({ subTopics: [{ title: 'T', status: 'APPROVED', conceptIds: ['a'] }, { title: 'T', status: 'APPROVED', conceptIds: ['b'] }] })] })).toEqual([
+      'second: sub-topic T is linked twice',
+    ]);
+  });
+
+  it('refuses two link files for the same topic', () => {
+    expect(issues({ extraLinks: [links()] })).toEqual(['topic topic has two link files']);
   });
 });

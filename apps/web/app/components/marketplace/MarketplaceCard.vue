@@ -18,6 +18,8 @@ const titleId = useId();
         <NuxtLink :to="card.to" class="rc-mcard__link">{{ card.title }}</NuxtLink>
       </h3>
       <p v-if="card.summary" class="rc-mcard__summary">{{ card.summary }}</p>
+      <p v-if="card.concepts?.length" class="rc-hint rc-mcard__concepts">Membahas: {{ card.concepts.join(', ') }}</p>
+      <p v-if="card.reason" class="rc-hint">{{ card.reason }}</p>
       <div class="rc-mcard__foot">
         <span class="rc-mcard__creator">{{ card.creator }}</span>
         <span class="rc-chip" :class="{ 'rc-chip--success': card.free }">{{ card.priceLabel }}</span>

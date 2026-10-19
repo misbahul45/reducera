@@ -57,7 +57,7 @@ export const LANDING_COPY = {
       { icon: 'streak', title: 'Streak yang jujur', body: 'Satu hari dihitung bila kamu menyelesaikan penilaian dengan bukti. Hari mengikuti zona waktumu. Sepuluh penilaian dalam sehari tetap satu hari.' },
       { icon: 'freeze', title: 'Pembeku yang diperoleh', body: `Setiap ${F.streakBonusEvery} hari beruntun kamu mendapat bonus XP dan satu pembeku streak, maksimal ${F.streakFreezeMax}. Tidak dijual dan tidak bisa dibeli.` },
       { icon: 'badge', title: 'Pencapaian dari aturan', body: `${F.achievements} pencapaian awal, masing-masing dengan aturan bertipe di database: jumlah penilaian, konsep lulus, streak, atau level.` },
-      { icon: 'league', title: 'Peringkat yang opsional', body: 'Papan per topik, mingguan, dihitung dari konsep yang pertama kali lulus. Hanya yang ikut serta yang tampil, dengan nama panggilan.' },
+      { icon: 'league', title: 'Peringkat yang opsional', body: 'Papan per course, mingguan, dihitung dari konsep yang pertama kali lulus. Hanya yang ikut serta yang tampil, dengan nama panggilan.' },
     ],
   },
   theme: {

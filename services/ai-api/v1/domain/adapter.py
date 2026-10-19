@@ -108,10 +108,11 @@ def fetch_learner_state(
     lesson_id: str | None = None,
     concept_id: str | None = None,
     user_step_id: str | None = None,
+    intent: str | None = None,
 ) -> dict:
     params = {
         key: value
-        for key, value in (("lessonId", lesson_id), ("conceptId", concept_id), ("userStepId", user_step_id))
+        for key, value in (("lessonId", lesson_id), ("conceptId", concept_id), ("userStepId", user_step_id), ("intent", intent))
         if value
     }
     return InternalApiClient(session).get("/internal/learner-state", params=params)

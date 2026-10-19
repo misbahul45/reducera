@@ -30,7 +30,6 @@ export class AppExceptionsFilter implements ExceptionFilter {
     let stack: string | undefined;
     let payloadFields: Record<string, unknown> | undefined;
 
-    // === Custom AppError ===
     if (exception instanceof AppError) {
       status = exception.statusCode;
       message = exception.message;
@@ -39,10 +38,7 @@ export class AppExceptionsFilter implements ExceptionFilter {
       if (process.env.NODE_ENV !== 'production') {
         stack = exception.stack;
       }
-    }
-
-    // === NestJS HttpException ===
-    else if (exception instanceof HttpException) {
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const response = exception.getResponse();
 
@@ -63,10 +59,7 @@ export class AppExceptionsFilter implements ExceptionFilter {
       if (process.env.NODE_ENV !== 'production') {
         stack = exception.stack;
       }
-    }
-
-    // === Error Biasa ===
-    else if (exception instanceof Error) {
+    } else if (exception instanceof Error) {
       message = exception.message;
       errorName = exception.name;
       if (process.env.NODE_ENV !== 'production') {
@@ -74,7 +67,6 @@ export class AppExceptionsFilter implements ExceptionFilter {
       }
     }
 
-    // === Logging (bisa ganti ke Sentry) ===
     this.logger.error(
       `[${requestId}] ${errorName}: ${message}`,
       stack,

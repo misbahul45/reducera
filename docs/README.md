@@ -86,6 +86,10 @@ docs/
 ├── decisions/
 │   └── README.md                ← ADRs
 │
+├── competition/
+│   ├── 00-current-state-audit.md  ← what the running tree proves, tasks T1 to T5
+│   └── 01 to 07                   ← positioning, demo and evidence, evaluation, metrics, paper outline, demo script, submission checklist
+│
 └── testing/
     └── traceability.md
 ```

@@ -28,15 +28,15 @@ const VALID = { title: 'Jurnal penyesuaian', content: '# Isi', accessType: 'FREE
 
 describe('Articles HTTP contract', () => {
   let app: INestApplication;
-  let authoring: Record<'create' | 'list' | 'findOne' | 'update' | 'submitReview' | 'withdraw' | 'archive', jest.Mock>;
-  let moderation: Record<'queue' | 'findOne' | 'approve' | 'reject' | 'suspend' | 'reinstate' | 'archive', jest.Mock>;
+  let authoring: Record<'create' | 'list' | 'findOne' | 'update' | 'setConcepts' | 'submitReview' | 'withdraw' | 'archive', jest.Mock>;
+  let moderation: Record<'queue' | 'findOne' | 'approve' | 'approveConcepts' | 'rejectConcepts' | 'reject' | 'suspend' | 'reinstate' | 'archive', jest.Mock>;
   let marketplace: Record<'list' | 'findOne' | 'preview' | 'access' | 'content', jest.Mock>;
   let memberships: Record<string, Array<{ tenantId: string; role: string }>>;
 
   beforeEach(async () => {
     const ok = () => jest.fn().mockResolvedValue({ message: 'ok', data: {} });
-    authoring = { create: ok(), list: ok(), findOne: ok(), update: ok(), submitReview: ok(), withdraw: ok(), archive: ok() };
-    moderation = { queue: ok(), findOne: ok(), approve: ok(), reject: ok(), suspend: ok(), reinstate: ok(), archive: ok() };
+    authoring = { create: ok(), list: ok(), findOne: ok(), update: ok(), setConcepts: ok(), submitReview: ok(), withdraw: ok(), archive: ok() };
+    moderation = { queue: ok(), findOne: ok(), approve: ok(), approveConcepts: ok(), rejectConcepts: ok(), reject: ok(), suspend: ok(), reinstate: ok(), archive: ok() };
     marketplace = { list: ok(), findOne: ok(), preview: ok(), access: ok(), content: ok() };
     memberships = {
       [TEACHER_A.id]: [{ tenantId: TENANT_A, role: 'TEACHER' }],
@@ -164,11 +164,46 @@ describe('Articles HTTP contract', () => {
     });
   });
 
+  describe('concept tags of an existing article', () => {
+    const url = `/articles/${ARTICLE}/concepts`;
+
+    it('are set by a tenant member for the tenant of the membership', async () => {
+      await http().put(url).send({ conceptIds: ['a'] }).expect(401);
+      await http().put(url).set(asUser(STUDENT_A)).send({ conceptIds: ['a'] }).expect(403);
+      expect(authoring.setConcepts).not.toHaveBeenCalled();
+
+      await http().put(url).set({ ...asUser(TEACHER_A), 'x-trace-id': 'trace-9' }).send({ conceptIds: ['a', 'b'] }).expect(200);
+      expect(authoring.setConcepts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: TEACHER_A.id }),
+        { userId: TEACHER_A.id, tenantId: TENANT_A, tenantRole: 'TEACHER', isPlatformAdmin: false },
+        ARTICLE,
+        ['a', 'b'],
+        'trace-9',
+      );
+    });
+
+    it('refuse a forged tenant, a malformed id and any body but the list of concepts', async () => {
+      await http().put(url).set({ ...asUser(TEACHER_A), 'x-tenant-id': TENANT_B }).send({ conceptIds: [] }).expect(403);
+      await http().put('/articles/not-a-uuid/concepts').set(asUser(TEACHER_A)).send({ conceptIds: [] }).expect(400);
+      await http().put(url).set(asUser(TEACHER_A)).send({}).expect(400);
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: ['a'], status: 'PUBLISHED' }).expect(400);
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).expect(400);
+      expect(authoring.setConcepts).not.toHaveBeenCalled();
+    });
+
+    it('can be cleared with an empty list', async () => {
+      await http().put(url).set(asUser(TEACHER_A)).send({ conceptIds: [] }).expect(200);
+      expect(authoring.setConcepts).toHaveBeenCalledWith(expect.anything(), expect.anything(), ARTICLE, [], expect.any(String));
+    });
+  });
+
   describe('review commands are for administrators', () => {
     const commands: Array<[string, string, object]> = [
       ['get', '/admin/articles', {}],
       ['get', `/admin/articles/${ARTICLE}`, {}],
       ['post', `/admin/articles/${ARTICLE}/approve`, {}],
+      ['post', `/admin/articles/${ARTICLE}/approve-concepts`, {}],
+      ['post', `/admin/articles/${ARTICLE}/reject-concepts`, { reason: 'Tag tidak sesuai isi' }],
       ['post', `/admin/articles/${ARTICLE}/reject`, { reason: 'Needs more examples' }],
       ['post', `/admin/articles/${ARTICLE}/suspend`, { reason: 'Copyright complaint' }],
       ['post', `/admin/articles/${ARTICLE}/reinstate`, {}],
@@ -205,6 +240,24 @@ describe('Articles HTTP contract', () => {
       }
       expect(moderation.reject).not.toHaveBeenCalled();
       expect(moderation.suspend).not.toHaveBeenCalled();
+    });
+
+    it('lets an administrator decide on pending concept tags, with a reason to reject them', async () => {
+      await call('post', `/admin/articles/${ARTICLE}/approve-concepts`, { note: 'Sesuai isi' }, ADMIN_A).expect(201);
+      expect(moderation.approveConcepts).toHaveBeenCalledWith(expect.objectContaining({ id: ADMIN_A.id }), ARTICLE, 'Sesuai isi', expect.any(String));
+
+      await call('post', `/admin/articles/${ARTICLE}/reject-concepts`, {}, ADMIN_A).expect(400);
+      await call('post', `/admin/articles/${ARTICLE}/reject-concepts`, { reason: 'ok' }, ADMIN_A).expect(400);
+      await call('post', `/admin/articles/${ARTICLE}/reject-concepts`, { reason: 'valid reason', conceptIds: ['a'] }, ADMIN_A).expect(400);
+      expect(moderation.rejectConcepts).not.toHaveBeenCalled();
+      await call('post', `/admin/articles/${ARTICLE}/reject-concepts`, { reason: 'Tag tidak sesuai isi' }, ADMIN_A).expect(201);
+      expect(moderation.rejectConcepts).toHaveBeenCalledWith(expect.anything(), ARTICLE, 'Tag tidak sesuai isi', expect.any(String));
+    });
+
+    it('filters the queue by pending tags', async () => {
+      await call('get', '/admin/articles?status=PUBLISHED&pendingTags=true', {}, ADMIN_A).expect(200);
+      expect(moderation.queue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: 'PUBLISHED', pendingTags: 'true' }));
+      await call('get', '/admin/articles?pendingTags=maybe', {}, ADMIN_A).expect(400);
     });
 
     it('validates the queue filter', async () => {

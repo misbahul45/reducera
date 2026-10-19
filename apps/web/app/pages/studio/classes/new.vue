@@ -2,6 +2,7 @@
 import PageHeader from '~/components/play/PageHeader.vue';
 import PlayButton from '~/components/play/PlayButton.vue';
 import PlayCard from '~/components/play/PlayCard.vue';
+import ConceptPicker from '~/components/studio/ConceptPicker.vue';
 import { creatorApi } from '~/lib/api';
 import { describeApiError } from '~/lib/api-error';
 import { classProblem } from '~/lib/studio';
@@ -23,6 +24,7 @@ const form = reactive({
   difficulty: 'BEGINNER',
   durationMinutes: 60 as number | null,
   capacity: 20 as number | null,
+  conceptIds: [] as string[],
 });
 
 const saving = ref(false);
@@ -47,6 +49,7 @@ async function save() {
       difficulty: form.difficulty,
       ...(form.durationMinutes ? { durationMinutes: Number(form.durationMinutes) } : {}),
       ...(form.capacity ? { capacity: Number(form.capacity) } : {}),
+      ...(form.conceptIds.length ? { conceptIds: form.conceptIds } : {}),
     });
     await navigateTo(`/studio/classes/${created.id}`);
   } catch (err) {
@@ -107,6 +110,7 @@ async function save() {
           <input v-model.number="form.capacity" type="number" min="1" class="rc-field" />
         </label>
       </div>
+      <ConceptPicker v-model="form.conceptIds" />
       <p v-if="error" class="rc-alert rc-alert--error" role="alert">{{ error }}</p>
       <div class="rc-actions">
         <PlayButton type="submit" :loading="saving">Simpan draf</PlayButton>

@@ -11,15 +11,14 @@ export interface LessonProgress {
   isDone: boolean
   percentage: number
   introduction?:string;
+  introductionCitations?: unknown;
   quizId?: string | null;
   createdAt: string | Date
   updatedAt: string | Date
 
-  // relations (optional)
   user?: User
   lesson?: BaseLesson
 }
-
 
 export interface LessonProgressDetailResponse<
   IncludeRelations extends boolean = false

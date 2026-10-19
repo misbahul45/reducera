@@ -5,7 +5,6 @@ import { QueueService } from './queue.service';
 import { LegacyJobScrubber } from './legacy-job-scrubber';
 import { QUEUES } from './queues';
 import { KnowledgeProcessor } from './queues/knowledge.processor';
-import { ContentProcessor } from './queues/content.processor';
 import { ResourcesModule } from '../material/resources/resources.module';
 import { ChatModule } from '../chat/chat.module';
 import { PrismaModule } from '@/common/config/prisma/prisma.module';
@@ -31,7 +30,6 @@ import { AiClientModule } from '@/common/ai-client/ai-client.module';
     QueueService,
     LegacyJobScrubber,
     KnowledgeProcessor,
-    ContentProcessor,
     UserStepsProcessor,
     StepsRepo
   ],

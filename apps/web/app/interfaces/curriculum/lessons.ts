@@ -4,7 +4,6 @@ import type { Theme } from '../theme'
 import type { BaseStep } from './step'
 import type { BaseSubTopic } from './subTopics'
 
-// Base lesson minimal
 export interface BaseLesson {
   id: string
   title: string
@@ -20,7 +19,6 @@ export interface BaseLesson {
   updatedAt: Date | string
 }
 
-// Detail response untuk satu lesson
 export interface LessonDetailResponse<IncludeRelations extends boolean = false> extends BaseLesson {
   steps?: IncludeRelations extends true ? BaseStep[] : undefined
   resources?: IncludeRelations extends true ? Resource[] : undefined
@@ -28,7 +26,6 @@ export interface LessonDetailResponse<IncludeRelations extends boolean = false> 
   subTopic?: IncludeRelations extends true ? BaseSubTopic : undefined
 }
 
-// Response list dengan pagination
 export interface LessonsListResponse<IncludeRelations extends boolean = false> {
   data: (IncludeRelations extends true
     ? LessonDetailResponse<true>
@@ -49,8 +46,6 @@ export interface NextLessonResponse<IncludeRelations extends boolean = false> {
   }) | null
 }
 
-
-// Current lesson response (optional, untuk panggil tunggal)
 export interface CurrentLessonResponse<IncludeRelations extends boolean = false> {
   current: LessonDetailResponse<IncludeRelations> | null
 }

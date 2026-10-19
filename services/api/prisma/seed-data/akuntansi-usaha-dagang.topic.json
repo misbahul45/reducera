@@ -1,0 +1,153 @@
+{
+  "slug": "akuntansi-usaha-dagang",
+  "title": "Akuntansi Usaha Dagang",
+  "category": "Akuntansi",
+  "description": "Mencatat dan melaporkan transaksi perusahaan dagang: pembelian dan penjualan, persediaan, harga pokok penjualan, sampai laporan laba rugi dan jurnal penutup.",
+  "durationMinutes": 90,
+  "subTopics": [
+    {
+      "slug": "dasar-usaha-dagang",
+      "title": "Dasar Usaha Dagang",
+      "description": "Apa yang membedakan perusahaan dagang dari perusahaan jasa, sistem pencatatan persediaannya, dan akun-akun khusus yang dipakai.",
+      "prerequisites": [],
+      "lessons": [
+        {
+          "title": "Perusahaan jasa dan perusahaan dagang",
+          "description": "Membedakan dua jenis usaha dari sumber pendapatannya dan memahami siklus operasi perusahaan dagang.",
+          "steps": [
+            {
+              "title": "Perbedaan usaha jasa dan usaha dagang",
+              "description": "Perusahaan jasa memperoleh pendapatan dari jasa yang diberikan, sedangkan perusahaan dagang membeli barang jadi lalu menjualnya kembali dengan harga lebih tinggi. Karena itu perusahaan dagang memiliki akun persediaan barang dagang dan harga pokok penjualan, yang tidak ada pada perusahaan jasa."
+            },
+            {
+              "title": "Siklus operasi usaha dagang",
+              "description": "Siklus operasi perusahaan dagang berjalan dari kas ke persediaan, ke piutang, lalu kembali ke kas. Perusahaan membeli barang dagang, menyimpannya sebagai persediaan, menjualnya (tunai atau kredit), dan menerima pembayaran dari pelanggan. Lama siklus memengaruhi kebutuhan modal kerja."
+            }
+          ]
+        },
+        {
+          "title": "Sistem pencatatan persediaan",
+          "description": "Dua cara mencatat persediaan dan akun-akun yang terlibat dalam transaksi barang dagang.",
+          "steps": [
+            {
+              "title": "Sistem periodik dan sistem perpetual",
+              "description": "Pada sistem periodik, persediaan hanya diperbarui pada akhir periode setelah penghitungan fisik, dan pembelian dicatat di akun Pembelian. Pada sistem perpetual, akun Persediaan diperbarui setiap kali ada pembelian atau penjualan, dan setiap penjualan langsung diikuti pencatatan harga pokok penjualan."
+            },
+            {
+              "title": "Akun-akun pada usaha dagang",
+              "description": "Akun yang lazim dipakai: Persediaan Barang Dagang (aset), Penjualan (pendapatan), Retur Penjualan dan Potongan Penjualan (kontra pendapatan), Pembelian, Retur Pembelian dan Potongan Pembelian, Beban Angkut Pembelian, serta Harga Pokok Penjualan (beban). Akun kontra memiliki saldo normal berlawanan dengan akun induknya."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pembelian-dan-penjualan",
+      "title": "Pembelian dan Penjualan",
+      "description": "Mencatat transaksi pembelian dan penjualan barang dagang beserta retur, potongan, dan beban angkut.",
+      "prerequisites": ["dasar-usaha-dagang"],
+      "lessons": [
+        {
+          "title": "Mencatat pembelian",
+          "description": "Jurnal untuk pembelian barang dagang, retur, potongan, dan beban angkut menurut syarat pengiriman.",
+          "steps": [
+            {
+              "title": "Pembelian tunai dan pembelian kredit",
+              "description": "Pembelian tunai dijurnal debit Pembelian dan kredit Kas. Pembelian kredit dijurnal debit Pembelian dan kredit Utang Dagang, dan pembayarannya kelak mengurangi utang dagang. Pada sistem perpetual, akun yang didebit adalah Persediaan Barang Dagang, bukan Pembelian."
+            },
+            {
+              "title": "Retur, potongan, dan beban angkut pembelian",
+              "description": "Retur pembelian (barang dikembalikan) dan potongan pembelian mengurangi pembelian. Beban angkut ditentukan syarat pengiriman: pada FOB shipping point pembeli menanggung ongkos kirim dan mencatatnya sebagai beban angkut pembelian, sedangkan pada FOB destination penjual yang menanggungnya."
+            }
+          ]
+        },
+        {
+          "title": "Mencatat penjualan",
+          "description": "Jurnal untuk penjualan, retur penjualan, dan potongan tunai dengan syarat pembayaran.",
+          "steps": [
+            {
+              "title": "Penjualan tunai dan penjualan kredit",
+              "description": "Penjualan tunai dijurnal debit Kas dan kredit Penjualan. Penjualan kredit dijurnal debit Piutang Dagang dan kredit Penjualan. Pada sistem perpetual dibuat jurnal kedua: debit Harga Pokok Penjualan dan kredit Persediaan Barang Dagang sebesar harga pokok barang yang terjual."
+            },
+            {
+              "title": "Retur penjualan dan potongan penjualan",
+              "description": "Retur penjualan dicatat debit Retur Penjualan dan kredit Piutang atau Kas. Syarat pembayaran 2/10, n/30 berarti pembeli mendapat potongan 2 persen bila membayar dalam 10 hari, dan harus melunasi paling lambat 30 hari. Potongan yang diberikan dicatat sebagai Potongan Penjualan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "persediaan-dan-hpp",
+      "title": "Persediaan dan Harga Pokok Penjualan",
+      "description": "Menghitung harga pokok penjualan dan menilai persediaan akhir dengan metode FIFO dan rata-rata.",
+      "prerequisites": ["pembelian-dan-penjualan"],
+      "lessons": [
+        {
+          "title": "Menghitung harga pokok penjualan",
+          "description": "Rumus harga pokok penjualan pada sistem periodik dan perpetual.",
+          "steps": [
+            {
+              "title": "Harga pokok penjualan sistem periodik",
+              "description": "Pembelian bersih adalah pembelian dikurangi retur dan potongan pembelian, ditambah beban angkut pembelian. Harga pokok penjualan sama dengan persediaan awal ditambah pembelian bersih, dikurangi persediaan akhir. Contoh: persediaan awal 5.000.000, pembelian bersih 20.000.000, persediaan akhir 7.000.000, maka harga pokok penjualan 18.000.000."
+            },
+            {
+              "title": "Harga pokok penjualan sistem perpetual",
+              "description": "Pada sistem perpetual, harga pokok penjualan tidak dihitung di akhir periode karena sudah dicatat pada setiap penjualan. Saldo akun Harga Pokok Penjualan di buku besar sudah mencerminkan harga pokok seluruh penjualan, dan saldo akun Persediaan sudah mencerminkan nilai barang yang tersisa, sehingga perlu dicocokkan dengan hitungan fisik."
+            }
+          ]
+        },
+        {
+          "title": "Metode penilaian persediaan",
+          "description": "Cara membebankan harga pokok barang yang dibeli pada harga berbeda.",
+          "steps": [
+            {
+              "title": "Metode FIFO (masuk pertama, keluar pertama)",
+              "description": "FIFO menganggap barang yang dibeli lebih dahulu terjual lebih dahulu. Contoh: dibeli 10 unit seharga 1.000 dan 10 unit seharga 1.200, terjual 15 unit. Harga pokok penjualan = 10 x 1.000 + 5 x 1.200 = 16.000, dan persediaan akhir = 5 x 1.200 = 6.000. Saat harga naik, FIFO menghasilkan laba lebih tinggi."
+            },
+            {
+              "title": "Metode rata-rata tertimbang",
+              "description": "Metode rata-rata memakai harga rata-rata seluruh barang tersedia. Dengan data yang sama (20 unit senilai 22.000), harga rata-rata 1.100 per unit. Terjual 15 unit sehingga harga pokok penjualan 16.500 dan persediaan akhir 5 x 1.100 = 5.500. Total harga pokok penjualan dan persediaan akhir tetap 22.000."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "laporan-usaha-dagang",
+      "title": "Laporan Keuangan Usaha Dagang",
+      "description": "Menyusun laporan laba rugi perusahaan dagang, menyesuaikan persediaan, dan menutup akun nominal.",
+      "prerequisites": ["persediaan-dan-hpp"],
+      "lessons": [
+        {
+          "title": "Laporan laba rugi usaha dagang",
+          "description": "Menghitung penjualan bersih dan laba kotor, serta memilih bentuk laporan.",
+          "steps": [
+            {
+              "title": "Penjualan bersih dan laba kotor",
+              "description": "Penjualan bersih sama dengan penjualan dikurangi retur penjualan dan potongan penjualan. Laba kotor sama dengan penjualan bersih dikurangi harga pokok penjualan. Contoh: penjualan 40.000.000, retur 1.000.000, potongan 500.000, harga pokok penjualan 18.000.000, maka penjualan bersih 38.500.000 dan laba kotor 20.500.000."
+            },
+            {
+              "title": "Bentuk single-step dan multi-step",
+              "description": "Laporan laba rugi multi-step memisahkan laba kotor, beban operasional, dan pendapatan atau beban di luar operasi, sehingga terlihat laba operasi. Bentuk single-step menjumlahkan semua pendapatan lalu mengurangkan semua beban dalam satu langkah. Perusahaan dagang umumnya memakai bentuk multi-step karena laba kotor penting."
+            }
+          ]
+        },
+        {
+          "title": "Penyesuaian dan penutupan",
+          "description": "Penyesuaian persediaan akhir pada sistem periodik dan jurnal penutup akun nominal.",
+          "steps": [
+            {
+              "title": "Penyesuaian persediaan akhir",
+              "description": "Pada sistem periodik, saldo akun Persediaan Barang Dagang masih persediaan awal sampai ada jurnal penyesuaian. Persediaan awal dipindahkan ke Ikhtisar Laba Rugi (debit Ikhtisar Laba Rugi, kredit Persediaan), lalu persediaan akhir hasil hitungan fisik dicatat (debit Persediaan, kredit Ikhtisar Laba Rugi)."
+            },
+            {
+              "title": "Jurnal penutup usaha dagang",
+              "description": "Jurnal penutup memindahkan saldo akun nominal ke Ikhtisar Laba Rugi. Akun bersaldo kredit seperti Penjualan didebit dan Ikhtisar Laba Rugi dikredit. Akun bersaldo debit seperti beban, Retur Penjualan, dan Potongan Penjualan dikredit dan Ikhtisar Laba Rugi didebit. Saldo Ikhtisar Laba Rugi (laba atau rugi) kemudian dipindahkan ke Modal, dan akun Prive ditutup ke Modal, sehingga akun nominal kembali nol di awal periode berikutnya."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import type { ApiResponse, AppErrorCode, Query } from "~/interfaces/api";
 import { authService } from "~/services/auth";
 import { ApiError, isApiError, kindFromStatus, toApiError, unwrap, unwrapList } from "~/lib/api-error";
+import { withStudioTenant } from "~/lib/studio-tenant";
 import type {
   ManualPaymentStatus,
   ManualSubmissionView,
@@ -9,6 +10,7 @@ import type {
   StudioClass,
   StudioClassSession,
   StudioClassSummary,
+  StudioConceptLink,
   TeacherApplicationView,
   ClassMaterialsView,
   EnrollmentView,
@@ -20,14 +22,43 @@ import type {
 } from "~/interfaces/commerce";
 import type {
   SandboxGraph,
-  SandboxJournalEntry,
-  SandboxJournalValidation,
-  SandboxScenario,
   PlacementResult,
   ConceptMasteryEntry,
 } from "~/interfaces/sandbox";
+import type {
+  Catalog as SandboxCatalog,
+  CatalogQuery,
+  CheckResult,
+  HintResult,
+  PracticeSignals,
+  RevealResult,
+  SavedLine,
+  ScenarioDetail,
+  VariantCheckResult,
+  VariantDetail,
+  VariantReveal,
+} from "~/interfaces/sandbox/practice";
+import type {
+  SqlCatalog,
+  SqlCheckResult,
+  SqlHintResult,
+  SqlRevealResult,
+  SqlRunResult,
+} from "~/interfaces/sandbox/sql";
+import type {
+  TryoutCatalog,
+  TryoutHistory,
+  TryoutHistoryQuery,
+  TryoutPlan,
+  TryoutResult,
+  TryoutSavedAnswers,
+  TryoutSession,
+} from "~/interfaces/sandbox/tryout";
 import type { AchievementList, GamifyMe, TopicBoard } from "~/interfaces/gamify";
-import type { NextConceptView } from "~/lib/learner";
+import type { NextConceptView, StrategySummaryView, StrategyView } from "~/lib/learner";
+import type { RecommendationResult } from "~/lib/marketplace";
+import type { ReviewView } from "~/lib/review";
+import type { RefundView } from "~/lib/refunds";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "HEAD" | "PATCH";
 
@@ -73,15 +104,28 @@ export function apiUrl(path: string) {
 }
 
 export const sandboxApi = {
-  listScenarios: (token?: string) =>
-    request<SandboxScenario[]>(
-      `/api/v1/sandbox/scenarios`,
-      "GET",
-      undefined,
-      {},
-      true,
-      token ? { access_token: token } : undefined,
-    ).then(unwrapList),
+  catalog: (query: CatalogQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.level) params.set("level", String(query.level));
+    if (query.difficulty) params.set("difficulty", query.difficulty);
+    if (query.status) params.set("status", query.status);
+    if (query.q) params.set("q", query.q);
+    if (query.limit) params.set("limit", String(query.limit));
+    if (query.cursor) params.set("cursor", String(query.cursor));
+    const suffix = params.toString();
+    return request<SandboxCatalog>(`/api/v1/sandbox/scenarios${suffix ? `?${suffix}` : ""}`).then(unwrap);
+  },
+  signals: () => request<PracticeSignals>(`/api/v1/sandbox/signals`).then(unwrap),
+  detail: (id: string) => request<ScenarioDetail>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}`).then(unwrap),
+  check: (id: string, lines: SavedLine[]) =>
+    request<CheckResult>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/check`, "POST", { lines }).then(unwrap),
+  hint: (id: string) => request<HintResult>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/hint`, "POST", {}).then(unwrap),
+  reveal: (id: string) => request<RevealResult>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/reveal`, "POST", {}).then(unwrap),
+  variant: (id: string, seed: number) => request<VariantDetail>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/variants/${seed}`).then(unwrap),
+  checkVariant: (id: string, seed: number, lines: SavedLine[]) =>
+    request<VariantCheckResult>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/variants/${seed}/check`, "POST", { lines }).then(unwrap),
+  revealVariant: (id: string, seed: number) =>
+    request<VariantReveal>(`/api/v1/sandbox/scenarios/${encodeURIComponent(id)}/variants/${seed}/reveal`, "POST", {}).then(unwrap),
   graph: (token?: string) =>
     request<SandboxGraph>(
       `/api/v1/sandbox/graph`,
@@ -91,18 +135,6 @@ export const sandboxApi = {
       true,
       token ? { access_token: token } : undefined,
     ).then((res) => unwrap(res) ?? { levels: [] }),
-  validateJournal: (
-    body: { scenarioId?: string; entries: SandboxJournalEntry[] },
-    token?: string,
-  ) =>
-    request<SandboxJournalValidation>(
-      `/api/v1/sandbox/journal/validate`,
-      "POST",
-      body,
-      {},
-      true,
-      token ? { access_token: token } : undefined,
-    ).then((res) => unwrap(res) as SandboxJournalValidation | undefined),
   placement: (answers: string[], token?: string) =>
     request<PlacementResult>(
       `/api/v1/learning/placement-diagnostic`,
@@ -113,6 +145,43 @@ export const sandboxApi = {
       token ? { access_token: token } : undefined,
     ).then((res) => unwrap(res) as PlacementResult | undefined),
 };
+
+export const sqlSandboxApi = {
+  catalog: () => request<SqlCatalog>(`/api/v1/sandbox/sql`).then(unwrap),
+  run: (datasetId: string, sql: string) => request<SqlRunResult>(`/api/v1/sandbox/sql/run`, "POST", { datasetId, sql }).then(unwrap),
+  check: (id: string, sql: string) =>
+    request<SqlCheckResult>(`/api/v1/sandbox/sql/exercises/${encodeURIComponent(id)}/check`, "POST", { sql }).then(unwrap),
+  hint: (id: string) => request<SqlHintResult>(`/api/v1/sandbox/sql/exercises/${encodeURIComponent(id)}/hint`, "POST", {}).then(unwrap),
+  reveal: (id: string) => request<SqlRevealResult>(`/api/v1/sandbox/sql/exercises/${encodeURIComponent(id)}/reveal`, "POST", {}).then(unwrap),
+};
+
+export const tryoutApi = {
+  catalog: () => request<TryoutCatalog>(`/api/v1/sandbox/tryout`).then(unwrap),
+  history: (query: TryoutHistoryQuery = {}) => {
+    const params = new URLSearchParams();
+    if (query.band) params.set("band", query.band);
+    if (query.subtest) params.set("subtest", query.subtest);
+    if (query.sort) params.set("sort", query.sort);
+    if (query.limit) params.set("limit", String(query.limit));
+    if (query.cursor) params.set("cursor", String(query.cursor));
+    const suffix = params.toString();
+    return request<TryoutHistory>(`/api/v1/sandbox/tryout/history${suffix ? `?${suffix}` : ""}`).then(unwrap);
+  },
+  start: (plan: TryoutPlan) => request<TryoutSession>(`/api/v1/sandbox/tryout`, "POST", plan).then(unwrap),
+  view: (id: string) => request<TryoutSession>(`/api/v1/sandbox/tryout/${encodeURIComponent(id)}`).then(unwrap),
+  saveAnswers: (id: string, answers: Record<string, number | null>) =>
+    request<TryoutSavedAnswers>(`/api/v1/sandbox/tryout/${encodeURIComponent(id)}/answers`, "PUT", { answers }).then(unwrap),
+  submit: (id: string, answers?: Record<string, number | null>) =>
+    request<TryoutResult>(`/api/v1/sandbox/tryout/${encodeURIComponent(id)}/submit`, "POST", answers ? { answers } : {}).then(unwrap),
+  result: (id: string) => request<TryoutResult>(`/api/v1/sandbox/tryout/${encodeURIComponent(id)}/result`).then(unwrap),
+};
+
+export interface ConceptOption {
+  id: string;
+  title: string;
+  description: string | null;
+  level: number;
+}
 
 export const personalizationApi = {
   listMastery: (token?: string) =>
@@ -137,6 +206,27 @@ export const personalizationApi = {
     request<NextConceptView>(`/api/v1/learner-model/me/next`, "GET", undefined, {}, true, token ? { access_token: token } : undefined).then(
       (res) => unwrap(res) as NextConceptView,
     ),
+  strategy: (conceptId?: string, token?: string) =>
+    request<StrategyView | null>(
+      `/api/v1/learner-model/me/strategy${conceptId ? `?conceptId=${encodeURIComponent(conceptId)}` : ""}`,
+      "GET",
+      undefined,
+      {},
+      true,
+      token ? { access_token: token } : undefined,
+    ).then((res) => (unwrap(res) ?? null) as StrategyView | null),
+  strategies: (token?: string) =>
+    request<StrategySummaryView>(`/api/v1/learner-model/me/strategies`, "GET", undefined, {}, true, token ? { access_token: token } : undefined).then(
+      (res) => unwrap(res) as StrategySummaryView,
+    ),
+  review: (token?: string) =>
+    request<ReviewView>(`/api/v1/learner-model/me/review`, "GET", undefined, {}, true, token ? { access_token: token } : undefined).then(
+      (res) => unwrap(res) as ReviewView,
+    ),
+  setReviewReminders: (enabled: boolean) =>
+    request<{ reminders: boolean }>(`/api/v1/learner-model/me/review/reminders`, "PUT", { enabled }).then(unwrap),
+  concepts: (token?: string) =>
+    request<ConceptOption[]>(`/api/v1/learner-model/concepts`, "GET", undefined, {}, true, token ? { access_token: token } : undefined).then(unwrapList),
   listMyEvents: () =>
     request<Array<{ id: string; action: string; createdAt: string }>>(`/api/v1/analytics/events/me`).then(unwrapList),
 };
@@ -172,7 +262,7 @@ export const gamifyApi = {
 
 export const creatorApi = {
   create: (
-    body: { title: string; content: string; excerpt?: string; accessType?: "FREE" | "PAID"; price?: number },
+    body: { title: string; content: string; excerpt?: string; accessType?: "FREE" | "PAID"; price?: number; conceptIds?: string[] },
     tenantId?: string,
   ) =>
     request<{ id: string }>(`/api/v1/articles`, "POST", body, withTenant(tenantId)).then(unwrap),
@@ -186,6 +276,7 @@ export const creatorApi = {
       difficulty?: string;
       durationMinutes?: number;
       capacity?: number;
+      conceptIds?: string[];
     },
     tenantId?: string,
   ) =>
@@ -197,14 +288,14 @@ export const creatorApi = {
   ) =>
     request<{ id: string }>(`/api/v1/classes/${encodeURIComponent(classId)}/sessions`, "POST", body, withTenant(tenantId)).then(unwrap),
   checkEligibility: (topicId: string, token?: string) =>
-    request<{ eligible: boolean; score: number | null }>(
+    request<{ eligible: boolean; score: number | null; passedConcepts: number; totalConcepts: number }>(
       `/api/v1/teacher/eligibility?topicId=${encodeURIComponent(topicId)}`,
       "GET",
       undefined,
       {},
       true,
       token ? { access_token: token } : undefined,
-    ).then((res) => unwrap(res) as { eligible: boolean; score: number | null } | undefined),
+    ).then((res) => unwrap(res) as { eligible: boolean; score: number | null; passedConcepts: number; totalConcepts: number } | undefined),
   apply: (body: Record<string, unknown>, token?: string) =>
     request(`/api/v1/teacher/applications`, "POST", body, {}, true, token ? { access_token: token } : undefined).then(unwrap),
   myApplication: () =>
@@ -273,6 +364,12 @@ export const ordersApi = {
       { items, ...(paymentMethod ? { paymentMethod } : {}) },
       { "Idempotency-Key": idempotencyKey },
     ).then(unwrap),
+};
+
+export const refundsApi = {
+  mine: () => request<Paginated<RefundView>>(`/api/v1/refunds/mine?limit=50`).then((res) => unwrap(res).data),
+  request: (orderId: string, reason: string, idempotencyKey: string) =>
+    request<RefundView>(`/api/v1/orders/${encodeURIComponent(orderId)}/refund-requests`, "POST", { reason }, { "Idempotency-Key": idempotencyKey }).then(unwrap),
 };
 
 export const paymentsApi = {
@@ -365,7 +462,7 @@ export const studioArticlesApi = {
     request<StudioArticle>(`/api/v1/articles/${encodeURIComponent(id)}`, "GET", undefined, withTenant(tenantId)).then(unwrap),
   update: (
     id: string,
-    body: { title?: string; content?: string; excerpt?: string; accessType?: "FREE" | "PAID"; price?: number },
+    body: { title?: string; content?: string; excerpt?: string; accessType?: "FREE" | "PAID"; price?: number; conceptIds?: string[] },
     tenantId?: string,
   ) =>
     request<StudioArticleSummary>(`/api/v1/articles/${encodeURIComponent(id)}`, "PATCH", body, withTenant(tenantId)).then(unwrap),
@@ -375,6 +472,8 @@ export const studioArticlesApi = {
     request<StudioArticleSummary>(`/api/v1/articles/${encodeURIComponent(id)}/withdraw`, "POST", {}, withTenant(tenantId)).then(unwrap),
   archive: (id: string, tenantId?: string) =>
     request<StudioArticleSummary>(`/api/v1/articles/${encodeURIComponent(id)}/archive`, "POST", {}, withTenant(tenantId)).then(unwrap),
+  setConcepts: (id: string, conceptIds: string[], tenantId?: string) =>
+    request<{ conceptLinks: StudioConceptLink[] }>(`/api/v1/articles/${encodeURIComponent(id)}/concepts`, "PUT", { conceptIds }, withTenant(tenantId)).then(unwrap),
 };
 
 export const studioClassesApi = {
@@ -395,6 +494,7 @@ export const studioClassesApi = {
       difficulty?: string;
       durationMinutes?: number;
       capacity?: number;
+      conceptIds?: string[];
     },
     tenantId?: string,
   ) => request<StudioClassSummary>(`/api/v1/classes/${encodeURIComponent(id)}`, "PATCH", body, withTenant(tenantId)).then(unwrap),
@@ -404,6 +504,8 @@ export const studioClassesApi = {
     request<StudioClassSummary>(`/api/v1/classes/${encodeURIComponent(id)}/withdraw`, "POST", {}, withTenant(tenantId)).then(unwrap),
   archive: (id: string, tenantId?: string) =>
     request<StudioClassSummary>(`/api/v1/classes/${encodeURIComponent(id)}/archive`, "POST", {}, withTenant(tenantId)).then(unwrap),
+  setConcepts: (id: string, conceptIds: string[], tenantId?: string) =>
+    request<{ conceptLinks: StudioConceptLink[] }>(`/api/v1/classes/${encodeURIComponent(id)}/concepts`, "PUT", { conceptIds }, withTenant(tenantId)).then(unwrap),
   addSession: (
     id: string,
     body: { startsAt: string; endsAt: string; meetingUrl?: string; recordingUrl?: string },
@@ -432,6 +534,8 @@ export const marketplaceApi = {
     request<Paginated<MarketplaceClassView>>(`/api/v1/marketplace/classes?${toQueryString({ limit: 24, ...query })}`).then(unwrap),
   class: (id: string) =>
     request<MarketplaceClassView>(`/api/v1/marketplace/classes/${encodeURIComponent(id)}`).then(unwrap),
+  recommendations: (limit = 8) =>
+    request<RecommendationResult>(`/api/v1/marketplace-discovery/recommendations?limit=${limit}`).then(unwrap),
   articlePreview: (id: string) =>
     request<{ id: string; preview: string; truncated: boolean; wordCount: number; readingMinutes: number }>(
       `/api/v1/marketplace/articles/${encodeURIComponent(id)}/preview`,
@@ -639,17 +743,38 @@ export function relaySetCookies(res: { headers?: { getSetCookie?: () => string[]
   nodeRes.setHeader("set-cookie", [...current, ...cookies]);
 }
 
-type ServerEvent = { node?: { res?: { getHeader: (name: string) => unknown; setHeader: (name: string, value: string[]) => unknown } } };
+type ServerEvent = {
+  node?: { res?: { getHeader: (name: string) => unknown; setHeader: (name: string, value: string[]) => unknown } };
+  context?: Record<string, unknown>;
+};
 
 export interface SsrContext {
   cookie: Record<string, string>;
   event: ServerEvent | undefined;
   apiUrl: string | undefined;
+  tokens?: Tokens;
+}
+
+const REFRESHED_TOKENS_KEY = "rcRefreshedTokens";
+
+export function rememberRefreshedTokens(event: ServerEvent | undefined, tokens: Tokens) {
+  if (event?.context) event.context[REFRESHED_TOKENS_KEY] = tokens;
+}
+
+function recallRefreshedTokens(event: ServerEvent | undefined): Tokens | undefined {
+  return event?.context?.[REFRESHED_TOKENS_KEY] as Tokens | undefined;
 }
 
 export function captureSsrContext(tokens?: Tokens): SsrContext {
   try {
-    return { cookie: forwardedCookie(tokens), event: useRequestEvent() as ServerEvent | undefined, apiUrl: getApiUrl() };
+    const event = useRequestEvent() as ServerEvent | undefined;
+    const refreshed = tokens?.access_token ? undefined : recallRefreshedTokens(event);
+    return {
+      cookie: refreshed ? {} : forwardedCookie(tokens),
+      event,
+      apiUrl: getApiUrl(),
+      tokens: refreshed,
+    };
   } catch {
     return { cookie: {}, event: undefined, apiUrl: undefined };
   }
@@ -675,10 +800,13 @@ export async function request<T>(
   const API_URL = ssr?.apiUrl ?? getApiUrl();
   const path = normalizeApiPath(endpoint);
   const canRetry = retry && path.split("?")[0] !== REFRESH_PATH;
+  const cookieHeader = isServer ? ssr?.cookie?.cookie : typeof document !== "undefined" ? document.cookie : undefined;
+  const sent = withStudioTenant(path, headers, cookieHeader);
 
+  const bearer = tokens?.access_token ? tokens : (ssr?.tokens ?? tokens);
   const authHeaders: Record<string, string> = {};
-  if (tokens?.access_token) authHeaders["Authorization"] = `Bearer ${tokens.access_token}`;
-  if (tokens?.refresh_token) authHeaders["X-Refresh-Token"] = tokens.refresh_token;
+  if (bearer?.access_token) authHeaders["Authorization"] = `Bearer ${bearer.access_token}`;
+  if (bearer?.refresh_token) authHeaders["X-Refresh-Token"] = bearer.refresh_token;
 
   try {
     if (!isServer) {
@@ -688,7 +816,7 @@ export async function request<T>(
           method,
           headers: {
             "Content-Type": "application/json",
-            ...headers,
+            ...sent,
           },
           credentials: "include",
           body: method !== "GET" && method !== "HEAD" ? body : undefined,
@@ -697,7 +825,7 @@ export async function request<T>(
         if (statusOf(error) === 401 && canRetry) {
           const refreshed = await authService.refreshToken();
           if (refreshed.success) {
-            return await request<T>(endpoint, method, body, headers, false);
+            return await request<T>(endpoint, method, body, sent, false);
           }
         }
         return failureEnvelope<T>(error);
@@ -710,7 +838,7 @@ export async function request<T>(
         "Content-Type": "application/json",
         ...(ssr?.cookie ?? {}),
         ...authHeaders,
-        ...headers,
+        ...sent,
       },
       body:
         method !== "GET" && method !== "HEAD" && body
@@ -720,20 +848,14 @@ export async function request<T>(
     relaySetCookies(res, ssr?.event);
 
     if (res.status === 401 && canRetry) {
-      const refreshed = await authService.refreshToken(tokens, ssr);
+      const refreshed = await authService.refreshToken(bearer, ssr);
       if (refreshed.success && refreshed.data) {
-        return await request<T>(
-          endpoint,
-          method,
-          body,
-          headers,
-          false,
-          {
-            access_token: refreshed.data.access_token,
-            refresh_token: refreshed.data.refresh_token,
-          },
-          ssr,
-        );
+        const fresh = {
+          access_token: refreshed.data.access_token,
+          refresh_token: refreshed.data.refresh_token,
+        };
+        rememberRefreshedTokens(ssr?.event, fresh);
+        return await request<T>(endpoint, method, body, sent, false, fresh, ssr && { ...ssr, cookie: {} });
       }
     }
 

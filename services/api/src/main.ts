@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
@@ -9,10 +10,15 @@ import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
 import { randomBytes } from 'crypto';
 import { parseOrigins } from './common/lib/parse-origins';
+import { arcjetKeyFrom } from './common/config/arcjet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.useBodyParser('json', { limit: '1mb' });
+
+  if (!arcjetKeyFrom(process.env)) {
+    new Logger('Bootstrap').warn('ARCJET_KEY is not set: the rate limits of the auth routes are not enforced');
+  }
 
   const configService = app.get(ConfigService);
   const cookieSecret =

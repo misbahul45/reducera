@@ -1,0 +1,1323 @@
+{
+  "version": 1,
+  "currency": "IDR",
+  "scenarios": [
+    {
+      "id": "j-setor-modal",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Pemilik menyetor modal awal",
+      "story": "Ibu Rina membuka usaha laundry \"Bersih Kilat\" dan menyetor uang tunai Rp10.000.000 sebagai modal awal.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 10000000
+        },
+        {
+          "account": "301",
+          "side": "CREDIT",
+          "amount": 10000000
+        }
+      ],
+      "why": "Kas (aset) bertambah sehingga didebit. Modal pemilik (ekuitas) bertambah sehingga dikredit. Aset dan ekuitas sama-sama naik Rp10.000.000.",
+      "targets": [
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "modal"
+      ],
+      "example": {
+        "story": "Pak Dedi membuka bengkel dan menyetor Rp25.000.000 tunai sebagai modal.",
+        "key": [
+          {
+            "account": "101",
+            "side": "DEBIT",
+            "amount": 25000000
+          },
+          {
+            "account": "301",
+            "side": "CREDIT",
+            "amount": 25000000
+          }
+        ],
+        "why": "Kas bertambah (debit), modal bertambah (kredit)."
+      }
+    },
+    {
+      "id": "j-pinjaman-bank",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Menerima pinjaman bank",
+      "story": "Bersih Kilat menerima pinjaman bank Rp15.000.000 yang langsung masuk ke rekening usaha.",
+      "key": [
+        {
+          "account": "102",
+          "side": "DEBIT",
+          "amount": 15000000
+        },
+        {
+          "account": "205",
+          "side": "CREDIT",
+          "amount": 15000000
+        }
+      ],
+      "why": "Kas di bank (aset) bertambah, didebit. Utang bank (kewajiban) bertambah, dikredit. Modal pemilik tidak berubah karena ini bukan setoran pemilik.",
+      "targets": [
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "utang"
+      ]
+    },
+    {
+      "id": "j-beli-perlengkapan",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Membeli perlengkapan tunai",
+      "story": "Bersih Kilat membeli deterjen dan plastik pembungkus (perlengkapan) senilai Rp750.000 secara tunai.",
+      "key": [
+        {
+          "account": "106",
+          "side": "DEBIT",
+          "amount": 750000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 750000
+        }
+      ],
+      "why": "Perlengkapan bertambah (debit) dan kas berkurang (kredit). Aset hanya berpindah bentuk, jumlah total aset tidak berubah.",
+      "targets": [],
+      "tags": [
+        "aset"
+      ]
+    },
+    {
+      "id": "j-beli-peralatan-kredit",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Membeli mesin secara kredit",
+      "story": "Bersih Kilat membeli mesin cuci seharga Rp5.000.000 secara kredit dari CV Mesin Jaya.",
+      "key": [
+        {
+          "account": "111",
+          "side": "DEBIT",
+          "amount": 5000000
+        },
+        {
+          "account": "201",
+          "side": "CREDIT",
+          "amount": 5000000
+        }
+      ],
+      "why": "Peralatan bertambah (debit). Kewajiban kepada pemasok bertambah (kredit) karena belum dibayar.",
+      "targets": [
+        "normal_balance_confusion"
+      ],
+      "tags": [
+        "utang"
+      ]
+    },
+    {
+      "id": "j-jasa-tunai",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Jasa dibayar tunai",
+      "story": "Bersih Kilat mencuci dan menyetrika pakaian pelanggan dan menerima Rp2.500.000 tunai.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 2500000
+        },
+        {
+          "account": "401",
+          "side": "CREDIT",
+          "amount": 2500000
+        }
+      ],
+      "why": "Kas bertambah (debit). Pendapatan jasa (ekuitas) bertambah dan pendapatan bersaldo kredit.",
+      "targets": [
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "pendapatan"
+      ],
+      "example": {
+        "story": "Bengkel Pak Dedi menyervis motor dan menerima Rp300.000 tunai.",
+        "key": [
+          {
+            "account": "101",
+            "side": "DEBIT",
+            "amount": 300000
+          },
+          {
+            "account": "401",
+            "side": "CREDIT",
+            "amount": 300000
+          }
+        ],
+        "why": "Kas naik (debit), pendapatan naik (kredit)."
+      }
+    },
+    {
+      "id": "j-jasa-kredit",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t11-cash-vs-accrual",
+      "title": "Jasa belum dibayar",
+      "story": "Bersih Kilat mengerjakan layanan antar-jemput laundry untuk sebuah hotel senilai Rp1.800.000. Hotel akan membayar akhir bulan.",
+      "key": [
+        {
+          "account": "103",
+          "side": "DEBIT",
+          "amount": 1800000
+        },
+        {
+          "account": "401",
+          "side": "CREDIT",
+          "amount": 1800000
+        }
+      ],
+      "why": "Pendapatan diakui saat jasa diberikan, bukan saat uang diterima. Hak menagih menjadi piutang usaha (aset) yang didebit.",
+      "targets": [
+        "accrual_cash_confusion"
+      ],
+      "tags": [
+        "piutang",
+        "pendapatan"
+      ]
+    },
+    {
+      "id": "j-bayar-gaji",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Membayar gaji karyawan",
+      "story": "Bersih Kilat membayar gaji karyawan Rp1.200.000 secara tunai.",
+      "key": [
+        {
+          "account": "511",
+          "side": "DEBIT",
+          "amount": 1200000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 1200000
+        }
+      ],
+      "why": "Beban gaji bertambah (debit, mengurangi ekuitas) dan kas berkurang (kredit).",
+      "targets": [
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "beban"
+      ]
+    },
+    {
+      "id": "j-bayar-sewa",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Membayar sewa bulan berjalan",
+      "story": "Bersih Kilat membayar sewa kios untuk bulan ini sebesar Rp900.000 secara tunai.",
+      "key": [
+        {
+          "account": "512",
+          "side": "DEBIT",
+          "amount": 900000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 900000
+        }
+      ],
+      "why": "Manfaat sewa sudah dinikmati bulan ini, jadi langsung menjadi beban sewa (debit). Kas berkurang (kredit).",
+      "targets": [],
+      "tags": [
+        "beban"
+      ]
+    },
+    {
+      "id": "j-terima-piutang",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t11-cash-vs-accrual",
+      "title": "Pelanggan melunasi piutang",
+      "story": "Hotel melunasi tagihan Rp1.800.000 secara tunai.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 1800000
+        },
+        {
+          "account": "103",
+          "side": "CREDIT",
+          "amount": 1800000
+        }
+      ],
+      "why": "Kas bertambah (debit) dan piutang berkurang (kredit). Tidak ada pendapatan baru karena pendapatan sudah diakui saat jasa diberikan.",
+      "targets": [
+        "accrual_cash_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "piutang"
+      ]
+    },
+    {
+      "id": "j-bayar-utang",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Membayar sebagian utang",
+      "story": "Bersih Kilat membayar tunai Rp2.000.000 dari utang pembelian mesin.",
+      "key": [
+        {
+          "account": "201",
+          "side": "DEBIT",
+          "amount": 2000000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 2000000
+        }
+      ],
+      "why": "Utang berkurang, kewajiban berkurang dengan didebit. Kas berkurang dengan dikredit.",
+      "targets": [
+        "normal_balance_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "utang"
+      ]
+    },
+    {
+      "id": "j-prive",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Pemilik mengambil kas",
+      "story": "Ibu Rina mengambil Rp500.000 dari kas usaha untuk keperluan pribadi.",
+      "key": [
+        {
+          "account": "302",
+          "side": "DEBIT",
+          "amount": 500000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Prive mengurangi ekuitas dan merupakan lawan akun modal, jadi normalnya bersaldo debit. Kas berkurang (kredit).",
+      "targets": [
+        "contra_account_confusion",
+        "normal_balance_confusion"
+      ],
+      "tags": [
+        "ekuitas"
+      ]
+    },
+    {
+      "id": "j-listrik",
+      "level": 1,
+      "difficulty": "BEGINNER",
+      "conceptId": "l1-t02-debits-credits",
+      "title": "Membayar listrik dan air",
+      "story": "Bersih Kilat membayar tagihan listrik dan air sebesar Rp350.000 secara tunai.",
+      "key": [
+        {
+          "account": "515",
+          "side": "DEBIT",
+          "amount": 350000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 350000
+        }
+      ],
+      "why": "Beban listrik dan air bertambah (debit) dan kas berkurang (kredit).",
+      "targets": [],
+      "tags": [
+        "beban"
+      ]
+    },
+    {
+      "id": "j-sewa-dimuka",
+      "level": 1,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t11-cash-vs-accrual",
+      "title": "Membayar sewa untuk setahun",
+      "story": "Bersih Kilat membayar sewa kios untuk 12 bulan ke depan sekaligus, sebesar Rp6.000.000 tunai.",
+      "key": [
+        {
+          "account": "107",
+          "side": "DEBIT",
+          "amount": 6000000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 6000000
+        }
+      ],
+      "why": "Pembayaran di muka belum menjadi beban karena manfaatnya belum dinikmati. Ia menjadi aset (sewa dibayar di muka) dan dibebankan bertahap lewat jurnal penyesuaian.",
+      "targets": [
+        "accrual_cash_confusion",
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "dimuka"
+      ]
+    },
+    {
+      "id": "j-peralatan-campuran",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t13-double-entry-logic",
+      "title": "Membeli setrika sebagian tunai",
+      "story": "Bersih Kilat membeli setrika uap seharga Rp8.000.000. Sebesar Rp3.000.000 dibayar tunai dan sisanya kredit.",
+      "key": [
+        {
+          "account": "111",
+          "side": "DEBIT",
+          "amount": 8000000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 3000000
+        },
+        {
+          "account": "201",
+          "side": "CREDIT",
+          "amount": 5000000
+        }
+      ],
+      "why": "Satu transaksi bisa melibatkan lebih dari dua akun. Total debit Rp8.000.000 harus sama dengan total kredit (3.000.000 + 5.000.000).",
+      "targets": [
+        "missing_credit_side",
+        "accounting_equation_imbalance"
+      ],
+      "tags": [
+        "majemuk"
+      ],
+      "example": {
+        "story": "Pak Dedi membeli kompresor Rp12.000.000: Rp4.000.000 tunai, sisanya kredit.",
+        "key": [
+          {
+            "account": "111",
+            "side": "DEBIT",
+            "amount": 12000000
+          },
+          {
+            "account": "101",
+            "side": "CREDIT",
+            "amount": 4000000
+          },
+          {
+            "account": "201",
+            "side": "CREDIT",
+            "amount": 8000000
+          }
+        ],
+        "why": "Debit 12.000.000 = kredit 4.000.000 + 8.000.000."
+      }
+    },
+    {
+      "id": "j-jasa-sebagian",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t13-double-entry-logic",
+      "title": "Jasa dibayar sebagian",
+      "story": "Bersih Kilat menyelesaikan jasa cuci karpet senilai Rp4.000.000. Pelanggan membayar tunai Rp1.500.000 dan sisanya akan ditagih.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 1500000
+        },
+        {
+          "account": "103",
+          "side": "DEBIT",
+          "amount": 2500000
+        },
+        {
+          "account": "401",
+          "side": "CREDIT",
+          "amount": 4000000
+        }
+      ],
+      "why": "Pendapatan diakui seluruhnya (Rp4.000.000). Yang diterima tunai didebit ke kas, sisanya menjadi piutang usaha.",
+      "targets": [
+        "missing_credit_side",
+        "accrual_cash_confusion"
+      ],
+      "tags": [
+        "majemuk",
+        "piutang"
+      ]
+    },
+    {
+      "id": "j-uang-muka",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t13-revenue-recognition",
+      "title": "Pelanggan membayar di muka",
+      "story": "Sebuah kantor membayar uang muka Rp3.000.000 untuk jasa cuci seragam bulan depan. Jasanya belum dikerjakan.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 3000000
+        },
+        {
+          "account": "204",
+          "side": "CREDIT",
+          "amount": 3000000
+        }
+      ],
+      "why": "Kas bertambah, tetapi jasa belum diberikan sehingga belum menjadi pendapatan. Kewajiban memberi jasa dicatat sebagai pendapatan diterima di muka.",
+      "targets": [
+        "accrual_cash_confusion"
+      ],
+      "tags": [
+        "dimuka"
+      ],
+      "example": {
+        "story": "Seorang pelanggan membayar Rp1.200.000 di muka untuk langganan bulan depan.",
+        "key": [
+          {
+            "account": "101",
+            "side": "DEBIT",
+            "amount": 1200000
+          },
+          {
+            "account": "204",
+            "side": "CREDIT",
+            "amount": 1200000
+          }
+        ],
+        "why": "Kas naik (debit). Kewajiban naik (kredit) karena jasanya belum diberikan."
+      }
+    },
+    {
+      "id": "j-pendapatan-diakui",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t13-revenue-recognition",
+      "title": "Mengakui pendapatan dari uang muka",
+      "story": "Dari uang muka Rp3.000.000, jasa senilai sepertiganya telah selesai dikerjakan pada akhir bulan.",
+      "key": [
+        {
+          "account": "204",
+          "side": "DEBIT",
+          "amount": 1000000
+        },
+        {
+          "account": "401",
+          "side": "CREDIT",
+          "amount": 1000000
+        }
+      ],
+      "why": "Kewajiban berkurang (debit) karena sebagian jasa sudah diberikan, dan pendapatan jasa diakui (kredit).",
+      "targets": [
+        "adjusting_entry_error",
+        "accrual_cash_confusion"
+      ],
+      "tags": [
+        "dimuka",
+        "penyesuaian"
+      ]
+    },
+    {
+      "id": "j-ayat-sewa",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t06-adjusting-entries",
+      "title": "Penyesuaian sewa dibayar di muka",
+      "story": "Sewa kios Rp6.000.000 untuk 12 bulan telah dibayar di muka. Pada akhir bulan pertama, catat beban sewa bulan itu.",
+      "key": [
+        {
+          "account": "512",
+          "side": "DEBIT",
+          "amount": 500000
+        },
+        {
+          "account": "107",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Beban sewa sebulan = 6.000.000 : 12 = 500.000 (debit). Aset sewa dibayar di muka berkurang (kredit).",
+      "targets": [
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian"
+      ],
+      "example": {
+        "story": "Asuransi Rp2.400.000 untuk 12 bulan telah dibayar di muka. Akhir bulan pertama, catat beban asuransinya.",
+        "key": [
+          {
+            "account": "516",
+            "side": "DEBIT",
+            "amount": 200000
+          },
+          {
+            "account": "108",
+            "side": "CREDIT",
+            "amount": 200000
+          }
+        ],
+        "why": "Beban sebulan = 2.400.000 : 12 = 200.000 (debit), aset asuransi dibayar di muka berkurang (kredit)."
+      }
+    },
+    {
+      "id": "j-ayat-asuransi",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t06-adjusting-entries",
+      "title": "Penyesuaian asuransi tiga bulan",
+      "story": "Premi asuransi Rp3.600.000 untuk 12 bulan sudah dibayar di muka. Setelah 3 bulan berlalu, catat beban asuransi untuk periode itu.",
+      "key": [
+        {
+          "account": "516",
+          "side": "DEBIT",
+          "amount": 900000
+        },
+        {
+          "account": "108",
+          "side": "CREDIT",
+          "amount": 900000
+        }
+      ],
+      "why": "Beban asuransi 3 bulan = 3.600.000 : 12 x 3 = 900.000 (debit). Aset asuransi dibayar di muka berkurang (kredit).",
+      "targets": [
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian"
+      ]
+    },
+    {
+      "id": "j-ayat-perlengkapan",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t06-adjusting-entries",
+      "title": "Penyesuaian pemakaian perlengkapan",
+      "story": "Perlengkapan awal Rp750.000. Penghitungan fisik akhir bulan menyisakan Rp250.000. Catat jurnal penyesuaian pemakaian.",
+      "key": [
+        {
+          "account": "513",
+          "side": "DEBIT",
+          "amount": 500000
+        },
+        {
+          "account": "106",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Pemakaian = 750.000 - 250.000 = 500.000. Beban perlengkapan bertambah (debit) dan perlengkapan berkurang (kredit).",
+      "targets": [
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian"
+      ]
+    },
+    {
+      "id": "j-ayat-gaji",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t06-adjusting-entries",
+      "title": "Gaji yang belum dibayar",
+      "story": "Gaji karyawan Rp800.000 untuk tiga hari terakhir bulan ini belum dibayar.",
+      "key": [
+        {
+          "account": "511",
+          "side": "DEBIT",
+          "amount": 800000
+        },
+        {
+          "account": "203",
+          "side": "CREDIT",
+          "amount": 800000
+        }
+      ],
+      "why": "Beban sudah terjadi walau belum dibayar (basis akrual), sehingga beban gaji didebit. Kewajiban utang gaji bertambah (kredit).",
+      "targets": [
+        "accrual_cash_confusion",
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian",
+        "akrual"
+      ]
+    },
+    {
+      "id": "j-ayat-penyusutan",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t11-pppe-depreciation",
+      "title": "Penyusutan setrika uap",
+      "story": "Setrika uap seharga Rp9.000.000 berumur 5 tahun (60 bulan) tanpa nilai sisa, metode garis lurus. Catat penyusutan bulan pertama.",
+      "key": [
+        {
+          "account": "514",
+          "side": "DEBIT",
+          "amount": 150000
+        },
+        {
+          "account": "112",
+          "side": "CREDIT",
+          "amount": 150000
+        }
+      ],
+      "why": "Penyusutan sebulan = 9.000.000 : 60 = 150.000. Beban penyusutan didebit dan akumulasi penyusutan (lawan aset) dikredit, bukan akun peralatan langsung.",
+      "targets": [
+        "contra_account_confusion",
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian"
+      ],
+      "example": {
+        "story": "Kompresor Rp12.000.000 berumur 4 tahun (48 bulan) tanpa nilai sisa. Catat penyusutan bulan pertama.",
+        "key": [
+          {
+            "account": "514",
+            "side": "DEBIT",
+            "amount": 250000
+          },
+          {
+            "account": "112",
+            "side": "CREDIT",
+            "amount": 250000
+          }
+        ],
+        "why": "12.000.000 : 48 = 250.000. Debit beban penyusutan, kredit akumulasi penyusutan."
+      }
+    },
+    {
+      "id": "j-penyusutan-kendaraan",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t11-pppe-depreciation",
+      "title": "Penyusutan mobil boks",
+      "story": "Mobil boks seharga Rp60.000.000 berumur 5 tahun tanpa nilai sisa, garis lurus. Catat penyusutan bulan ini.",
+      "key": [
+        {
+          "account": "520",
+          "side": "DEBIT",
+          "amount": 1000000
+        },
+        {
+          "account": "114",
+          "side": "CREDIT",
+          "amount": 1000000
+        }
+      ],
+      "why": "Setahun = 60.000.000 : 5 = 12.000.000, sebulan = 1.000.000. Debit beban penyusutan kendaraan, kredit akumulasi penyusutan kendaraan.",
+      "targets": [
+        "contra_account_confusion"
+      ],
+      "tags": [
+        "penyesuaian"
+      ]
+    },
+    {
+      "id": "j-kerugian-piutang",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t10-receivables-bad-debt",
+      "title": "Penyisihan piutang tak tertagih",
+      "story": "Pada akhir tahun diperkirakan Rp300.000 dari piutang usaha tidak akan tertagih. Catat penyisihannya.",
+      "key": [
+        {
+          "account": "517",
+          "side": "DEBIT",
+          "amount": 300000
+        },
+        {
+          "account": "115",
+          "side": "CREDIT",
+          "amount": 300000
+        }
+      ],
+      "why": "Beban kerugian piutang diakui sekarang (debit). Penyisihan piutang adalah lawan akun piutang sehingga dikredit, piutang usaha belum dikurangi langsung.",
+      "targets": [
+        "contra_account_confusion",
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "piutang"
+      ],
+      "example": {
+        "story": "Diperkirakan Rp450.000 piutang tidak tertagih. Catat penyisihannya.",
+        "key": [
+          {
+            "account": "517",
+            "side": "DEBIT",
+            "amount": 450000
+          },
+          {
+            "account": "115",
+            "side": "CREDIT",
+            "amount": 450000
+          }
+        ],
+        "why": "Debit beban kerugian piutang, kredit penyisihan piutang tak tertagih."
+      }
+    },
+    {
+      "id": "j-hapus-piutang",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l2-t10-receivables-bad-debt",
+      "title": "Menghapus piutang tak tertagih",
+      "story": "Piutang seorang pelanggan Rp200.000 dinyatakan tidak dapat ditagih. Perusahaan memakai metode penyisihan.",
+      "key": [
+        {
+          "account": "115",
+          "side": "DEBIT",
+          "amount": 200000
+        },
+        {
+          "account": "103",
+          "side": "CREDIT",
+          "amount": 200000
+        }
+      ],
+      "why": "Penghapusan tidak menambah beban lagi karena bebannya sudah diakui lewat penyisihan. Penyisihan didebit dan piutang usaha dikredit.",
+      "targets": [
+        "contra_account_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "piutang"
+      ]
+    },
+    {
+      "id": "j-beli-dagang",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Pembelian barang dagang kredit",
+      "story": "Toko Bunga Sari membeli barang dagang Rp6.000.000 secara kredit. Toko memakai sistem periodik.",
+      "key": [
+        {
+          "account": "502",
+          "side": "DEBIT",
+          "amount": 6000000
+        },
+        {
+          "account": "201",
+          "side": "CREDIT",
+          "amount": 6000000
+        }
+      ],
+      "why": "Pada sistem periodik pembelian dicatat di akun Pembelian (debit), bukan langsung ke persediaan. Utang usaha bertambah (kredit).",
+      "targets": [],
+      "tags": [
+        "dagang"
+      ]
+    },
+    {
+      "id": "j-retur-beli",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Retur pembelian",
+      "story": "Dari pembelian kredit tadi, barang senilai Rp400.000 dikembalikan kepada pemasok karena rusak (sistem periodik).",
+      "key": [
+        {
+          "account": "201",
+          "side": "DEBIT",
+          "amount": 400000
+        },
+        {
+          "account": "503",
+          "side": "CREDIT",
+          "amount": 400000
+        }
+      ],
+      "why": "Utang usaha berkurang (debit). Retur pembelian adalah lawan akun pembelian sehingga dikredit.",
+      "targets": [
+        "contra_account_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "dagang"
+      ]
+    },
+    {
+      "id": "j-angkut-beli",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Ongkos kirim pembelian",
+      "story": "Toko membayar tunai ongkos kirim pembelian barang Rp150.000 (FOB shipping point, pembeli menanggung ongkos).",
+      "key": [
+        {
+          "account": "505",
+          "side": "DEBIT",
+          "amount": 150000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 150000
+        }
+      ],
+      "why": "Pada FOB shipping point pembeli menanggung ongkos kirim. Dicatat sebagai beban angkut pembelian (debit) dan kas berkurang (kredit).",
+      "targets": [],
+      "tags": [
+        "dagang"
+      ]
+    },
+    {
+      "id": "j-jual-dagang",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Penjualan barang dagang kredit",
+      "story": "Toko menjual barang dagang secara kredit senilai Rp9.000.000 (sistem periodik).",
+      "key": [
+        {
+          "account": "103",
+          "side": "DEBIT",
+          "amount": 9000000
+        },
+        {
+          "account": "402",
+          "side": "CREDIT",
+          "amount": 9000000
+        }
+      ],
+      "why": "Piutang usaha bertambah (debit) dan penjualan diakui (kredit). Pada sistem periodik harga pokok belum dicatat saat penjualan.",
+      "targets": [],
+      "tags": [
+        "dagang"
+      ]
+    },
+    {
+      "id": "j-retur-jual",
+      "level": 2,
+      "difficulty": "INTERMEDIATE",
+      "conceptId": "l1-t03-journal-entries",
+      "title": "Retur penjualan",
+      "story": "Pelanggan mengembalikan barang Rp500.000 dari penjualan kredit (sistem periodik).",
+      "key": [
+        {
+          "account": "403",
+          "side": "DEBIT",
+          "amount": 500000
+        },
+        {
+          "account": "103",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Retur penjualan adalah lawan akun penjualan sehingga bersaldo debit. Piutang usaha berkurang (kredit).",
+      "targets": [
+        "contra_account_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "dagang"
+      ]
+    },
+    {
+      "id": "j-potongan-jual",
+      "level": 2,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t13-double-entry-logic",
+      "title": "Pelunasan dengan potongan",
+      "story": "Pelanggan melunasi piutang Rp2.000.000 dalam masa potongan 2 persen, sehingga toko menerima kas Rp1.960.000.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 1960000
+        },
+        {
+          "account": "404",
+          "side": "DEBIT",
+          "amount": 40000
+        },
+        {
+          "account": "103",
+          "side": "CREDIT",
+          "amount": 2000000
+        }
+      ],
+      "why": "Potongan 2% x 2.000.000 = 40.000 dicatat di potongan penjualan (debit). Seluruh piutang Rp2.000.000 dilunasi (kredit).",
+      "targets": [
+        "contra_account_confusion",
+        "missing_credit_side"
+      ],
+      "tags": [
+        "dagang",
+        "majemuk"
+      ]
+    },
+    {
+      "id": "j-penjualan-perpetual",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l2-t06-inventory-fifo",
+      "title": "Penjualan dan harga pokok (perpetual)",
+      "story": "Toko memakai sistem perpetual dan menjual barang tunai Rp4.000.000 dengan harga pokok Rp2.600.000. Catat penjualan dan harga pokoknya dalam satu jurnal.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 4000000
+        },
+        {
+          "account": "501",
+          "side": "DEBIT",
+          "amount": 2600000
+        },
+        {
+          "account": "402",
+          "side": "CREDIT",
+          "amount": 4000000
+        },
+        {
+          "account": "105",
+          "side": "CREDIT",
+          "amount": 2600000
+        }
+      ],
+      "why": "Dua efek sekaligus: kas naik dan penjualan diakui (4.000.000), lalu harga pokok penjualan naik dan persediaan turun (2.600.000). Total debit = total kredit = 6.600.000.",
+      "targets": [
+        "missing_credit_side",
+        "accounting_equation_imbalance"
+      ],
+      "tags": [
+        "dagang",
+        "majemuk"
+      ]
+    },
+    {
+      "id": "j-bunga-akrual",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t06-adjusting-entries",
+      "title": "Bunga pinjaman yang belum dibayar",
+      "story": "Pinjaman bank Rp20.000.000 berbunga 12% setahun. Catat bunga satu bulan yang belum dibayar.",
+      "key": [
+        {
+          "account": "518",
+          "side": "DEBIT",
+          "amount": 200000
+        },
+        {
+          "account": "206",
+          "side": "CREDIT",
+          "amount": 200000
+        }
+      ],
+      "why": "Bunga sebulan = 20.000.000 x 12% : 12 = 200.000. Beban bunga (debit) dan utang bunga (kredit) karena belum dibayar.",
+      "targets": [
+        "accrual_cash_confusion",
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "penyesuaian",
+        "akrual"
+      ]
+    },
+    {
+      "id": "j-tutup-pendapatan",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t07-closing-entries",
+      "title": "Menutup pendapatan",
+      "story": "Tutup akun Pendapatan Jasa yang bersaldo Rp12.000.000 ke Ikhtisar Laba Rugi.",
+      "key": [
+        {
+          "account": "401",
+          "side": "DEBIT",
+          "amount": 12000000
+        },
+        {
+          "account": "303",
+          "side": "CREDIT",
+          "amount": 12000000
+        }
+      ],
+      "why": "Akun nominal ditutup dengan membalik saldonya. Pendapatan bersaldo kredit, jadi didebit; lawannya dikredit ke Ikhtisar Laba Rugi.",
+      "targets": [
+        "normal_balance_confusion",
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "penutup"
+      ],
+      "example": {
+        "story": "Tutup akun Penjualan yang bersaldo Rp20.000.000 ke Ikhtisar Laba Rugi.",
+        "key": [
+          {
+            "account": "402",
+            "side": "DEBIT",
+            "amount": 20000000
+          },
+          {
+            "account": "303",
+            "side": "CREDIT",
+            "amount": 20000000
+          }
+        ],
+        "why": "Penjualan bersaldo kredit, ditutup dengan debit; Ikhtisar Laba Rugi dikredit."
+      }
+    },
+    {
+      "id": "j-tutup-beban",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t07-closing-entries",
+      "title": "Menutup beban",
+      "story": "Tutup akun beban ke Ikhtisar Laba Rugi: Beban Gaji Rp3.000.000, Beban Sewa Rp1.500.000, Beban Listrik dan Air Rp500.000.",
+      "key": [
+        {
+          "account": "303",
+          "side": "DEBIT",
+          "amount": 5000000
+        },
+        {
+          "account": "511",
+          "side": "CREDIT",
+          "amount": 3000000
+        },
+        {
+          "account": "512",
+          "side": "CREDIT",
+          "amount": 1500000
+        },
+        {
+          "account": "515",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Beban bersaldo debit, ditutup dengan kredit masing-masing akun. Ikhtisar Laba Rugi didebit sebesar total beban (5.000.000).",
+      "targets": [
+        "normal_balance_confusion",
+        "debit_credit_swap",
+        "missing_credit_side"
+      ],
+      "tags": [
+        "penutup",
+        "majemuk"
+      ]
+    },
+    {
+      "id": "j-tutup-ikhtisar",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t07-closing-entries",
+      "title": "Memindahkan laba ke modal",
+      "story": "Setelah penutupan pendapatan dan beban, Ikhtisar Laba Rugi bersaldo kredit Rp7.000.000 (laba). Pindahkan ke modal.",
+      "key": [
+        {
+          "account": "303",
+          "side": "DEBIT",
+          "amount": 7000000
+        },
+        {
+          "account": "301",
+          "side": "CREDIT",
+          "amount": 7000000
+        }
+      ],
+      "why": "Saldo kredit berarti laba. Ikhtisar Laba Rugi didebit untuk menutupnya, dan modal pemilik bertambah (kredit).",
+      "targets": [
+        "normal_balance_confusion"
+      ],
+      "tags": [
+        "penutup"
+      ]
+    },
+    {
+      "id": "j-tutup-prive",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t07-closing-entries",
+      "title": "Menutup prive",
+      "story": "Tutup akun Prive yang bersaldo debit Rp500.000 ke modal.",
+      "key": [
+        {
+          "account": "301",
+          "side": "DEBIT",
+          "amount": 500000
+        },
+        {
+          "account": "302",
+          "side": "CREDIT",
+          "amount": 500000
+        }
+      ],
+      "why": "Prive bersaldo debit, ditutup dengan kredit. Modal pemilik berkurang (debit).",
+      "targets": [
+        "contra_account_confusion",
+        "normal_balance_confusion"
+      ],
+      "tags": [
+        "penutup"
+      ]
+    },
+    {
+      "id": "j-koreksi-akun",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t15-errors-and-corrections",
+      "title": "Koreksi salah akun",
+      "story": "Biaya listrik Rp350.000 salah dicatat sebagai Beban Sewa. Buat jurnal koreksinya.",
+      "key": [
+        {
+          "account": "515",
+          "side": "DEBIT",
+          "amount": 350000
+        },
+        {
+          "account": "512",
+          "side": "CREDIT",
+          "amount": 350000
+        }
+      ],
+      "why": "Pindahkan beban dari akun yang salah ke akun yang benar: debit akun yang seharusnya, kredit akun yang keliru.",
+      "targets": [
+        "adjusting_entry_error"
+      ],
+      "tags": [
+        "koreksi"
+      ],
+      "example": {
+        "story": "Beban gaji Rp600.000 salah dicatat sebagai Beban Listrik dan Air. Buat jurnal koreksinya.",
+        "key": [
+          {
+            "account": "511",
+            "side": "DEBIT",
+            "amount": 600000
+          },
+          {
+            "account": "515",
+            "side": "CREDIT",
+            "amount": 600000
+          }
+        ],
+        "why": "Debit beban gaji (yang benar), kredit beban listrik dan air (yang keliru)."
+      }
+    },
+    {
+      "id": "j-koreksi-tertukar",
+      "level": 3,
+      "difficulty": "ADVANCED",
+      "conceptId": "l1-t15-errors-and-corrections",
+      "title": "Koreksi sisi yang tertukar",
+      "story": "Pelunasan piutang Rp1.800.000 salah dicatat debit Piutang Usaha dan kredit Kas (terbalik). Buat jurnal koreksinya.",
+      "key": [
+        {
+          "account": "101",
+          "side": "DEBIT",
+          "amount": 3600000
+        },
+        {
+          "account": "103",
+          "side": "CREDIT",
+          "amount": 3600000
+        }
+      ],
+      "why": "Catatan salah: debit piutang 1.800.000, kredit kas 1.800.000. Seharusnya debit kas, kredit piutang. Koreksi harus membatalkan yang salah sekaligus mencatat yang benar, jadi jumlahnya dua kali lipat: 3.600.000.",
+      "targets": [
+        "debit_credit_swap"
+      ],
+      "tags": [
+        "koreksi"
+      ]
+    },
+    {
+      "id": "j-akuisisi",
+      "level": 4,
+      "difficulty": "ADVANCED",
+      "conceptId": "l4-t02-business-combinations",
+      "title": "Membeli seluruh usaha dengan goodwill",
+      "story": "PT Maju membeli seluruh usaha sebuah toko seharga Rp9.000.000 tunai. Nilai wajar persediaan Rp3.000.000 dan peralatan Rp5.000.000. Selisihnya dicatat sebagai goodwill.",
+      "key": [
+        {
+          "account": "105",
+          "side": "DEBIT",
+          "amount": 3000000
+        },
+        {
+          "account": "111",
+          "side": "DEBIT",
+          "amount": 5000000
+        },
+        {
+          "account": "116",
+          "side": "DEBIT",
+          "amount": 1000000
+        },
+        {
+          "account": "101",
+          "side": "CREDIT",
+          "amount": 9000000
+        }
+      ],
+      "why": "Aset yang diperoleh dicatat sebesar nilai wajar. Harga bayar 9.000.000 dikurangi 8.000.000 aset teridentifikasi = goodwill 1.000.000.",
+      "targets": [
+        "missing_credit_side",
+        "accounting_equation_imbalance"
+      ],
+      "tags": [
+        "majemuk"
+      ],
+      "example": {
+        "story": "PT Sentosa membeli sebuah usaha seharga Rp7.000.000 tunai. Nilai wajar persediaan Rp2.000.000 dan peralatan Rp4.000.000.",
+        "key": [
+          {
+            "account": "105",
+            "side": "DEBIT",
+            "amount": 2000000
+          },
+          {
+            "account": "111",
+            "side": "DEBIT",
+            "amount": 4000000
+          },
+          {
+            "account": "116",
+            "side": "DEBIT",
+            "amount": 1000000
+          },
+          {
+            "account": "101",
+            "side": "CREDIT",
+            "amount": 7000000
+          }
+        ],
+        "why": "7.000.000 - (2.000.000 + 4.000.000) = goodwill 1.000.000."
+      }
+    }
+  ]
+}

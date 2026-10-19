@@ -28,7 +28,6 @@ export const baseResourceSchema = z.object({
   updatedAt: z.date().optional(),
 });
 
-// CREATE DTO
 export const CreateResourceDto = extendApi(
   baseResourceSchema.omit({ id: true, createdAt: true, updatedAt: true }),
   {
@@ -47,7 +46,6 @@ export const CreateResourceDto = extendApi(
 
 export type CreateResourceType = z.infer<typeof CreateResourceDto>;
 
-// UPDATE DTO (semua optional)
 export const UpdateResourceDto = extendApi(
   partialWithoutDefaults(baseResourceSchema)
     .omit({ id: true, createdAt: true, updatedAt: true }),
@@ -65,7 +63,6 @@ export const UpdateResourceDto = extendApi(
 );
 
 export type UpdateResourceType = z.infer<typeof UpdateResourceDto>;
-
 
 export const InternalResourceCallbackDto = z
   .object({

@@ -5,6 +5,7 @@ import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { Actor } from '@/common/authz/policy.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { READABLE_BY_BUYERS } from '../marketplace/content-state';
+import { approvedConceptsByProduct, toPublicConcepts } from '../marketplace/product-concept-links';
 import { MarketplaceClassQueryDtoType } from './classes.dto';
 
 const HOLDING: EnrollmentStatus[] = [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED];
@@ -66,8 +67,16 @@ export class MarketplaceClassesService {
       }),
       this.prisma.classProduct.count({ where }),
     ]);
-    const seats = await this.seatsLeft(rows.map((row) => ({ id: row.id, capacity: row.capacity })));
-    const data = rows.map(({ capacity, ...rest }) => ({ ...rest, capacity, seatsLeft: seats.get(rest.id) ?? null }));
+    const [seats, tags] = await Promise.all([
+      this.seatsLeft(rows.map((row) => ({ id: row.id, capacity: row.capacity }))),
+      approvedConceptsByProduct(this.prisma, 'class', rows.map((row) => row.id)),
+    ]);
+    const data = rows.map(({ capacity, ...rest }) => ({
+      ...rest,
+      capacity,
+      seatsLeft: seats.get(rest.id) ?? null,
+      concepts: toPublicConcepts(tags.get(rest.id)),
+    }));
     return {
       message: 'Successfully retrieved marketplace classes',
       data: { data, pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
@@ -88,8 +97,14 @@ export class MarketplaceClassesService {
     if (!cls) {
       throw new AppError('Class not found', 404, AppErrorCode.CONTENT_NOT_PUBLISHED);
     }
-    const seats = await this.seatsLeft([{ id: cls.id, capacity: cls.capacity }]);
-    return { message: 'Successfully retrieved class', data: { ...cls, seatsLeft: seats.get(cls.id) ?? null } };
+    const [seats, tags] = await Promise.all([
+      this.seatsLeft([{ id: cls.id, capacity: cls.capacity }]),
+      approvedConceptsByProduct(this.prisma, 'class', [cls.id]),
+    ]);
+    return {
+      message: 'Successfully retrieved class',
+      data: { ...cls, seatsLeft: seats.get(cls.id) ?? null, concepts: toPublicConcepts(tags.get(cls.id)) },
+    };
   }
 
   async access(actor: Actor, id: string) {

@@ -13,7 +13,7 @@ const jsonResponse = (status: number, body: unknown, setCookies: string[] = []) 
 
 const stubNuxt = (cookie?: string) => {
   const setHeader = vi.fn();
-  const event = { node: { res: { getHeader: vi.fn(), setHeader } } };
+  const event = { node: { res: { getHeader: vi.fn(), setHeader } }, context: {} };
   vi.stubGlobal('useRuntimeConfig', () => runtimeConfig);
   vi.stubGlobal('useRequestHeaders', () => (cookie ? { cookie } : {}));
   vi.stubGlobal('useRequestEvent', () => event);
@@ -94,6 +94,49 @@ describe('request on the server', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const retryInit = (fetchMock.mock.calls[2] as [string, any])[1];
     expect(retryInit.headers.Authorization).toBe('Bearer new-a');
+  });
+
+  it('drops the expired access cookie on the retry so the fresh bearer token is the one the API reads', async () => {
+    stubNuxt('access_token=expired; refresh_token=old');
+    const fetchMock = guardedFetch((url, _init, calls) => {
+      if (url.endsWith('/auth/refresh-token')) {
+        return jsonResponse(200, { success: true, message: 'ok', data: { access_token: 'new-a', refresh_token: 'new-r' } });
+      }
+      return calls === 1
+        ? jsonResponse(401, { success: false, message: 'expired' })
+        : jsonResponse(200, { success: true, message: 'ok', data: { id: 9 } });
+    });
+
+    const res = await request<{ id: number }>('/auth/check', 'GET');
+
+    expect(res.success).toBe(true);
+    const refreshInit = (fetchMock.mock.calls[1] as [string, any])[1];
+    expect(refreshInit.headers.cookie).toBe('access_token=expired; refresh_token=old');
+    const retryInit = (fetchMock.mock.calls[2] as [string, any])[1];
+    expect(retryInit.headers.Authorization).toBe('Bearer new-a');
+    expect(retryInit.headers.cookie).toBeUndefined();
+  });
+
+  it('reuses the refreshed tokens for the next request of the same render instead of refreshing again', async () => {
+    stubNuxt('access_token=expired; refresh_token=old');
+    const fetchMock = guardedFetch((url, init) => {
+      if (url.endsWith('/auth/refresh-token')) {
+        return jsonResponse(200, { success: true, message: 'ok', data: { access_token: 'new-a', refresh_token: 'new-r' } });
+      }
+      return init.headers.Authorization === 'Bearer new-a'
+        ? jsonResponse(200, { success: true, message: 'ok', data: { id: 1 } })
+        : jsonResponse(401, { success: false, message: 'expired' });
+    });
+
+    await request('/auth/check', 'GET');
+    const callsAfterFirst = fetchMock.mock.calls.length;
+    const second = await request('/notes', 'GET');
+
+    expect(second.success).toBe(true);
+    expect(fetchMock.mock.calls.length).toBe(callsAfterFirst + 1);
+    const secondInit = (fetchMock.mock.calls[callsAfterFirst] as [string, any])[1];
+    expect(secondInit.headers.Authorization).toBe('Bearer new-a');
+    expect(secondInit.headers.cookie).toBeUndefined();
   });
 
   it('does not loop when the refresh endpoint itself answers 401', async () => {

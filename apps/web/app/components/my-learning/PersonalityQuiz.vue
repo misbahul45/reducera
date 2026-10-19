@@ -1,100 +1,71 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useApi } from '~/composable/useApi'
-import type { ApiResponse } from '~/interfaces/api'
-import type { User } from '~/interfaces/auth'
-import type { LessonDetailResponse } from '~/interfaces/curriculum/lessons'
-import type { PersonalityQuizUserAttemptItem } from '~/interfaces/learning/personalityQuiz'
-import { lessonsService } from '~/services/curriculum/lessons'
+import type { PersonalityQuiz, PersonalityQuizUserAttemptItem } from '~/interfaces/learning/personalityQuiz'
+import { normalizeCitations } from '~/lib/chat'
+import { attemptFor, submitOutcome } from '~/lib/placement-quiz'
 import { personalityQuizService } from '~/services/learning/personalityQuiz'
+import SourceList from './SourceList.vue'
 
-const user = useState<User | null>('user')
+const props = defineProps<{
+  open: boolean
+  quiz: PersonalityQuiz | null
+  lessonId: string
+  lessonTitle?: string
+}>()
+
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  submitted: []
+}>()
+
 const { ensure: ensureLearningIds } = useLearningIds()
-const lessonId = useLessonId()
+const { call, loading, respon } = useApi(personalityQuizService.submitQuiz)
+const toast = useToast()
 
-const { call }=useApi(personalityQuizService.submitQuiz)
-const toast=useToast()
-
-const { data: resPersonalityQuizFindAll, refresh: refreshFindAll } = useAsyncData(
-  `personality-quiz-${lessonId.value}`,
-  () =>
-    personalityQuizService.findAll({
-      page: 1,
-      limit: 1,
-      userId: user.value?.id,
-      lessonId: lessonId.value
-    })
-)
-
-const { data: resCurrentLesson } = await useAsyncData<ApiResponse<LessonDetailResponse<true>>>(
-  `personality-lesson-${lessonId.value}`,
-  async () =>
-    lessonId.value
-      ? lessonsService.findOne<true>(lessonId.value, { include: 'steps' })
-      : (null as unknown as ApiResponse<LessonDetailResponse<true>>)
-)
-
-const showModal = ref(false)
-let es: EventSource | null = null
-onMounted(() => {
-  const list = resPersonalityQuizFindAll.value?.data?.data
-  if (Array.isArray(list) && list.length === 1) {
-    const item = list[0]
-    if (item && !item.takenAt) showModal.value = true
-    return
-  }
-
-  es = personalityQuizService.listenPersonalityQuizSse()
-  if (!es) return
-
-  es.onmessage = async () => {
-    await refreshFindAll()
-    const listUpdated = resPersonalityQuizFindAll.value?.data?.data
-    if (Array.isArray(listUpdated) && listUpdated.length === 1) {
-      es?.close()
-      es = null
-      showModal.value = true
-    }
-  }
-})
-
-onBeforeUnmount(() => {
-  if (es) es.close()
-})
-
-const quiz = computed(() => {
-  const list = resPersonalityQuizFindAll.value?.data?.data
-  return (Array.isArray(list) && list.length === 1) ? list[0] : null
-})
-
-
-const questions = computed(() => {
-  const list = resPersonalityQuizFindAll.value?.data?.data
-  if (Array.isArray(list) && list.length === 1) {
-    return list[0]?.questions ?? []
-  }
-  return []
-})
+const questions = computed(() => props.quiz?.questions ?? [])
+const quizCitations = computed(() => normalizeCitations(props.quiz?.sources))
 
 const showQuiz = ref(0)
 const answers = ref<PersonalityQuizUserAttemptItem[]>([])
 const direction = ref('next')
+const failure = ref<string | null>(null)
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) return
+    showQuiz.value = 0
+    answers.value = []
+    failure.value = null
+  },
+)
+
+const current = computed(() => questions.value[showQuiz.value])
+const currentCitations = computed(() => {
+  const wanted = current.value?.sources ?? []
+  return quizCitations.value.filter((citation) => wanted.includes(citation.index))
+})
+const answerOf = (question: string) => answers.value.find((item) => item.question === question)
 
 const setAnswer = (value: PersonalityQuizUserAttemptItem) => {
-  const index = answers.value.findIndex(a => a.question === value.question)
+  const index = answers.value.findIndex((item) => item.question === value.question)
   if (index !== -1) answers.value[index] = value
   else answers.value.push(value)
 }
 
-const onInputChange = (e: Event, q: string, answer: string) => {
-  const target = e.target as HTMLTextAreaElement
-  setAnswer({ question: q, userAnswer: target.value, answer })
+const onInputChange = (event: Event, question: string) => {
+  setAnswer({ question, userAnswer: (event.target as HTMLTextAreaElement).value })
 }
 
+const answered = computed(() => Boolean(current.value && answerOf(current.value.question)?.userAnswer?.trim()))
+const isLast = computed(() => showQuiz.value === questions.value.length - 1)
+const complete = computed(() => questions.value.length > 0 && questions.value.every((item) => answerOf(item.question)?.userAnswer?.trim()))
+
 const next = () => {
-  if (!answers.value[showQuiz.value]) return
+  if (!answered.value) return
   direction.value = 'next'
-  if (showQuiz.value < questions.value.length - 1) showQuiz.value++
+  if (!isLast.value) showQuiz.value++
 }
 
 const back = () => {
@@ -103,41 +74,50 @@ const back = () => {
 }
 
 const submit = async () => {
-  if (!quiz.value) return
-  if (answers.value.length !== questions.value.length) return
+  if (!props.quiz || !complete.value) return
+  failure.value = null
 
-  const ids = await ensureLearningIds(lessonId.value)
+  const ids = await ensureLearningIds(props.lessonId)
+  await call(props.quiz.id, { learningStyleId: ids.learningStyleId }, attemptFor(questions.value, answers.value))
 
-  await call(
-    quiz.value.id,
-    {
-      topicId: ids.topicId,
-      lessonId: lessonId.value,
-      learningStyleId: ids.learningStyleId
-    },
-    answers.value
-  )
+  const outcome = submitOutcome(respon.value)
+  if (outcome.kind === 'failed') {
+    failure.value = outcome.message
+    return
+  }
+
   toast.add({
-    title: 'Generating Learning Path Quiz Completed',
-    color: 'primary',
-    icon: 'i-heroicons-check-circle-20-solid'
+    title: outcome.kind === 'submitted' ? 'Jawabanmu terkirim' : 'Jawabanmu sudah terkirim',
+    description: 'Jalur belajarmu sedang disusun.',
+    color: 'success',
+    icon: 'i-lucide-circle-check',
   })
-
-  showModal.value = false
+  emit('submitted')
+  emit('update:open', false)
 }
 
+const trySubmit = async () => {
+  try {
+    await submit()
+  } catch {
+    failure.value = 'Jawabanmu belum terkirim. Coba kirim lagi.'
+  }
+}
 </script>
 
 <template>
-  <UModal v-model:open="showModal" fullscreen>
+  <UModal :open="open" fullscreen @update:open="emit('update:open', $event)">
     <template #content>
       <div class="rc-quiz">
         <header class="rc-quiz__head">
-          <h2 class="rc-quiz__title">Kuis jalur belajar</h2>
-          <p class="rc-hint">{{ resCurrentLesson?.data?.title }}</p>
+          <div>
+            <h2 class="rc-quiz__title">Kuis jalur belajar</h2>
+            <p class="rc-hint">{{ lessonTitle }}</p>
+          </div>
+          <PlayButton variant="ghost" size="sm" aria-label="Tutup kuis, jawabanmu belum dikirim" @click="emit('update:open', false)">Tutup</PlayButton>
         </header>
 
-        <div v-if="questions.length > 0" class="rc-quiz__body">
+        <div v-if="questions.length > 0 && current" class="rc-quiz__body">
           <PlayProgress
             :value="((showQuiz + 1) / questions.length) * 100"
             :label="`Soal ${showQuiz + 1} dari ${questions.length}`"
@@ -146,21 +126,17 @@ const submit = async () => {
 
           <Transition name="fade" mode="out-in">
             <div :key="showQuiz" class="rc-quiz__question">
-              <UiRenderMarkdown :text="questions[showQuiz]?.question ?? ''" />
+              <UiRenderMarkdown :text="current.question" />
 
               <div class="rc-quiz__answers">
-                <template v-if="questions[showQuiz]?.type === 'multiple_choice'">
+                <template v-if="current.type === 'multiple_choice'">
                   <button
-                    v-for="value in questions[showQuiz]?.options"
+                    v-for="value in current.options"
                     :key="value"
                     type="button"
                     class="rc-quiz__option"
-                    :aria-pressed="answers[showQuiz]?.userAnswer === value"
-                    @click="setAnswer({
-                      question: questions[showQuiz]?.question ?? '',
-                      userAnswer: value,
-                      answer: questions[showQuiz]?.answer ?? ''
-                    })"
+                    :aria-pressed="answerOf(current.question)?.userAnswer === value"
+                    @click="setAnswer({ question: current.question, userAnswer: value })"
                   >
                     {{ value }}
                   </button>
@@ -172,27 +148,29 @@ const submit = async () => {
                     id="quiz-answer"
                     class="rc-field"
                     rows="4"
-                    :value="answers[showQuiz]?.userAnswer || ''"
+                    :value="answerOf(current.question)?.userAnswer || ''"
                     placeholder="Tulis jawabanmu di sini"
-                    @input="onInputChange($event, questions[showQuiz]?.question ?? '', questions[showQuiz]?.answer ?? '')"
+                    @input="onInputChange($event, current.question)"
                   ></textarea>
                 </template>
               </div>
+
+              <SourceList
+                v-if="currentCitations.length"
+                :citations="currentCitations"
+                :prefix="`quiz-${showQuiz}`"
+                title="Soal ini disusun dari"
+              />
             </div>
           </Transition>
+
+          <p v-if="failure" class="rc-error-text" role="alert">{{ failure }}</p>
 
           <div class="rc-quiz__nav">
             <PlayButton variant="outline" :disabled="showQuiz === 0" @click="back">Sebelumnya</PlayButton>
 
-            <PlayButton
-              v-if="showQuiz === questions.length - 1"
-              :disabled="answers.length !== questions.length"
-              @click="submit"
-            >
-              Kirim jawaban
-            </PlayButton>
-
-            <PlayButton v-else :disabled="!answers[showQuiz]" @click="next">Berikutnya</PlayButton>
+            <PlayButton v-if="isLast" :disabled="!complete" :loading="loading" @click="trySubmit">Kirim jawaban</PlayButton>
+            <PlayButton v-else :disabled="!answered" @click="next">Berikutnya</PlayButton>
           </div>
         </div>
       </div>
@@ -207,15 +185,19 @@ const submit = async () => {
   align-content: start;
   width: 100%;
   max-width: 42rem;
-  min-height: 100dvh;
+  height: 100dvh;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: 1.5rem 1rem 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background-color: var(--rc-surface);
   color: var(--rc-fg);
 }
 .rc-quiz__head {
-  display: grid;
-  gap: 0.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 .rc-quiz__title {
   margin: 0;
@@ -257,10 +239,14 @@ const submit = async () => {
   outline-offset: 3px;
 }
 .rc-quiz__nav {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: space-between;
+  padding: 0.75rem 0 1rem;
+  background-color: var(--rc-surface);
 }
 .fade-enter-active,
 .fade-leave-active {

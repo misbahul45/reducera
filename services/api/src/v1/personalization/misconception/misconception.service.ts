@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MisconceptionRepo } from './misconception.repo';
+import { isMisconceptionCode } from '@/v1/quiz/misconception-codes';
 
 const PATTERNS: Array<{
   code: string;
@@ -61,6 +62,24 @@ export class MisconceptionService {
       confidence: 0.7,
     });
     return { patternCode: code };
+  }
+
+  async recordTagged(input: {
+    userId: string;
+    topicId?: string;
+    code: string;
+    questionId: string;
+    userAnswer: string;
+  }): Promise<{ patternCode: string | null }> {
+    if (!isMisconceptionCode(input.code)) return { patternCode: null };
+    await this.repo.upsert({
+      userId: input.userId,
+      conceptKey: input.code,
+      topicId: input.topicId,
+      evidence: { questionId: input.questionId, userAnswer: input.userAnswer },
+      confidence: 0.8,
+    });
+    return { patternCode: input.code };
   }
 
   async listActiveByUser(userId: string) {

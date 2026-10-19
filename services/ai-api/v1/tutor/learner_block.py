@@ -15,10 +15,13 @@ def read_learner_snapshot(
     *,
     lesson_id: str | None = None,
     user_step_id: str | None = None,
+    intent: str | None = None,
 ) -> dict[str, Any] | None:
     ids = {key: value for key, value in (("lesson_id", lesson_id), ("user_step_id", user_step_id)) if value}
     if not ids:
         return None
+    if intent:
+        ids["intent"] = intent
     try:
         return fetch_learner_state(session, **ids)
     except Exception:

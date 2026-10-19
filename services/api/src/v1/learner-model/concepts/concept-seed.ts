@@ -129,9 +129,12 @@ export interface ConceptSeedInput {
   graph: GoldenGraphFile;
   aliases: AliasEntry[];
   links: LinkFile;
+  extraLinks?: LinkFile[];
 }
 
-export const validateConceptSeed = ({ graph, aliases, links }: ConceptSeedInput): string[] => {
+export const allLinkFiles = ({ links, extraLinks }: Pick<ConceptSeedInput, 'links' | 'extraLinks'>): LinkFile[] => [links, ...(extraLinks ?? [])];
+
+export const validateConceptSeed = ({ graph, aliases, links, extraLinks }: ConceptSeedInput): string[] => {
   const issues: string[] = [];
   const ids = new Set<string>();
   const requires = new Map<string, string[]>();
@@ -171,24 +174,31 @@ export const validateConceptSeed = ({ graph, aliases, links }: ConceptSeedInput)
     }
   }
 
-  const seenSubTopics = new Set<string>();
-  for (const link of links.subTopics) {
-    if (seenSubTopics.has(link.title)) issues.push(`sub-topic ${link.title} is linked twice`);
-    seenSubTopics.add(link.title);
-    if (link.conceptIds.length === 0) issues.push(`sub-topic link ${link.title} has no concept`);
-    for (const conceptId of link.conceptIds) {
-      if (!ids.has(conceptId)) issues.push(`sub-topic link ${link.title} targets unknown concept ${conceptId}`);
-    }
-  }
+  const seenTopics = new Set<string>();
+  for (const file of allLinkFiles({ links, extraLinks })) {
+    if (seenTopics.has(file.topicSlug)) issues.push(`topic ${file.topicSlug} has two link files`);
+    seenTopics.add(file.topicSlug);
+    const label = (name: string) => (file === links ? name : `${file.topicSlug}: ${name}`);
 
-  const seenLessons = new Set<string>();
-  for (const link of links.lessons) {
-    const key = `${link.subTopicTitle} / ${link.title}`;
-    if (seenLessons.has(key)) issues.push(`lesson ${key} is linked twice`);
-    seenLessons.add(key);
-    if (link.conceptIds.length === 0) issues.push(`lesson link ${key} has no concept`);
-    for (const conceptId of link.conceptIds) {
-      if (!ids.has(conceptId)) issues.push(`lesson link ${key} targets unknown concept ${conceptId}`);
+    const seenSubTopics = new Set<string>();
+    for (const link of file.subTopics) {
+      if (seenSubTopics.has(link.title)) issues.push(label(`sub-topic ${link.title} is linked twice`));
+      seenSubTopics.add(link.title);
+      if (link.conceptIds.length === 0) issues.push(label(`sub-topic link ${link.title} has no concept`));
+      for (const conceptId of link.conceptIds) {
+        if (!ids.has(conceptId)) issues.push(label(`sub-topic link ${link.title} targets unknown concept ${conceptId}`));
+      }
+    }
+
+    const seenLessons = new Set<string>();
+    for (const link of file.lessons) {
+      const key = `${link.subTopicTitle} / ${link.title}`;
+      if (seenLessons.has(key)) issues.push(label(`lesson ${key} is linked twice`));
+      seenLessons.add(key);
+      if (link.conceptIds.length === 0) issues.push(label(`lesson link ${key} has no concept`));
+      for (const conceptId of link.conceptIds) {
+        if (!ids.has(conceptId)) issues.push(label(`lesson link ${key} targets unknown concept ${conceptId}`));
+      }
     }
   }
 

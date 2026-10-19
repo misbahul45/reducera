@@ -1,0 +1,385 @@
+{
+  "graph": {
+    "levels": [
+      {
+        "id": 1,
+        "title": "Dasar UTBK-SNBT",
+        "topics": [
+          {
+            "id": "utbk-struktur-dan-waktu",
+            "title": "Struktur UTBK-SNBT dan pengelolaan waktu",
+            "description": "Tujuh subtes UTBK-SNBT, jumlah soal, waktu resmi, dan cara membagi waktu per soal.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Tes Potensi Skolastik",
+        "topics": [
+          {
+            "id": "utbk-penalaran-induktif",
+            "title": "Penalaran induktif",
+            "description": "Menemukan prinsip atau aturan umum dari fakta dan contoh.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-penalaran-deduktif",
+            "title": "Penalaran deduktif",
+            "description": "Menarik kesimpulan yang pasti dari premis dengan silogisme dan pernyataan bersyarat.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-penalaran-kuantitatif",
+            "title": "Penalaran kuantitatif",
+            "description": "Bernalar dengan angka, persentase, perbandingan, rata-rata, dan soal cerita.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-leksikal",
+            "title": "Pengetahuan leksikal",
+            "description": "Makna kata, hubungan makna, dan menebak makna dari konteks.",
+            "prerequisites": [],
+            "estimatedMinutes": 25
+          },
+          {
+            "id": "utbk-pemahaman-bacaan",
+            "title": "Menganalisis dan menyimpulkan bacaan",
+            "description": "Hubungan antarkalimat dan antarparagraf serta kesimpulan yang didukung teks.",
+            "prerequisites": [
+              "utbk-leksikal"
+            ],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-pbm-pemilihan-gagasan",
+            "title": "Pemilihan gagasan",
+            "description": "Memilih judul, gagasan pelengkap, diksi, dan kalimat pelengkap paragraf.",
+            "prerequisites": [],
+            "estimatedMinutes": 25
+          },
+          {
+            "id": "utbk-pbm-penataan-gagasan",
+            "title": "Penataan gagasan",
+            "description": "Kalimat inti, penggabungan kalimat, urutan kalimat, dan tanda baca.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-pbm-perbaikan-gagasan",
+            "title": "Perbaikan gagasan",
+            "description": "Ejaan baku menurut EYD Edisi V, kata serapan, kata mubazir, dan kalimat efektif.",
+            "prerequisites": [],
+            "estimatedMinutes": 30
+          },
+          {
+            "id": "utbk-pk-bilangan-aljabar",
+            "title": "Bilangan dan aljabar",
+            "description": "Operasi bilangan, eksponen, persamaan, pertidaksamaan, dan fungsi.",
+            "prerequisites": [],
+            "estimatedMinutes": 40
+          },
+          {
+            "id": "utbk-pk-geometri-pengukuran",
+            "title": "Geometri dan pengukuran",
+            "description": "Bangun datar, bangun ruang, satuan, skala, dan kesebangunan.",
+            "prerequisites": [],
+            "estimatedMinutes": 40
+          },
+          {
+            "id": "utbk-pk-data-peluang",
+            "title": "Analisis data dan peluang",
+            "description": "Rata-rata, median, modus, jangkauan, peluang, permutasi, dan kombinasi.",
+            "prerequisites": [],
+            "estimatedMinutes": 40
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Tes Literasi",
+        "topics": [
+          {
+            "id": "utbk-literasi-menemukan-memahami",
+            "title": "Menemukan dan memahami informasi teks",
+            "description": "Informasi eksplisit, gagasan utama, dan kesimpulan dari teks sains dan sosial humaniora.",
+            "prerequisites": [],
+            "estimatedMinutes": 35
+          },
+          {
+            "id": "utbk-literasi-menilai-merefleksi",
+            "title": "Menilai dan merefleksi teks",
+            "description": "Menilai bukti, argumen, dan sumber, serta merefleksi dan mengapresiasi teks sastra.",
+            "prerequisites": [
+              "utbk-literasi-menemukan-memahami"
+            ],
+            "estimatedMinutes": 35
+          },
+          {
+            "id": "utbk-english-main-idea",
+            "title": "English reading: main idea and details",
+            "description": "Gagasan utama, rincian, makna kata dalam konteks, dan kata rujukan pada teks berbahasa Inggris.",
+            "prerequisites": [],
+            "estimatedMinutes": 35
+          },
+          {
+            "id": "utbk-english-inference",
+            "title": "English reading: inference and purpose",
+            "description": "Inferensi, tujuan penulis, nada, dan teks ilmiah berbahasa Inggris.",
+            "prerequisites": [
+              "utbk-english-main-idea"
+            ],
+            "estimatedMinutes": 35
+          },
+          {
+            "id": "utbk-pm-merumuskan",
+            "title": "Merumuskan masalah matematika",
+            "description": "Mengubah situasi nyata menjadi model matematika dan memilih strategi serta pola.",
+            "prerequisites": [
+              "utbk-pk-bilangan-aljabar"
+            ],
+            "estimatedMinutes": 45
+          },
+          {
+            "id": "utbk-pm-menggunakan-menafsirkan",
+            "title": "Menggunakan, menafsirkan, dan mengevaluasi",
+            "description": "Menjalankan prosedur, membaca hasil dalam konteks, dan menilai argumen matematika.",
+            "prerequisites": [
+              "utbk-pm-merumuskan"
+            ],
+            "estimatedMinutes": 45
+          }
+        ]
+      }
+    ]
+  },
+  "links": {
+    "topicSlug": "utbk-snbt",
+    "subTopics": [
+      {
+        "title": "Mengenal UTBK-SNBT",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-struktur-dan-waktu"
+        ]
+      },
+      {
+        "title": "Penalaran Umum",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-penalaran-induktif",
+          "utbk-penalaran-deduktif",
+          "utbk-penalaran-kuantitatif"
+        ]
+      },
+      {
+        "title": "Pengetahuan dan Pemahaman Umum",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-leksikal",
+          "utbk-pemahaman-bacaan"
+        ]
+      },
+      {
+        "title": "Pemahaman Bacaan dan Menulis",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pbm-pemilihan-gagasan",
+          "utbk-pbm-penataan-gagasan",
+          "utbk-pbm-perbaikan-gagasan"
+        ]
+      },
+      {
+        "title": "Pengetahuan Kuantitatif",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pk-bilangan-aljabar",
+          "utbk-pk-geometri-pengukuran",
+          "utbk-pk-data-peluang"
+        ]
+      },
+      {
+        "title": "Literasi dalam Bahasa Indonesia",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-literasi-menemukan-memahami",
+          "utbk-literasi-menilai-merefleksi"
+        ]
+      },
+      {
+        "title": "Literasi dalam Bahasa Inggris",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-english-main-idea",
+          "utbk-english-inference"
+        ]
+      },
+      {
+        "title": "Penalaran Matematika",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pm-merumuskan",
+          "utbk-pm-menggunakan-menafsirkan"
+        ]
+      }
+    ],
+    "lessons": [
+      {
+        "subTopicTitle": "Mengenal UTBK-SNBT",
+        "title": "Struktur tes dan alokasi waktu",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-struktur-dan-waktu"
+        ]
+      },
+      {
+        "subTopicTitle": "Mengenal UTBK-SNBT",
+        "title": "Mengatur waktu dan cara berlatih",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-struktur-dan-waktu"
+        ]
+      },
+      {
+        "subTopicTitle": "Penalaran Umum",
+        "title": "Penalaran induktif",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-penalaran-induktif"
+        ]
+      },
+      {
+        "subTopicTitle": "Penalaran Umum",
+        "title": "Penalaran deduktif",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-penalaran-deduktif"
+        ]
+      },
+      {
+        "subTopicTitle": "Penalaran Umum",
+        "title": "Penalaran kuantitatif",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-penalaran-kuantitatif"
+        ]
+      },
+      {
+        "subTopicTitle": "Pengetahuan dan Pemahaman Umum",
+        "title": "Pengetahuan leksikal",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-leksikal"
+        ]
+      },
+      {
+        "subTopicTitle": "Pengetahuan dan Pemahaman Umum",
+        "title": "Memahami dan menyimpulkan bacaan",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pemahaman-bacaan"
+        ]
+      },
+      {
+        "subTopicTitle": "Pemahaman Bacaan dan Menulis",
+        "title": "Pemilihan gagasan",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pbm-pemilihan-gagasan"
+        ]
+      },
+      {
+        "subTopicTitle": "Pemahaman Bacaan dan Menulis",
+        "title": "Penataan gagasan",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pbm-penataan-gagasan"
+        ]
+      },
+      {
+        "subTopicTitle": "Pemahaman Bacaan dan Menulis",
+        "title": "Perbaikan gagasan: ejaan dan kalimat efektif",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pbm-perbaikan-gagasan"
+        ]
+      },
+      {
+        "subTopicTitle": "Pengetahuan Kuantitatif",
+        "title": "Bilangan dan aljabar",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pk-bilangan-aljabar"
+        ]
+      },
+      {
+        "subTopicTitle": "Pengetahuan Kuantitatif",
+        "title": "Geometri dan pengukuran",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pk-geometri-pengukuran"
+        ]
+      },
+      {
+        "subTopicTitle": "Pengetahuan Kuantitatif",
+        "title": "Analisis data dan peluang",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pk-data-peluang"
+        ]
+      },
+      {
+        "subTopicTitle": "Literasi dalam Bahasa Indonesia",
+        "title": "Menemukan dan memahami informasi",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-literasi-menemukan-memahami"
+        ]
+      },
+      {
+        "subTopicTitle": "Literasi dalam Bahasa Indonesia",
+        "title": "Menilai dan merefleksi teks",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-literasi-menilai-merefleksi"
+        ]
+      },
+      {
+        "subTopicTitle": "Literasi dalam Bahasa Inggris",
+        "title": "Main idea and supporting details",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-english-main-idea"
+        ]
+      },
+      {
+        "subTopicTitle": "Literasi dalam Bahasa Inggris",
+        "title": "Inference, purpose, and evaluating texts",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-english-inference"
+        ]
+      },
+      {
+        "subTopicTitle": "Penalaran Matematika",
+        "title": "Merumuskan dan memilih strategi",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pm-merumuskan"
+        ]
+      },
+      {
+        "subTopicTitle": "Penalaran Matematika",
+        "title": "Menggunakan, menafsirkan, dan mengevaluasi",
+        "status": "APPROVED",
+        "conceptIds": [
+          "utbk-pm-menggunakan-menafsirkan"
+        ]
+      }
+    ]
+  }
+}

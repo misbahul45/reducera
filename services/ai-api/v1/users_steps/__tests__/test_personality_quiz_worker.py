@@ -24,18 +24,22 @@ def _payload():
 
 
 def _question():
-    return SimpleNamespace(question="Apa itu aset?", type="input", difficulty="easy", options=[], answer="Harta")
+    return SimpleNamespace(question="Apa itu aset?", type="input", difficulty="easy", options=[], answer="Harta", sources=[1])
 
 
-def _run(payload):
+CITATIONS = [{"index": 1, "kind": "TOPIC", "title": "Konsep: Persamaan Akuntansi", "refType": "CONCEPT", "refId": "c1"}]
+
+
+def _run(payload, result=None, unlock=None):
     graph = MagicMock()
-    graph.invoke.return_value = {"quiz": [_question()]}
+    graph.invoke.return_value = result if result is not None else {"quiz": [_question()], "sources": CITATIONS}
     create = MagicMock()
     with (
         patch.object(workers, "graph", graph),
         patch.object(workers, "create_personality_quiz", create),
         patch.object(workers, "write_episode"),
         patch.object(workers, "write_decision_trace"),
+        patch.object(workers, "release_lock", unlock or MagicMock()),
     ):
         questions = workers.generate_personality_quiz.run(payload)
     return graph, create, questions
@@ -62,3 +66,53 @@ def test_quiz_is_saved_for_the_lesson_of_the_request():
     assert saved["userId"] == USER
     assert saved["questions"][0]["question"] == "Apa itu aset?"
     assert len(questions) == 1
+
+
+def test_the_questions_and_the_quiz_carry_the_sources_they_rest_on():
+    _, create, _ = _run(_payload())
+
+    saved = create.call_args.kwargs["payload"]
+    assert saved["questions"][0]["sources"] == [1]
+    assert saved["sources"] == CITATIONS
+
+
+def test_a_quiz_without_any_question_that_has_a_real_source_is_not_created_at_all():
+    _, create, questions = _run(_payload(), {"quiz": [], "sources": []})
+
+    create.assert_not_called()
+    assert questions == []
+
+
+def test_the_lock_on_the_quiz_is_freed_once_the_quiz_exists_so_it_never_blocks_a_later_request():
+    unlock = MagicMock()
+
+    _run(_payload(), unlock=unlock)
+
+    unlock.assert_called_once_with("quiz", USER, LESSON)
+
+
+def test_the_lock_is_also_freed_when_no_quiz_could_be_made_so_the_learner_can_try_again():
+    unlock = MagicMock()
+
+    _run(_payload(), {"quiz": [], "sources": []}, unlock=unlock)
+
+    unlock.assert_called_once_with("quiz", USER, LESSON)
+
+
+def test_the_lock_is_freed_when_the_last_attempt_fails_and_kept_while_a_retry_is_still_coming():
+    task = workers.generate_personality_quiz
+    graph = MagicMock()
+    graph.invoke.side_effect = RuntimeError("model down")
+
+    for retries, expected_calls in ((0, 0), (task.max_retries, 1)):
+        unlock = MagicMock()
+        task.push_request(retries=retries)
+        try:
+            with patch.object(workers, "graph", graph), patch.object(workers, "release_lock", unlock):
+                try:
+                    task.run(_payload())
+                except RuntimeError:
+                    pass
+        finally:
+            task.pop_request()
+        assert unlock.call_count == expected_calls

@@ -185,7 +185,6 @@
   }
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .sunset-sun-container {
     width: 60%;

@@ -19,13 +19,15 @@ const modes: ReadonlyArray<{ id: 'light' | 'dark' | 'system'; label: string }> =
     <div class="rc-stack" style="--rc-stack-gap: 1.25rem">
       <PlayCard as="section" aria-labelledby="look-title">
         <h2 id="look-title" class="rc-h2">Tampilan</h2>
-        <p class="rc-hint">Tema mengatur warna dan ikon gamifikasi. Saat ini: <strong>{{ defaultTheme?.theme.title ?? 'Play' }}</strong>.</p>
+        <p class="rc-hint">Tema bawaan aplikasi: <strong>{{ defaultTheme?.theme.title ?? 'Play' }}</strong>. Kamu bisa membuat tema sendiri di bawah.</p>
         <div class="rc-row" role="group" aria-label="Mode warna" style="margin-top: 0.75rem">
           <button v-for="mode in modes" :key="mode.id" type="button" class="rc-chip rc-filter__chip" :class="colorMode.preference === mode.id && 'rc-chip--info'" :aria-pressed="colorMode.preference === mode.id" @click="colorMode.preference = mode.id">
             {{ mode.label }}
           </button>
         </div>
       </PlayCard>
+
+      <ThemeMoodPicker />
 
       <BoardMembershipForm />
 

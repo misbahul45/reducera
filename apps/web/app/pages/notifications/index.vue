@@ -5,7 +5,7 @@ import EmptyState from '~/components/ui/EmptyState.vue';
 import ErrorState from '~/components/ui/ErrorState.vue';
 import type { User } from '~/interfaces/auth';
 import type { NotificationDetailResponse } from '~/interfaces/notification';
-import { canMarkRead, formatNotificationTime, notificationIcon, sortNotifications } from '~/lib/notifications';
+import { canMarkRead, formatNotificationTime, notificationAction, notificationIcon, sortNotifications } from '~/lib/notifications';
 import { QK } from '~/lib/query-keys';
 import { notificationService } from '~/services/notifications';
 
@@ -37,7 +37,7 @@ useHead({ title: 'Notifikasi | ReduCera' });
 
 <template>
   <div class="rc-stack rc-learning">
-    <PageHeader title="Notifikasi" subtitle="Kabar tentang streak, pencapaian, dan pengumuman.">
+    <PageHeader title="Notifikasi" subtitle="Kabar tentang streak, pencapaian, pengingat ulasan, dan pengumuman.">
       <template v-if="unreadMine.length" #actions>
         <PlayButton
           variant="outline"
@@ -73,6 +73,9 @@ useHead({ title: 'Notifikasi | ReduCera' });
             <p v-if="item.body" class="rc-notif__body">{{ item.body }}</p>
             <p class="rc-hint">{{ formatNotificationTime(item.createdAt) }}</p>
           </div>
+          <PlayButton v-if="notificationAction(item.type)" :to="notificationAction(item.type)!.to" variant="secondary" size="sm">
+            {{ notificationAction(item.type)!.label }}
+          </PlayButton>
           <PlayButton
             v-if="canMarkRead(item, user?.id)"
             variant="ghost"

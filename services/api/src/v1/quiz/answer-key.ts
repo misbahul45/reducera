@@ -1,3 +1,5 @@
+const HIDDEN_KEYS = new Set(['correctAnswer', 'distractors']);
+
 const KEY_HOLDERS = new Set(['ADMIN', 'TEACHER']);
 
 export const canSeeAnswerKey = (role: string | undefined): boolean => role !== undefined && KEY_HOLDERS.has(role);
@@ -7,7 +9,7 @@ const strip = (value: unknown): unknown => {
   if (value === null || typeof value !== 'object' || value instanceof Date) return value;
   const clean: Record<string, unknown> = {};
   for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
-    if (key === 'correctAnswer') continue;
+    if (HIDDEN_KEYS.has(key)) continue;
     clean[key] = strip(inner);
   }
   return clean;

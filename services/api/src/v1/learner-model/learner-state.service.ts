@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
-import { buildConceptGraph } from './concepts/concept-graph';
+import { buildConceptGraph, restrictConceptGraph } from './concepts/concept-graph';
 import { ConceptRegistryService } from './concepts/concept-registry.service';
 import { ConceptView } from './concepts/concept.types';
 import { LearnerPolicyService } from './policy/learner-policy.service';
@@ -101,12 +101,23 @@ export class LearnerStateService {
     return rows.length === 0 ? 0 : rows.reduce((sum, row) => sum + row.score, 0) / rows.length;
   }
 
+  async hasEnrollment(userId: string): Promise<boolean> {
+    return (await this.prisma.userTopic.count({ where: { userId } })) > 0;
+  }
+
+  private async courseScope(userId: string): Promise<ReadonlySet<string> | null> {
+    const topics = await this.prisma.userTopic.findMany({ where: { userId }, select: { topicId: true } });
+    if (topics.length === 0) return null;
+    const ids = new Set((await Promise.all(topics.map(({ topicId }) => this.registry.topicConceptIds(topicId)))).flat());
+    return ids.size === 0 ? null : ids;
+  }
+
   async skillNodes(userId: string): Promise<SkillNodeView[]> {
-    const [rows, concepts] = await Promise.all([this.rowsOf(userId), this.registry.listActive()]);
+    const [rows, concepts, scope] = await Promise.all([this.rowsOf(userId), this.registry.listActive(), this.courseScope(userId)]);
     const byConcept = new Map(rows.map((row) => [row.conceptId, row]));
     const active = new Set(concepts.map((c) => c.id));
 
-    return concepts.map((concept) => {
+    return concepts.filter((concept) => scope === null || scope.has(concept.id)).map((concept) => {
       const own = byConcept.get(concept.id) ?? null;
       const prerequisitesPassed = concept.prerequisiteIds
         .filter((id) => active.has(id))
@@ -126,9 +137,10 @@ export class LearnerStateService {
   }
 
   async nextConcept(userId: string): Promise<NextConceptView> {
-    const [rows, concepts] = await Promise.all([this.rowsOf(userId), this.registry.listActive()]);
+    const [rows, concepts, scope] = await Promise.all([this.rowsOf(userId), this.registry.listActive(), this.courseScope(userId)]);
+    const graph = buildConceptGraph(concepts);
     const decision = this.policy.nextConcept({
-      graph: buildConceptGraph(concepts),
+      graph: scope === null ? graph : restrictConceptGraph(graph, scope),
       progress: new Map(rows.map((row) => [row.conceptId, { score: row.score, evidenceCount: row.evidenceCount }])),
     });
     const chosen = concepts.find((c) => c.id === decision.conceptId);

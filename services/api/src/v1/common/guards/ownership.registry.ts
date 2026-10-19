@@ -10,6 +10,7 @@ export type OwnedResource =
   | 'content'
   | 'user-step'
   | 'message'
+  | 'chat-attachment'
   | 'lesson-progress'
   | 'subtopic-progress'
   | 'step-progress'
@@ -21,6 +22,7 @@ export type OwnedResource =
   | 'personality-quiz'
   | 'learning-style'
   | 'notification'
+  | 'note'
   | 'daily-log'
   | 'streak'
   | 'teacher-application'
@@ -80,6 +82,13 @@ export const OWNER_RESOLVERS: Record<OwnedResource, Resolver> = {
     );
   },
   'user-step': direct('userStep'),
+  'chat-attachment': async (prisma, id) => {
+    const attachment = await prisma.chatAttachment.findUnique({
+      where: { id },
+      select: { chat: { select: { userStep: { select: { userId: true } } } } },
+    });
+    return attachment?.chat?.userStep?.userId ?? null;
+  },
   message: async (prisma, id) => {
     const message = await prisma.chatMessage.findUnique({
       where: { id },
@@ -124,6 +133,7 @@ export const OWNER_RESOLVERS: Record<OwnedResource, Resolver> = {
     if (!row) return null;
     return row.userId ?? UNOWNED;
   },
+  note: direct('note'),
   'daily-log': direct('dailyActivityLog'),
   streak: direct('streakHistory'),
   'teacher-application': direct('teacherApplication'),

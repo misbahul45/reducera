@@ -9,6 +9,7 @@ export interface AssessmentGamifyInput {
   subTopicId: string | null | undefined;
   at: Date;
   xpGained: number;
+  passed: boolean;
 }
 
 export interface AssessmentGamifyOutcome {
@@ -36,7 +37,9 @@ export class AssessmentGamifyService {
 
   async afterAssessment(input: AssessmentGamifyInput, tx: Prisma.TransactionClient): Promise<AssessmentGamifyOutcome> {
     const { stars } = await this.nodes.onAssessment({ userId: input.userId, subTopicId: input.subTopicId }, tx);
-    const streak = await this.streaks.onQualified({ userId: input.userId, at: input.at }, tx);
+    const streak = input.passed
+      ? await this.streaks.onQualified({ userId: input.userId, at: input.at }, tx)
+      : await this.streaks.standing(input.userId, tx);
     const unlocked = await this.achievements.evaluate(input.userId, tx);
 
     return {

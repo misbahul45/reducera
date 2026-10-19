@@ -116,6 +116,7 @@ class GenerateQuestionPipeline(BaseModel):
     learning_style: Optional[LearningStyleProfileBase] = None
     context: Optional[str] = None
     quiz: Optional[List[Any]] = None
+    sources: Optional[List[Any]] = None
 
 
 class PersonalityQuiz(BaseModel):
@@ -153,12 +154,14 @@ class QuizItem(BaseModel):
     difficulty: Literal["easy", "medium", "hard", "hots"]
     options: Optional[List[str]] = None
     answer: Optional[str] = None
+    sources: List[int] = Field(default_factory=list)
 
 
 class QuizResponse(BaseModel):
     model_config = _BASE_CONFIG
 
     quiz: List[QuizItem]
+    sources: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class BaseUserStep(BaseModel):

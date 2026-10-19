@@ -5,17 +5,22 @@ import logging
 from config.agent_session import AgentSession
 from config.embedding_pipeline import get_embedding_pipeline
 from config.model_router import get_router
-from config.prompt_segmentation import build_segmented_prompt, segment_retrieved
+from config.prompt_segmentation import build_segmented_prompt
 from errors.types import CrossServiceError, MemoryError, RetrievalError
 from utils.tools.memory import tool_memory_upsert, tool_semantic_search
-from utils.tools.web_search import tool_web_search
 from v1.domain import load_default_taxonomy
 from v1.domain.context import render_domain_context
 from v1.domain.governance import retrieval_scope
+from v1.learning.hybrid import rank_hybrid
+from v1.learning.material_rewrite import exercise_count, plan_words
+from v1.learning.sources import KIND_MATERIAL, KIND_TOPIC, apply_citations, render_sources
+from v1.learning.topic_sources import fetch_topic_sources
+from v1.learning.turn_record import micro_plan_of
 from v1.tutor.learner_block import read_learner_snapshot, render_snapshot_block
 from v1.tutor.personalization_prompt import render_tutor_prompt
 from v1.tutor.tutor_state import TutorRunState
 from v1.tutor.context_loaders import TutorRuntime
+from v1.learning.citations import citations_of
 from v1.learning.dto import (
     CitationDto,
     GenerateContentMaterialPipeline,
@@ -227,29 +232,10 @@ Output: 3 sentences + bullet focused next + bullet learning plan
     return state
 
 
-def _citation_of(result: dict) -> CitationDto | None:
-    metadata = result.get("metadata", {}) or {}
-    score = float(result.get("score", 0.0))
-    concept_ids = metadata.get("concept_ids") or []
-    if score <= 0.0:
-        return None
-    if not (metadata.get("lesson_id") or concept_ids or metadata.get("resource_id")):
-        return None
-    return CitationDto(
-        lesson_id=metadata.get("lesson_id"),
-        concept_id=concept_ids[0] if concept_ids else None,
-        resource_id=metadata.get("resource_id"),
-        chunk_id=metadata.get("chunk_id"),
-        score=score,
-        source=metadata.get("source", "reducera-embedding"),
-        snippet=(result.get("text", "") or "")[:200],
-    )
-
-
-def retrieve_material_rag(
+def retrieve_material_results(
     state: GenerateContentMaterialPipeline,
     snapshot: dict | None = None,
-) -> tuple[str, list[CitationDto]]:
+) -> list[dict]:
     query = (
         f"{state.topic.title if state.topic else ''} "
         f"{state.lesson.title if state.lesson else ''} "
@@ -262,63 +248,51 @@ def retrieve_material_rag(
             state.message_id,
             session,
             {
-                "text": f"Retrieved {len(results)} RAG materials for query: {query}",
+                "text": "Mencari referensi di materi topik…",
                 "status": "PROCESSING",
             },
         )
-        if not results:
-            return "", []
-        text = "\n".join([r["text"] for r in results])
-        citations: list[CitationDto] = []
-        for r in results:
-            try:
-                citation = _citation_of(r)
-            except Exception as exc:
-                logger.warning("[RAG] skipping malformed citation: %s", exc)
-                continue
-            if citation is not None:
-                citations.append(citation)
-        return text, citations
+        return list(results or [])
     except RetrievalError as exc:
         logger.warning("[RAG] retrieval failed: %s", exc.message)
+        return []
+
+
+def retrieve_material_rag(
+    state: GenerateContentMaterialPipeline,
+    snapshot: dict | None = None,
+) -> tuple[str, list[CitationDto]]:
+    results = retrieve_material_results(state, snapshot)
+    if not results:
         return "", []
+    return "\n".join([r["text"] for r in results]), citations_of(results)
 
 
-def retrieve_material_web(state: GenerateContentMaterialPipeline) -> str:
-    query = (
-        f"{state.topic.title if state.topic else ''} "
-        f"{state.step.title if state.step else ''} "
-        "learning material summary"
-    )
-    session = _session(state)
-    try:
-        update_message_chat(
-            state.message_id,
-            session,
-            {
-                "text": f"Performing web search for query: {query}",
-                "status": "PROCESSING",
-            },
-        )
-        return tool_web_search(query, limit=5)
-    except RetrievalError as exc:
-        logger.warning("[WEB] web search failed: %s", exc.message)
-        return ""
+MATERIAL_READY_TEXT = "Materi untuk langkah ini sudah siap di halaman. Kalau ada bagian yang masih bikin bingung, tanya aku ya. Atau kalau mau menguji diri, aku bisa buatkan soal latihan dari materi ini."
+MATERIAL_READY_ACTIONS = [{"type": "QUIZ", "count": 5}]
+NO_SOURCES = "[Tidak ada sumber topik di database untuk pelajaran ini]"
+CITATION_RULES = (
+    "Setiap kalimat faktual wajib diberi penanda sumber berupa nomor dokumen di dalam kurung siku, misalnya [2], "
+    "mengikuti id pada retrieved_document. Hanya pakai id yang benar-benar ada, jangan membuat id, "
+    "jangan menulis daftar sumber karena aplikasi yang menampilkannya. Bila sumber tidak memuat sesuatu, "
+    "tulis bahwa hal itu belum tercakup di sumber topik dan jangan mengarangnya."
+)
 
 
 def generate_material(
     state: GenerateContentMaterialPipeline,
 ) -> GenerateContentMaterialPipeline:
     session = _session(state)
-    snapshot = read_learner_snapshot(session, lesson_id=state.lesson_id)
-    rag, rag_citations = retrieve_material_rag(state, snapshot)
-    web = retrieve_material_web(state)
+    snapshot = read_learner_snapshot(session, lesson_id=state.lesson_id, intent="NEW_LEARNING")
+    rag_results = retrieve_material_results(state, snapshot)
+    rag_citations = citations_of(rag_results)
+    topic = fetch_topic_sources(session, lesson_id=state.lesson_id)
 
     update_message_chat(
         state.message_id,
         session,
         {
-            "text": "Generating learning content based on current step.",
+            "text": "Menyusun materi dari sumber topik…",
             "status": "PROCESSING",
         },
     )
@@ -332,14 +306,18 @@ def generate_material(
         else "Default"
     )
 
-    rag_segmented = segment_retrieved(
-        [{"id": f"rag-{i}", "text": c} for i, c in enumerate(rag.split("\n")) if c.strip()],
-        source="reducera-embedding",
+    sources = rank_hybrid(
+        f"{topic_title} {lesson_title} {step_title}",
+        topic["sources"],
+        rag_results,
+        [],
+        include_web=False,
     )
-    web_segmented = segment_retrieved(
-        [{"id": f"web-{i}", "text": c} for i, c in enumerate(web.split("\n")) if c.strip()],
-        source="tavily-web",
-    )
+    documents = render_sources(sources, (KIND_TOPIC, KIND_MATERIAL)) or NO_SOURCES
+
+    plan = micro_plan_of(snapshot)
+    words = plan_words(plan)
+    exercises = exercise_count(plan)
 
     task_segment = (
         f"Topik: {topic_title}\n"
@@ -355,11 +333,12 @@ def generate_material(
             "Bahasa Indonesia profesional dan mudah dipahami. "
             "Relevan langsung dengan kompetensi step ini. "
             "Fokus pada pengetahuan, praktik, dan contoh nyata. "
-            "Panjang 300 sampai 700 kata. Gunakan Markdown. "
+            f"Panjang sekitar {words} kata. Gunakan Markdown. "
             "Output langsung materi belajar tanpa kata pembuka tambahan. "
             "Dilarang membahas pembuatan kurikulum. "
             "Semua jawaban mekanika akuntansi (debit/credit, normal balance, contra account) "
-            "harus konsisten dengan ontologi domain."
+            "harus konsisten dengan ontologi domain. "
+            + CITATION_RULES
         ),
         course_context=(
             f"Topik: {topic_title}\n"
@@ -373,25 +352,30 @@ def generate_material(
         adaptive_strategy=(
             "Format output markdown dengan bagian: "
             "Mengapa Hal Ini Penting, Materi Inti, Contoh Praktik di Dunia Kerja, "
-            "Latihan Singkat (3-5 soal), Ringkasan Kunci (3-7 poin)."
+            f"Latihan Singkat ({exercises} soal), Ringkasan Kunci (3-7 poin)."
         ),
-        retrieved_documents=f"{rag_segmented}\n\n{web_segmented}",
+        retrieved_documents=documents,
     )
 
-    content = get_router().invoke(
+    routed = get_router().invoke(
         "lesson_content",
         prompt,
         query=state.user_step.title,
         context_chars=len(prompt),
         subject=state.acting_user_id,
-    ).text
+    )
+    content, citations = apply_citations(routed.text, sources)
+    state.snapshot = snapshot
+    state.routed = routed
 
     state.generate = {
         "chat_id": state.chat_id,
         "chat_message_id": state.message_id,
         "data": content,
-        "citations": [c.model_dump(by_alias=True, exclude_none=True) for c in rag_citations],
+        "citations": citations,
         "metadata": {
+            "grounded": bool(citations),
+            "sourceCount": len(sources),
             "topicId": state.topic_id,
             "lessonId": state.lesson_id,
             "stepId": state.step_id,
@@ -452,7 +436,7 @@ def generate_content_material_pipeline(
     update_message_chat(
         state.message_id,
         session,
-        {"text": "Content material generation completed successfully!", "status": "COMPLETED"},
+        {"text": MATERIAL_READY_TEXT, "status": "COMPLETED", "citations": [], "actions": MATERIAL_READY_ACTIONS},
     )
     return result
 

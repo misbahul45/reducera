@@ -17,33 +17,33 @@ const category = computed<string | null>({
 });
 
 useHead({
-  title: 'Topik Akuntansi | ReduCera',
+  title: 'Courses | ReduCera',
   meta: [
     {
       name: 'description',
       content:
-        'Jelajahi topik pembelajaran ReduCera — modul microlearning berbasis AI dan gamifikasi yang dirancang untuk membantu mahasiswa Akuntansi mempersiapkan penguasaan kompetensi akuntansi terstruktur.',
+        'Jelajahi course pembelajaran ReduCera — modul microlearning berbasis AI dan gamifikasi yang dirancang untuk membantu mahasiswa mempersiapkan penguasaan kompetensi secara terstruktur.',
     },
     {
       name: 'keywords',
       content:
-        'ReduCera, penguasaan akuntansi, akuntansi perguruan tinggi, microlearning, AI learning, gamifikasi, akuntansi, akuntansi, RAG, pembelajaran adaptif',
+        'ReduCera, penguasaan kompetensi, perguruan tinggi, microlearning, AI learning, gamifikasi, RAG, pembelajaran adaptif',
     },
-    { property: 'og:title', content: 'Topik Akuntansi | ReduCera' },
+    { property: 'og:title', content: 'Courses | ReduCera' },
     {
       property: 'og:description',
       content:
-        'Temukan materi pembelajaran ReduCera yang membantu mahasiswa Akuntansi mempersiapkan penguasaan kompetensi dengan pendekatan microlearning dan AI Agent Learning.',
+        'Temukan materi pembelajaran ReduCera yang membantu mahasiswa mempersiapkan penguasaan kompetensi dengan pendekatan microlearning dan AI Agent Learning.',
     },
     { property: 'og:type', content: 'website' },
     { property: 'og:url', content: `${siteUrl}/learn/topics` },
     { property: 'og:image', content: '/meta/og-topics.png' },
     { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:title', content: 'Topik Akuntansi | ReduCera' },
+    { name: 'twitter:title', content: 'Courses | ReduCera' },
     {
       name: 'twitter:description',
       content:
-        'Pelajari topik ReduCera — konten microlearning berbasis AI untuk persiapan penguasaan kompetensi akuntansi perguruan tinggi.',
+        'Pelajari course ReduCera — konten microlearning berbasis AI untuk persiapan penguasaan kompetensi di perguruan tinggi.',
     },
     { name: 'twitter:image', content: '/meta/og-topics.png' },
   ],
@@ -54,7 +54,7 @@ useHead({
 
 <template>
   <div class="rc-stack rc-topics-page">
-    <PageHeader title="Topik" subtitle="Pilih topik, kerjakan penilaiannya, dan kumpulkan bukti belajarmu." />
+    <PageHeader title="Courses" subtitle="Pilih course, kerjakan penilaiannya, dan kumpulkan bukti belajarmu." />
     <BannerTopics />
     <MappingCategories v-model="category" />
     <MappingTopics :category="category" />

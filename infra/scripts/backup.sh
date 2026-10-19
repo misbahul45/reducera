@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Nightly Postgres backup for ReduCera (Phase 9).
-# Writes a compressed dump + sha256, records BackupRecord row.
-# Usage: backup.sh [tag]
 
 set -euo pipefail
 
@@ -24,7 +21,6 @@ SHA=$(sha256sum "${DUMP_PATH}" | awk '{print $1}')
 END_TIME=$(date -u +%s)
 DURATION=$((END_TIME - START_TIME))
 
-# Persist to api (best-effort; if api is down, log locally only)
 if command -v curl > /dev/null; then
   curl -sfS -X POST \
     -H 'Content-Type: application/json' \

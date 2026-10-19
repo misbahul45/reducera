@@ -29,7 +29,7 @@ const categories = computed(() => (featured.value?.categories ?? []).slice(0, 4)
 <template>
   <BannerTopicSckeleton v-if="isLoading" />
 
-  <ErrorState v-else-if="isError" title="Topik pilihan belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
+  <ErrorState v-else-if="isError" title="Course pilihan belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
 
   <section v-else-if="featured" class="rc-featured" aria-labelledby="featured-list-title">
     <div class="rc-card rc-featured__main">
@@ -48,8 +48,8 @@ const categories = computed(() => (featured.value?.categories ?? []).slice(0, 4)
     </div>
 
     <div v-if="topics.length > 1" class="rc-featured__list">
-      <h2 id="featured-list-title" class="rc-featured__list-title">Topik pilihan</h2>
-      <PlayScroller label="Daftar topik pilihan" class="rc-scroller--wide-off">
+      <h2 id="featured-list-title" class="rc-featured__list-title">Course pilihan</h2>
+      <PlayScroller label="Daftar course pilihan" class="rc-scroller--wide-off">
       <ul class="rc-featured__items">
         <li v-for="(topic, index) in topics" :key="topic.id">
           <button

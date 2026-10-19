@@ -218,3 +218,34 @@ class TestStringPrompt:
 
         for task in ("learner_analysis", "context_summary", "translation", "personality_quiz"):
             assert r.decide(task, query="x").mode == "flash"
+
+
+class TestTelemetry:
+    def test_the_answering_attempt_reports_its_model_and_token_usage(self):
+        flash = ScriptedModel(AIMessage(content="Jawaban.", usage_metadata={"input_tokens": 120, "output_tokens": 45, "total_tokens": 165}))
+        flash.model_name = "gateway-flash"
+
+        result = router(Factory(flash=flash)).invoke("tutor_reply", MESSAGES, query="x")
+
+        assert result.model == "gateway-flash"
+        assert (result.tokens_in, result.tokens_out) == (120, 45)
+        assert result.latency_ms >= 0
+
+    def test_tokens_are_summed_over_every_attempt_and_the_model_is_the_one_that_answered(self):
+        flash = ScriptedModel(AIMessage(content="ngawur", usage_metadata={"input_tokens": 100, "output_tokens": 10, "total_tokens": 110}))
+        flash.model_name = "gateway-flash"
+        thinking = ScriptedModel(AIMessage(content="Jawaban dalam.", usage_metadata={"input_tokens": 100, "output_tokens": 300, "total_tokens": 400}))
+        thinking.model_name = "gateway-thinking"
+
+        result = router(Factory(flash, thinking)).invoke("tutor_reply", MESSAGES, query="x", validator=lambda text: text != "ngawur")
+
+        assert result.model == "gateway-thinking"
+        assert (result.tokens_in, result.tokens_out) == (200, 310)
+        assert result.latency_ms == pytest.approx(sum(a.latency_ms for a in result.attempts))
+
+    def test_a_provider_without_usage_leaves_tokens_unknown_instead_of_zero(self):
+        result = router(Factory(flash=ScriptedModel(AIMessage(content="ok")))).invoke("hint", MESSAGES, query="x")
+
+        assert result.tokens_in is None
+        assert result.tokens_out is None
+        assert result.model == ""

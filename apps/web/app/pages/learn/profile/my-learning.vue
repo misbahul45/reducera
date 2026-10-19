@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/vue-query';
 import { computed } from 'vue';
 import type { User } from '~/interfaces/auth';
+import ReviewCard from '~/components/my-learning/ReviewCard.vue';
 import { userTopicService } from '~/services/learning/userTopic';
 
 definePageMeta({ title: 'Belajar Saya — ReduCera', protection: { kind: 'authenticated' } });
@@ -20,11 +21,13 @@ const { data, isLoading, isError, refetch } = useQuery({
 
 <template>
   <div>
-    <PageHeader title="Belajar saya" subtitle="Topik yang sedang dan sudah kamu ikuti." />
+    <PageHeader title="Belajar saya" subtitle="Course yang sedang dan sudah kamu ikuti." />
 
-    <LoadingSkeleton v-if="isLoading" variant="card" :count="3" aria-label="Memuat topik" />
-    <ErrorState v-else-if="isError" title="Topikmu belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
-    <EmptyState v-else-if="!data || data.length === 0" title="Belum ada topik" message="Pilih topik pertamamu dan mulai kumpulkan bukti belajar." icon-name="i-lucide-book-open" cta-label="Jelajahi topik" cta-to="/learn/topics" />
+    <ReviewCard />
+
+    <LoadingSkeleton v-if="isLoading" variant="card" :count="3" aria-label="Memuat course" />
+    <ErrorState v-else-if="isError" title="Course-mu belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
+    <EmptyState v-else-if="!data || data.length === 0" title="Belum ada course" message="Pilih course pertamamu dan mulai kumpulkan bukti belajar." icon-name="i-lucide-book-open" cta-label="Jelajahi course" cta-to="/learn/topics" />
     <div v-else class="rc-grid rc-grid--wide">
       <PlayCard v-for="topic in data" :key="topic.id" as="article" interactive>
         <h2 class="rc-h2" style="font-size: 1.125rem">{{ topic.title }}</h2>

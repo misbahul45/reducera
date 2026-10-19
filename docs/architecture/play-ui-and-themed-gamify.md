@@ -90,13 +90,13 @@ Schema (one migration):
 | `ThemeIcon` | unique (`themeId`, `name`) enforced in the service (rows may already exist elsewhere) |
 | `StreakHistory` | gains `activityType` value `LEARNING` used by the engine |
 
-Seed catalog (values are proposals, D-25): `MASTERY_PROGRESS` v1 and `CONCEPT_PASSED` v1 as in ADR-015; `PATH_NODE_MASTERED` v1 pays 1 star when a sub-topic's concepts are all passed for the first time (once per node); `STREAK_FREEZE_EARNED` v1 grants one freeze per 7 consecutive qualified days, at most 2 held; `STREAK_BONUS_7` is kept inactive (decision D-22 keeps it open; with no activity credit it only pays on learning streaks, so it is seeded active as before).
+Seed catalog (values are proposals, D-25): `MASTERY_PROGRESS` v1 and `CONCEPT_PASSED` v1 as in ADR-015; `PATH_NODE_MASTERED` v1 pays 1 star when a sub-topic's concepts are all passed for the first time (once per node); `STREAK_FREEZE_EARNED` v1 grants one freeze per 7 consecutive qualified days, at most 2 held; `STREAK_BONUS_7` stays active (decision D-22, ADR-028: with no activity credit it only pays on streaks of passed assessments).
 
-Level thresholds: the thirteen rows of the current constants. Level is the highest level with `xp <=` ledger XP.
+Level thresholds: the twelve rows of the current constants (0 to 4500 XP). Level is the highest level with `xp <=` ledger XP.
 
 Achievement rule, typed: `{ "metric": M, "op": ">=", "value": N }` with `M` in `ASSESSMENTS_COMPLETED`, `CONCEPTS_PASSED`, `NODES_MASTERED`, `STREAK_DAYS`, `LEVEL`, `XP_TOTAL`. Seed catalog: first assessment (1), five assessments, first concept passed, five concepts passed, first node mastered, 3-day streak, 7-day streak, 30-day streak, level 5. Evaluation runs in the grading transaction after the reward engine and the streak engine, writes `UserAchievement` with a unique key, and is a no-op on repeat.
 
-Streak engine: on a qualifying event (an assessment event appended with evidence), compute the learner's local date from `timezone`; if a `StreakHistory` row for that date exists, stop; otherwise count the previous day (a missed single day consumes a freeze if held, a longer gap resets), write the row, update `currentStreak`, `longestStreak`, `lastStreakDate`, grant a freeze on every 7th day through a ledger rule row. The interceptor no longer credits streaks.
+Streak engine: on a qualifying event (a passed assessment: a quiz whose score reaches its passing score, or a correct sandbox journal, ADR-028), compute the learner's local date from `timezone`; if a `StreakHistory` row for that date exists, stop; otherwise count the previous day (a missed single day consumes a freeze if held, a longer gap resets), write the row, update `currentStreak`, `longestStreak`, `lastStreakDate`, grant a freeze on every 7th day through a ledger rule row. The interceptor no longer credits streaks.
 
 Boards: `GET /gamify/leaderboards/topics/{topicId}?window=week` returns opted-in learners of that topic ordered by concepts first passed in the window, with handle and rank, plus the caller's own rank; `PUT /gamify/leaderboards/me` sets opt-in and handle (unique, 3 to 20 characters, lowercase letters, digits and underscore).
 

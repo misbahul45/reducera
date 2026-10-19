@@ -1,4 +1,4 @@
-import { Injectable, Optional, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Role, TeacherStatus } from '@prisma/client';
 import { errorHandler } from '@/common/lib/utils';
 import { AppError, AppErrorCode } from '@/common/lib/error';
@@ -26,7 +26,7 @@ export class ApplicationsService {
     private readonly policy: PolicyService,
     private readonly audit: AuditService,
     private readonly provisioning: TenantProvisioningService,
-    @Optional() private readonly eligibility?: CreatorEligibilityService,
+    private readonly eligibility: CreatorEligibilityService,
   ) {}
 
   submit(actor: Actor, values: SubmitApplicationType) {
@@ -38,12 +38,13 @@ export class ApplicationsService {
       if (existing) {
         throw new AppError('Teacher application already exists', 409, AppErrorCode.UNIQUE_CONSTRAINT_FAILED);
       }
-      const topicId = (values as { expertiseTopicId?: string }).expertiseTopicId;
-      if (this.eligibility && topicId) {
-        const { eligible } = await this.eligibility.check({ userId: actor.id, topicId });
-        if (!eligible) {
-          throw new BadRequestException('mastery_threshold_not_met');
-        }
+      const eligibility = await this.eligibility.check({ userId: actor.id, topicId: values.expertiseTopicId });
+      if (!eligibility.eligible) {
+        throw new AppError(
+          'Every concept of the topic must be passed with a mean mastery of at least 0.85 before applying',
+          422,
+          AppErrorCode.MASTERY_THRESHOLD_NOT_MET,
+        );
       }
       const created = await this.applicationsRepo.create(actor.id, values);
       return { message: 'Successfully created teacher application', data: created };

@@ -5,6 +5,7 @@ import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { Actor } from '@/common/authz/policy.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { READABLE_BY_BUYERS } from '../marketplace/content-state';
+import { approvedConceptsByProduct, toPublicConcepts } from '../marketplace/product-concept-links';
 import { MarketplaceArticleQueryDtoType } from './articles.dto';
 import { buildPreview, previewLimit } from './article-preview';
 
@@ -51,7 +52,7 @@ export class MarketplaceArticlesService {
         ],
       }),
     };
-    const [data, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.article.findMany({
         where,
         select: publicSelect,
@@ -61,6 +62,8 @@ export class MarketplaceArticlesService {
       }),
       this.prisma.article.count({ where }),
     ]);
+    const tags = await approvedConceptsByProduct(this.prisma, 'article', rows.map((row) => row.id));
+    const data = rows.map((row) => ({ ...row, concepts: toPublicConcepts(tags.get(row.id)) }));
     return {
       message: 'Successfully retrieved marketplace articles',
       data: { data, pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
@@ -75,7 +78,8 @@ export class MarketplaceArticlesService {
     if (!article) {
       throw new AppError('Article not found', 404, AppErrorCode.CONTENT_NOT_PUBLISHED);
     }
-    return { message: 'Successfully retrieved article', data: article };
+    const tags = await approvedConceptsByProduct(this.prisma, 'article', [article.id]);
+    return { message: 'Successfully retrieved article', data: { ...article, concepts: toPublicConcepts(tags.get(article.id)) } };
   }
 
   async preview(id: string) {

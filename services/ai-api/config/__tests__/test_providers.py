@@ -156,6 +156,7 @@ def test_thinking_mode_never_sends_a_temperature(monkeypatch):
 
 
 def test_embedding_model_reads_environment(monkeypatch):
+    monkeypatch.setitem(ENVS, "EMBEDDING_PROVIDER", "huggingface")
     monkeypatch.setitem(ENVS, "HF_EMBEDDING_MODEL", "org/other")
     monkeypatch.setitem(ENVS, "HF_EMBEDDING_URL", "https://router.example/{model}/fe")
     monkeypatch.setitem(ENVS, "HF_TOKEN", "hf-x")

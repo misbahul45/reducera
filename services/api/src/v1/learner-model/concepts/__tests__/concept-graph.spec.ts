@@ -1,5 +1,5 @@
 import { ConceptView } from '../concept.types';
-import { buildConceptGraph } from '../concept-graph';
+import { buildConceptGraph, restrictConceptGraph } from '../concept-graph';
 
 const concept = (id: string, level: number, sortOrder: number, prerequisiteIds: string[] = []): ConceptView => ({
   id,
@@ -59,5 +59,15 @@ describe('concept graph', () => {
     const cyclic = buildConceptGraph([concept('p', 1, 1, ['q']), concept('q', 1, 2, ['p'])]);
 
     expect(cyclic.closureOf('p')).toEqual(['q']);
+  });
+
+  it('narrows the concepts a learner can be sent to without changing what they depend on', () => {
+    const narrowed = restrictConceptGraph(graph, new Set(['b', 'c']));
+
+    expect(narrowed.order).toEqual(['b', 'c']);
+    expect(narrowed.prerequisitesOf('c')).toEqual(['a', 'b']);
+    expect(narrowed.has('a')).toBe(true);
+    expect(narrowed.levelOf('c')).toBe(2);
+    expect(graph.order).toEqual(['a', 'b', 'c', 'd']);
   });
 });

@@ -1,9 +1,6 @@
 import { extendApi } from '@anatine/zod-openapi';
 import z from 'zod';
 
-// =====================================================================
-// 1. Base Content Schema
-// =====================================================================
 export const BaseContentSchema = z.object({
   id: z.string().describe('Unique content identifier'),
   stepId: z.string().describe('Related step ID'),
@@ -15,9 +12,6 @@ export const BaseContentSchema = z.object({
   updatedAt: z.date().describe('Timestamp when the content was last updated'),
 });
 
-// =====================================================================
-// 2. Content Detail Schema
-// =====================================================================
 export const ContentDetailSchema = extendApi(
   BaseContentSchema,
   {
@@ -34,9 +28,6 @@ export const ContentDetailSchema = extendApi(
   }
 );
 
-// =====================================================================
-// 3. Content List Schema (with pagination)
-// =====================================================================
 export const ContentListSchema = extendApi(
   z.object({
     data: z.array(BaseContentSchema).describe('List of contents'),

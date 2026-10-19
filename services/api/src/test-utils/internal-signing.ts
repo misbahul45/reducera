@@ -12,7 +12,7 @@ import {
 export const INTERNAL_TEST_SECRET = 'unit-test-service-secret';
 
 export interface SignedRequestOptions {
-  method: 'GET' | 'POST' | 'PATCH';
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   target: string;
   body?: string;
   actingUser?: string;

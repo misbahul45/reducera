@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from config.prompt_segmentation import neutralize_fences
 from v1.domain.adapter import ConceptCatalog
+from v1.tutor.strategy_playbook import render_strategy_lines
 from v1.tutor.tutor_state import TutorRunState
 
 TITLE_LIMIT = 120
@@ -114,6 +115,8 @@ def render_learner_snapshot(snapshot: Optional[Dict[str, Any]], catalog: Concept
             )
         else:
             lines.append(f"next_concept=none reasons=[{reasons}]")
+
+    lines.extend(render_strategy_lines(snapshot.get("strategy")))
     return "\n".join(lines)
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
@@ -7,6 +8,15 @@ from sse_starlette.sse import EventSourceResponse
 
 from config.agent_session import AgentSession, mint_session
 from config.embedding_pipeline import get_embedding_pipeline
+from config.internal_client import InternalApiClient
+from config.generation_lock import (
+    acquire as _lock,
+    claim as _claim,
+    owns as _owns,
+    release as _unlock,
+    release_owned as _release_owned,
+    renew_owned as _renew_owned,
+)
 from config.logging_config import configure_logging
 from config.rate_limit import rate_limit
 from config.trace_context import current_trace_id
@@ -18,8 +28,13 @@ from middleware.idempotency import require_idempotency_key
 from v1.users_steps.dto import LPState
 from v1.users_steps.generate_user_steps_pipeline import generate_user_steps_pipeline
 from v1.users_steps.service import get_learning_style, get_steps
-from v1.users_steps.streaming import StageEvent, chunk_text
+from v1.users_steps.streaming import FinalEvent, SourcesEvent, StageEvent, chunk_text
 from v1.users_steps.workers import generate_personality_quiz
+
+
+INTRO_LOCK_SECONDS = 120
+OWNERSHIP_CHECK_EVERY_CHUNKS = 10
+QUIZ_LOCK_SECONDS = 900
 
 
 configure_logging()
@@ -35,6 +50,41 @@ def _resolve_session(request: Request, body: dict, idempotency_key: str, user: d
         trace_id=getattr(request.state, "trace_id", None),
         idempotency_key=idempotency_key,
     )
+
+
+def _quiz_exists(session: AgentSession, lesson_id: str) -> bool:
+    try:
+        data = InternalApiClient(session).get("/internal/personality-quizzes", params={"lessonId": lesson_id, "limit": 1})
+    except Exception:
+        logger.warning("[QUIZ] the existing quiz could not be checked", exc_info=True)
+        return False
+    rows = (data or {}).get("data") if isinstance(data, dict) else None
+    return bool(rows)
+
+
+def _queue_quiz(session: AgentSession, payload: dict, lesson_id: str) -> str:
+    if _quiz_exists(session, lesson_id):
+        return "exists"
+    if not _lock("quiz", session.acting_user_id, lesson_id, QUIZ_LOCK_SECONDS):
+        return "running"
+    try:
+        generate_personality_quiz.delay(payload)
+    except Exception:
+        _unlock("quiz", session.acting_user_id, lesson_id)
+        raise
+    return "queued"
+
+
+def _save_introduction(session: AgentSession, lesson_id: str, final: FinalEvent) -> bool:
+    try:
+        InternalApiClient(session).put(
+            f"/internal/lessons/{lesson_id}/introduction",
+            json_body={"introduction": final.text, "citations": final.citations},
+        )
+        return True
+    except Exception:
+        logger.error("[INTRO] the introduction could not be saved", exc_info=True)
+        return False
 
 
 @router.get("/generate-question")
@@ -69,43 +119,78 @@ async def generate_question_sse(
         **session.to_dict(),
     }
 
-    generate_personality_quiz.delay(payload)
+    acting_user_id = session.acting_user_id
+    token = _claim("intro", acting_user_id, lessonId, INTRO_LOCK_SECONDS)
 
     try:
+        _queue_quiz(session, payload, lessonId)
         steps = get_steps(lessonId, session)
         learning_style = get_learning_style(learningStyleId, session)
     except Exception as exc:
+        _release_owned("intro", acting_user_id, lessonId, token)
         logger.error("[SSE] upstream fetch failed: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except BaseException:
+        _release_owned("intro", acting_user_id, lessonId, token)
+        raise
 
     async def event_stream():
+        def still_mine() -> bool:
+            return _owns("intro", acting_user_id, lessonId, token)
+
         try:
             yield {"event": "status", "data": "Generating introduction..."}
 
             from v1.users_steps.service import build_learning_introduction_llm
 
-            intro_chunks = []
+            final: FinalEvent | None = None
+            written_chunks = 0
             async for chunk in build_learning_introduction_llm(
                 steps,
                 pipeline,
                 learning_style=learning_style,
                 session=session,
+                lesson_id=lessonId,
             ):
-                if isinstance(chunk, StageEvent):
-                    yield {"event": "stage", "data": chunk.to_json()}
+                if isinstance(chunk, (StageEvent, SourcesEvent)):
+                    if not still_mine():
+                        yield {"event": "superseded", "data": "a newer request took over this introduction"}
+                        return
+                    _renew_owned("intro", acting_user_id, lessonId, token, INTRO_LOCK_SECONDS)
+                    kind = "stage" if isinstance(chunk, StageEvent) else "sources"
+                    yield {"event": kind, "data": chunk.to_json()}
+                    continue
+                if isinstance(chunk, FinalEvent):
+                    final = chunk
                     continue
                 text = chunk_text(chunk)
                 if text is None:
                     continue
-                intro_chunks.append(text)
+                written_chunks += 1
+                if written_chunks % OWNERSHIP_CHECK_EVERY_CHUNKS == 0 and not still_mine():
+                    yield {"event": "superseded", "data": "a newer request took over this introduction"}
+                    return
                 yield {"event": "introduction_chunk", "data": text}
 
-            introduction = "".join(intro_chunks)
-            yield {"event": "end", "data": introduction}
+            if final is None or not final.text:
+                raise ValueError("the introduction came out empty")
+
+            if not still_mine():
+                yield {"event": "superseded", "data": "a newer request took over this introduction"}
+                return
+
+            persisted = _save_introduction(session, lessonId, final)
+            yield {
+                "event": "end",
+                "data": json.dumps({"text": final.text, "citations": final.citations, "persisted": persisted}, ensure_ascii=False),
+            }
 
         except Exception as exc:
             logger.exception("[SSE] stream error")
             yield {"event": "error", "data": error_envelope(exc)}
+
+        finally:
+            _release_owned("intro", acting_user_id, lessonId, token)
 
     return EventSourceResponse(event_stream())
 
@@ -153,3 +238,34 @@ async def generate_user_steps(
 
 
 __all__ = ["router"]
+
+
+@router.post("/personality-quiz")
+@rate_limit(capacity_per_minute=10, burst=3)
+@require_idempotency_key(mint_if_missing=False)
+async def request_personality_quiz(
+    request: Request,
+    body: dict = Body(...),
+    user: dict = Depends(authenticated_user),
+):
+    idempotency_key = getattr(request.state, "idempotency_key", None)
+    if not idempotency_key:
+        raise AuthError(
+            "Idempotency-Key missing after decorator",
+            details={"requestId": current_trace_id()},
+        )
+    lesson_id = str(body.get("lessonId") or "")
+    topic_id = str(body.get("topicId") or "")
+    style_id = str(body.get("learningStyleId") or "")
+    if not (lesson_id and topic_id and style_id):
+        raise HTTPException(status_code=422, detail="lessonId, topicId and learningStyleId are required")
+
+    session = _resolve_session(request, body, idempotency_key, user)
+    payload = {
+        "userId": session.acting_user_id,
+        "lessonId": lesson_id,
+        "topicId": topic_id,
+        "learningStyleId": style_id,
+        **session.to_dict(),
+    }
+    return {"status": _queue_quiz(session, payload, lesson_id), "trace_id": session.trace_id}

@@ -8,8 +8,21 @@ import type {
   AdminUserRow,
   AuditLogDetail,
   AuditLogRow,
+  BenchmarkCaseView,
+  BenchmarkDecision,
+  BenchmarkRunDetail,
+  BenchmarkRunSummary,
+  BenchmarkStartBody,
+  CircularityReport,
   ContentKind,
+  GamifyAchievementsView,
+  GamifyAchievementView,
+  GamifyLadderView,
+  GamifyRuleView,
+  OptimizationRunRow,
   Paginated,
+  PromptEvaluationView,
+  PromptListView,
   QueueCounts,
 } from '~/interfaces/admin';
 import { request, toQueryString } from '~/lib/api';
@@ -88,6 +101,14 @@ export const adminService = {
       request<unknown>(`${contentBase(kind)}/${id(contentId)}/reinstate`, 'POST', note ? { note } : {}).then(unwrap),
     archive: (kind: ContentKind, contentId: string, note?: string) =>
       request<unknown>(`${contentBase(kind)}/${id(contentId)}/archive`, 'POST', note ? { note } : {}).then(unwrap),
+    approveTags: (kind: ContentKind, contentId: string, note?: string) =>
+      request<unknown>(`${contentBase(kind)}/${id(contentId)}/approve-concepts`, 'POST', note ? { note } : {}).then(unwrap),
+    rejectTags: (kind: ContentKind, contentId: string, reason: string) =>
+      request<unknown>(`${contentBase(kind)}/${id(contentId)}/reject-concepts`, 'POST', { reason }).then(unwrap),
+  },
+
+  metrics: {
+    circularity: (filters: Filters = {}) => request<CircularityReport>(listPath('/admin/metrics/circularity', filters)).then(unwrap),
   },
 
   applications: {
@@ -97,6 +118,78 @@ export const adminService = {
       request<unknown>(`/teacher/applications/${id(applicationId)}/approve`, 'POST', feedback ? { feedback } : {}).then(unwrap),
     reject: (applicationId: string, feedback: string) =>
       request<unknown>(`/teacher/applications/${id(applicationId)}/reject`, 'POST', { feedback }).then(unwrap),
+  },
+
+  optimization: {
+    prompts: () => request<PromptListView>('/admin/optimization/prompts').then(unwrap),
+    builtin: (name: string) =>
+      request<{ name: string; label: string; body: string }>(`/admin/optimization/prompts/builtin?name=${id(name)}`).then(unwrap),
+    runs: () => request<OptimizationRunRow[]>('/admin/optimization/runs').then(unwrapList),
+    propose: (body: { name: string; body: string; rationale: string; parentVersionId?: string }) =>
+      request<{ id: string; label: string; status: string }>('/admin/optimization/prompts', 'POST', body).then(unwrap),
+    proposeImprovement: (name: string) =>
+      request<{ id: string; label: string; status: string; rationale: string; changes: string[]; similarity: number; baselineLabel: string }>(
+        '/admin/optimization/prompts/propose-improvement',
+        'POST',
+        { name },
+      ).then(unwrap),
+    startCanary: (promptId: string, body: { percent: number; reason: string }) =>
+      request<unknown>(`/admin/optimization/prompts/${id(promptId)}/canary`, 'POST', body).then(unwrap),
+    evaluate: (promptId: string) =>
+      request<PromptEvaluationView>(`/admin/optimization/prompts/${id(promptId)}/evaluate`, 'POST', {}).then(unwrap),
+    approve: (promptId: string, reason: string) =>
+      request<unknown>(`/admin/optimization/prompts/${id(promptId)}/approve`, 'POST', { reason, acknowledgeUnmeasured: true }).then(unwrap),
+    reject: (promptId: string, reason: string) =>
+      request<unknown>(`/admin/optimization/prompts/${id(promptId)}/reject`, 'POST', { reason }).then(unwrap),
+    rollback: (promptId: string, reason: string) =>
+      request<unknown>(`/admin/optimization/prompts/${id(promptId)}/rollback`, 'POST', { reason }).then(unwrap),
+    benchmarks: {
+      list: () => request<BenchmarkRunSummary[]>('/admin/optimization/benchmarks').then(unwrapList),
+      start: (body: BenchmarkStartBody) =>
+        request<{ id: string; status: string; total: number; baseline: string; candidate: string; identicalArms: boolean }>('/admin/optimization/benchmarks', 'POST', body).then(unwrap),
+      detail: (runId: string) => request<BenchmarkRunDetail>(`/admin/optimization/benchmarks/${id(runId)}`).then(unwrap),
+      caseDetail: (runId: string, caseId: string) =>
+        request<BenchmarkCaseView>(`/admin/optimization/benchmarks/${id(runId)}/cases/${id(caseId)}`).then(unwrap),
+      decide: (runId: string, body: { decision: BenchmarkDecision; rationale: string }) =>
+        request<unknown>(`/admin/optimization/benchmarks/${id(runId)}/decision`, 'POST', body).then(unwrap),
+      proposeFromRun: (runId: string) =>
+        request<{ id: string; label: string; status: string; rationale: string; changes: string[]; similarity: number; baselineLabel: string }>(
+          `/admin/optimization/benchmarks/${id(runId)}/propose-improvement`,
+          'POST',
+          {},
+        ).then(unwrap),
+    },
+  },
+
+  gamify: {
+    rules: () => request<GamifyRuleView[]>('/admin/gamify/rules').then(unwrapList),
+    publishRule: (code: string, body: { baseVersion: number; values: Record<string, number>; reason: string }) =>
+      request<GamifyRuleView>(`/admin/gamify/rules/${id(code)}/versions`, 'POST', body).then(unwrap),
+    activateRule: (code: string, version: number, reason: string) =>
+      request<GamifyRuleView>(`/admin/gamify/rules/${id(code)}/versions/${version}/activate`, 'POST', { reason }).then(unwrap),
+    deactivateRule: (code: string, reason: string) =>
+      request<GamifyRuleView>(`/admin/gamify/rules/${id(code)}/deactivate`, 'POST', { reason }).then(unwrap),
+    levels: () => request<GamifyLadderView>('/admin/gamify/levels').then(unwrap),
+    replaceLevels: (body: { baseFingerprint: string; levels: Array<{ level: number; xp: number }>; reason: string }) =>
+      request<GamifyLadderView>('/admin/gamify/levels/replace', 'POST', body).then(unwrap),
+    achievements: () => request<GamifyAchievementsView>('/admin/gamify/achievements').then(unwrap),
+    createAchievement: (body: {
+      code: string;
+      title: string;
+      description: string;
+      iconName: string;
+      rule: { metric: string; value: number };
+      sortOrder: number;
+      reason: string;
+    }) => request<GamifyAchievementView>('/admin/gamify/achievements', 'POST', body).then(unwrap),
+    updateAchievement: (
+      code: string,
+      body: { title?: string; description?: string; iconName?: string; sortOrder?: number; reason: string },
+    ) => request<GamifyAchievementView>(`/admin/gamify/achievements/${id(code)}`, 'PATCH', body).then(unwrap),
+    activateAchievement: (code: string, reason: string) =>
+      request<GamifyAchievementView>(`/admin/gamify/achievements/${id(code)}/activate`, 'POST', { reason }).then(unwrap),
+    deactivateAchievement: (code: string, reason: string) =>
+      request<GamifyAchievementView>(`/admin/gamify/achievements/${id(code)}/deactivate`, 'POST', { reason }).then(unwrap),
   },
 
   audit: {

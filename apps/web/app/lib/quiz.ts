@@ -1,3 +1,5 @@
+import type { ChatCitation } from '~/interfaces/chats/chatExtras';
+import { normalizeCitations } from '~/lib/chat';
 import { plainText } from '~/lib/topics';
 
 export type QuestionType = 'MULTIPLE_CHOICE' | 'TEXT' | 'FILE_UPLOAD' | 'CASE_STUDY';
@@ -9,6 +11,7 @@ export interface QuestionRow {
   options?: unknown;
   points?: number | null;
   sortOrder?: number | null;
+  sources?: unknown;
 }
 
 export interface QuizQuestion {
@@ -18,6 +21,7 @@ export interface QuizQuestion {
   options: string[];
   points: number;
   supported: boolean;
+  sources: ChatCitation[];
 }
 
 const SUPPORTED = new Set(['MULTIPLE_CHOICE', 'TEXT', 'CASE_STUDY']);
@@ -50,6 +54,7 @@ export const normalizeQuestions = (rows: ReadonlyArray<QuestionRow> | null | und
         options: optionsOf(row.options),
         points: row.points ?? 1,
         supported: SUPPORTED.has(type),
+        sources: normalizeCitations(row.sources),
       };
     });
 

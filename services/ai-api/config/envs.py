@@ -35,6 +35,11 @@ class ENVConfig(TypedDict):
     HF_EMBEDDING_MODEL: str
     HF_EMBEDDING_URL: str
     EMBEDDING_DIM: int
+    LOCAL_EMBEDDING_MODEL: str
+    LOCAL_EMBEDDING_THREADS: int
+    LOCAL_EMBEDDING_MAX_LENGTH: int
+    LOCAL_EMBEDDING_PRELOAD: bool
+    LOCAL_EMBEDDING_ALLOW_DOWNLOAD: bool
     WEB_URL: str
     ADMIN_URL: str
     TAVILY_API_KEY: str
@@ -76,6 +81,11 @@ ENVS: ENVConfig = {
     "HF_EMBEDDING_URL": os.getenv("HF_EMBEDDING_URL")
     or "https://router.huggingface.co/hf-inference/models/{model}/pipeline/feature-extraction",
     "EMBEDDING_DIM": int(os.getenv("EMBEDDING_DIM") or 1024),
+    "LOCAL_EMBEDDING_MODEL": os.getenv("LOCAL_EMBEDDING_MODEL") or "BAAI/bge-m3",
+    "LOCAL_EMBEDDING_THREADS": int(os.getenv("LOCAL_EMBEDDING_THREADS") or 4),
+    "LOCAL_EMBEDDING_MAX_LENGTH": int(os.getenv("LOCAL_EMBEDDING_MAX_LENGTH") or 512),
+    "LOCAL_EMBEDDING_PRELOAD": (os.getenv("LOCAL_EMBEDDING_PRELOAD") or "false").strip().lower() == "true",
+    "LOCAL_EMBEDDING_ALLOW_DOWNLOAD": (os.getenv("LOCAL_EMBEDDING_ALLOW_DOWNLOAD") or "false").strip().lower() == "true",
     "WEB_URL": os.getenv("WEB_URL", "http://web:3000"),
     "ADMIN_URL": os.getenv("ADMIN_URL", "http://localhost/admin"),
     "QDRANT_MEMORY_COLLECTION": os.getenv("QDRANT_MEMORY_COLLECTION", "reducera-memory"),

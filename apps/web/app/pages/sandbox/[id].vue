@@ -1,124 +1,268 @@
 <script setup lang="ts">
-import PageHeader from '~/components/play/PageHeader.vue';
-import PlayButton from '~/components/play/PlayButton.vue';
-import PlayCard from '~/components/play/PlayCard.vue';
-import ErrorState from '~/components/ui/ErrorState.vue';
-import LoadingSkeleton from '~/components/ui/LoadingSkeleton.vue';
-import { sandboxApi } from '~/lib/api';
-import { describeApiError } from '~/lib/api-error';
+import { nextTick } from 'vue'
+import PageHeader from '~/components/play/PageHeader.vue'
+import PlayButton from '~/components/play/PlayButton.vue'
+import PlayCard from '~/components/play/PlayCard.vue'
+import CheckResultPanel from '~/components/sandbox/CheckResultPanel.vue'
+import DebitCreditTotal from '~/components/sandbox/DebitCreditTotal.vue'
+import HintPanel from '~/components/sandbox/HintPanel.vue'
+import JournalEntryGrid from '~/components/sandbox/JournalEntryGrid.vue'
+import SolutionPanel from '~/components/sandbox/SolutionPanel.vue'
+import ErrorState from '~/components/ui/ErrorState.vue'
+import LoadingSkeleton from '~/components/ui/LoadingSkeleton.vue'
+import StatusBadge from '~/components/ui/StatusBadge.vue'
+import type { CheckResult, LineStatus, Solution } from '~/interfaces/sandbox/practice'
+import { sandboxApi } from '~/lib/api'
+import { describeApiError } from '~/lib/api-error'
+import type { RewardLine } from '~/lib/gamify'
+import {
+  DIFFICULTY_LABEL,
+  HINT_COOLDOWN_SECONDS,
+  SCAFFOLD_LABEL,
+  STATUS_LABEL,
+  STATUS_TONE,
+  initialRows,
+  isFilled,
+  journalProblem,
+  journalTotals,
+  levelLabel,
+  rowsFromLines,
+  scaffoldNote,
+  toLines,
+  type JournalRow,
+} from '~/lib/sandbox'
 
 definePageMeta({
   title: 'Skenario Latihan — ReduCera',
   protection: { kind: 'authenticated' },
   layout: 'learner',
-});
+})
 
-interface Entry {
-  debitAccount: string;
-  creditAccount: string;
-  amount: number | null;
-  memo: string;
+const route = useRoute()
+const { announce } = useRewardAnnouncement()
+const rewards = ref<RewardLine[]>([])
+const scenarioId = computed(() => String(route.params.id || ''))
+
+const { data: detail, status, error, refresh } = await useAsyncData(() => `sandbox:detail:${scenarioId.value}`, () => sandboxApi.detail(scenarioId.value), {
+  watch: [scenarioId],
+})
+
+const rows = ref<JournalRow[]>(initialRows())
+const result = ref<CheckResult | null>(null)
+const verdicts = ref<Record<number, LineStatus>>({})
+const problem = ref<string | null>(null)
+const checking = ref(false)
+const hints = ref<string[]>([])
+const hintLevel = ref(0)
+const canReveal = ref(false)
+const hintBusy = ref(false)
+const hintError = ref<string | null>(null)
+const revealed = ref<Solution | null>(null)
+const revealBusy = ref(false)
+const loadedFor = ref('')
+const cooldown = ref(0)
+let cooldownTimer: ReturnType<typeof setInterval> | null = null
+
+function stopCooldown() {
+  if (cooldownTimer) clearInterval(cooldownTimer)
+  cooldownTimer = null
 }
 
-const route = useRoute();
-const scenarioId = computed(() => String(route.params.id || ''));
-
-const { data: scenarios, status, error, refresh } = useAsyncData('sandbox:scenarios', () => sandboxApi.listScenarios(), { lazy: true });
-const scenario = computed(() => scenarios.value?.find((item) => item.id === scenarioId.value) ?? null);
-
-const entries = ref<Entry[]>([{ debitAccount: '', creditAccount: '', amount: null, memo: '' }]);
-const validation = ref<{ isBalanced: boolean; score?: number; errors?: Array<{ code: string; message: string }> } | null>(null);
-const submitting = ref(false);
-const problem = ref<string | null>(null);
-
-const total = computed(() => entries.value.reduce((sum, entry) => sum + (entry.amount ?? 0), 0));
-
-function addEntry() {
-  entries.value.push({ debitAccount: '', creditAccount: '', amount: null, memo: '' });
+function startCooldown() {
+  stopCooldown()
+  cooldown.value = HINT_COOLDOWN_SECONDS
+  cooldownTimer = setInterval(() => {
+    cooldown.value = Math.max(0, cooldown.value - 1)
+    if (cooldown.value === 0) stopCooldown()
+  }, 1000)
 }
 
-function removeEntry(index: number) {
-  entries.value.splice(index, 1);
+onBeforeUnmount(stopCooldown)
+
+watch(
+  detail,
+  (value) => {
+    if (!value || loadedFor.value === value.id) return
+    loadedFor.value = value.id
+    rows.value = rowsFromLines(value.lastLines ?? [])
+    result.value = null
+    rewards.value = []
+    verdicts.value = {}
+    problem.value = null
+    hints.value = [...value.hints]
+    hintLevel.value = value.practice.hintLevel
+    canReveal.value = value.practice.attempts >= 1 || value.practice.hintLevel >= 3
+    revealed.value = null
+    hintError.value = null
+  },
+  { immediate: true },
+)
+
+const solved = computed(() => detail.value?.practice.status === 'SOLVED')
+const started = computed(() => rows.value.some((row) => isFilled(row)))
+const totals = computed(() => journalTotals(rows.value))
+const solution = computed<Solution | null>(() => detail.value?.solution ?? revealed.value)
+const showForm = computed(() => !solved.value)
+const exampleKey = computed(() => (detail.value?.example ? { key: detail.value.example.key, why: detail.value.example.why } : null))
+
+async function focusResult() {
+  await nextTick()
+  const heading = document.getElementById('result-h')
+  heading?.setAttribute('tabindex', '-1')
+  heading?.focus()
 }
 
-async function validate() {
-  if (submitting.value) return;
-  const filled = entries.value.filter((entry) => entry.debitAccount.trim() && entry.creditAccount.trim() && (entry.amount ?? 0) > 0);
-  if (filled.length === 0) {
-    problem.value = 'Isi minimal satu baris dengan akun debit, akun kredit, dan jumlah.';
-    return;
+async function check() {
+  if (checking.value || !detail.value) return
+  const invalid = journalProblem(rows.value)
+  if (invalid) {
+    problem.value = invalid
+    return
   }
-  submitting.value = true;
-  problem.value = null;
-  validation.value = null;
+  const filledIds = rows.value.filter(isFilled).map((row) => row.id)
+  checking.value = true
+  problem.value = null
   try {
-    const result = await sandboxApi.validateJournal({
-      scenarioId: scenarioId.value,
-      entries: filled.map((entry) => ({
-        debitAccount: entry.debitAccount.trim(),
-        creditAccount: entry.creditAccount.trim(),
-        amount: entry.amount as number,
-        ...(entry.memo.trim() ? { memo: entry.memo.trim() } : {}),
-      })),
-    });
-    validation.value = (result as unknown as typeof validation.value) ?? null;
-    if (!validation.value) problem.value = 'Validasi tidak mengembalikan hasil. Coba lagi.';
+    const outcome = await sandboxApi.check(detail.value.id, toLines(rows.value))
+    result.value = outcome
+    const byRow: Record<number, LineStatus> = {}
+    for (const verdict of outcome.verdicts) {
+      const rowId = filledIds[verdict.index]
+      if (rowId !== undefined) byRow[rowId] = verdict.status
+    }
+    verdicts.value = byRow
+    canReveal.value = canReveal.value || outcome.attemptNumber >= 1
+    if (outcome.correct) await refresh()
+    rewards.value = outcome.learning ? await announce('Jurnal tepat', outcome.learning) : []
+    await focusResult()
   } catch (err) {
-    problem.value = describeApiError(err, 'Validasi gagal. Coba lagi.');
+    problem.value = describeApiError(err, 'Pemeriksaan gagal. Coba lagi.')
   } finally {
-    submitting.value = false;
+    checking.value = false
   }
 }
 
-useHead({ title: () => (scenario.value ? `${scenario.value.title} — ReduCera` : 'Skenario Latihan — ReduCera') });
+async function openHint() {
+  if (hintBusy.value || !detail.value) return
+  hintBusy.value = true
+  hintError.value = null
+  try {
+    const outcome = await sandboxApi.hint(detail.value.id)
+    hints.value = outcome.hints
+    hintLevel.value = outcome.level
+    canReveal.value = canReveal.value || outcome.canReveal
+    if (outcome.remaining > 0) startCooldown()
+  } catch (err) {
+    hintError.value = describeApiError(err, 'Petunjuk belum bisa dibuka. Coba lagi.')
+  } finally {
+    hintBusy.value = false
+  }
+}
+
+async function reveal() {
+  if (revealBusy.value || !detail.value) return
+  revealBusy.value = true
+  hintError.value = null
+  try {
+    const outcome = await sandboxApi.reveal(detail.value.id)
+    revealed.value = { key: outcome.key, why: outcome.why, equation: outcome.equation }
+  } catch (err) {
+    hintError.value = describeApiError(err, 'Jawaban belum bisa dibuka. Coba lagi.')
+  } finally {
+    revealBusy.value = false
+  }
+}
+
+function startVariant() {
+  if (!detail.value) return
+  const seedValue = Math.floor(Math.random() * 99) + 1
+  navigateTo({ path: `/sandbox/variasi/${encodeURIComponent(detail.value.id)}`, query: { v: String(seedValue) } })
+}
+
+function reset() {
+  rows.value = initialRows()
+  result.value = null
+  rewards.value = []
+  verdicts.value = {}
+  problem.value = null
+}
+
+useHead({ title: () => (detail.value ? `${detail.value.title} — ReduCera` : 'Skenario Latihan — ReduCera') })
 </script>
 
 <template>
-  <div class="rc-stack">
-    <LoadingSkeleton v-if="status === 'pending' && !scenarios" variant="panel" :count="2" />
-    <ErrorState v-else-if="error" title="Skenario gagal dimuat" :message="describeApiError(error)" @retry="refresh()" />
-    <ErrorState v-else-if="!scenario" title="Skenario tidak ditemukan" message="Skenario ini tidak tersedia untuk levelmu." />
+  <div class="rc-stack rc-sbx-page">
+    <LoadingSkeleton v-if="status === 'pending' && !detail" variant="panel" :count="2" />
+    <ErrorState v-else-if="error && !detail" title="Skenario gagal dimuat" :message="describeApiError(error, 'Skenario ini tidak tersedia untukmu.')" @retry="refresh()" />
 
-    <template v-else>
-      <PageHeader :title="scenario.title" :subtitle="scenario.description ?? undefined">
+    <template v-else-if="detail">
+      <PageHeader :title="detail.title">
         <template #actions>
-          <PlayButton to="/sandbox" variant="outline" size="sm">Semua skenario</PlayButton>
+          <PlayButton to="/sandbox/akuntansi" variant="outline" size="sm">Semua skenario</PlayButton>
         </template>
       </PageHeader>
 
-      <PlayCard as="form" class="rc-studio-form" aria-label="Jurnal" novalidate @submit.prevent="validate">
-        <h2 class="rc-h2">Entri jurnal</h2>
-        <div v-for="(entry, index) in entries" :key="index" class="rc-sandbox__row">
-          <label class="rc-label">
-            Akun debit
-            <input v-model="entry.debitAccount" class="rc-field" :aria-label="`Akun debit baris ${index + 1}`" />
-          </label>
-          <label class="rc-label">
-            Akun kredit
-            <input v-model="entry.creditAccount" class="rc-field" :aria-label="`Akun kredit baris ${index + 1}`" />
-          </label>
-          <label class="rc-label">
-            Jumlah (Rp)
-            <input v-model.number="entry.amount" type="number" min="0" class="rc-field" :aria-label="`Jumlah baris ${index + 1}`" />
-          </label>
-          <PlayButton v-if="entries.length > 1" variant="ghost" size="sm" :aria-label="`Hapus baris ${index + 1}`" @click="removeEntry(index)">Hapus</PlayButton>
+      <div class="rc-sbx-meta">
+        <StatusBadge :tone="STATUS_TONE[detail.practice.status]" :label="STATUS_LABEL[detail.practice.status]" />
+        <span class="rc-hint">{{ levelLabel(detail.level) }} · {{ DIFFICULTY_LABEL[detail.difficulty] }} · {{ detail.lineCount }} baris jurnal</span>
+      </div>
+
+      <PlayCard as="section" aria-labelledby="story-h">
+        <h2 id="story-h" class="rc-h2">Transaksi</h2>
+        <p class="rc-sbx-story">{{ detail.story }}</p>
+      </PlayCard>
+
+      <p class="rc-sbx-note" role="note">
+        <strong>{{ SCAFFOLD_LABEL[detail.personalization.scaffold] }}</strong>
+        <span>{{ scaffoldNote(detail.personalization.scaffold, detail.personalization.mastery, detail.personalization.evidenceCount) }}</span>
+      </p>
+
+      <details v-if="detail.personalization.equationPanelOpen && !solved" class="rc-sbx-details" open>
+        <summary>Pengingat: persamaan akuntansi</summary>
+        <div>
+          <p><strong>Aset = Kewajiban + Ekuitas</strong></p>
+          <p>Debit menambah aset dan beban, serta mengurangi kewajiban, ekuitas, dan pendapatan. Kredit sebaliknya. Dalam satu jurnal, total debit harus sama dengan total kredit.</p>
         </div>
-        <div class="rc-actions">
-          <PlayButton variant="secondary" size="sm" @click="addEntry">Tambah baris</PlayButton>
-          <span class="rc-hint">Total: {{ total.toLocaleString('id-ID') }}</span>
+      </details>
+
+      <details v-if="detail.example && exampleKey" class="rc-sbx-details">
+        <summary>Contoh serupa yang sudah dikerjakan</summary>
+        <div>
+          <p>{{ detail.example.story }}</p>
+          <SolutionPanel :solution="exampleKey" title="Jurnal contoh" />
         </div>
+      </details>
+
+      <PlayCard v-if="showForm" as="form" class="rc-sbx-form" aria-label="Jurnal" novalidate @submit.prevent="check">
+        <h2 class="rc-h2">Jurnal umum</h2>
+        <JournalEntryGrid v-model="rows" :accounts="detail.accounts" :disabled="checking" :verdicts="verdicts" />
+        <DebitCreditTotal :totals="totals" :started="started" />
         <p v-if="problem" class="rc-alert rc-alert--error" role="alert">{{ problem }}</p>
         <div class="rc-actions">
-          <PlayButton type="submit" :loading="submitting">Periksa jurnal</PlayButton>
+          <PlayButton type="submit" :loading="checking">Periksa jurnal</PlayButton>
+          <PlayButton variant="ghost" size="sm" :disabled="checking" @click="reset">Kosongkan</PlayButton>
         </div>
       </PlayCard>
 
-      <PlayCard v-if="validation" :tone="validation.isBalanced ? 'success' : 'danger'" as="section" aria-label="Hasil pemeriksaan" role="status">
-        <h2 class="rc-h2">{{ validation.isBalanced ? 'Jurnal seimbang' : 'Jurnal belum seimbang' }}</h2>
-        <p v-if="validation.score !== undefined">Skor: {{ Math.round(validation.score * 100) }}%</p>
-        <ul v-if="validation.errors?.length">
-          <li v-for="item in validation.errors" :key="item.code">{{ item.message }}</li>
-        </ul>
+      <CheckResultPanel v-if="result" :result="result" />
+      <RewardSummary :lines="rewards" heading-id="sandbox-rewards" />
+
+      <PlayCard v-if="showForm">
+        <HintPanel :hints="hints" :level="hintLevel" :busy="hintBusy || revealBusy" :can-reveal="canReveal" :error="hintError" :cooldown="cooldown" @hint="openHint" @reveal="reveal" />
+      </PlayCard>
+
+      <PlayCard v-if="solution" as="section" :tone="solved ? 'success' : 'soft'">
+        <p v-if="!solved" class="rc-hint">Kamu membuka jawaban, jadi skenario ini belum dihitung selesai. Coba catat sendiri jurnalnya di atas.</p>
+        <SolutionPanel :solution="solution" />
+      </PlayCard>
+
+      <PlayCard v-if="solved" as="section" aria-labelledby="variant-h">
+        <h2 id="variant-h" class="rc-h2">Latih lagi dengan angka lain</h2>
+        <p class="rc-hint">Transaksinya sama, angkanya berbeda. Berlatih ulang membuat kamu lebih ingat, dan latihan ini tidak mengubah skormu.</p>
+        <div class="rc-actions">
+          <PlayButton @click="startVariant">Coba angka lain</PlayButton>
+          <PlayButton to="/sandbox/akuntansi" variant="outline">Pilih skenario lain</PlayButton>
+        </div>
       </PlayCard>
     </template>
   </div>

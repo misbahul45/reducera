@@ -25,7 +25,7 @@ const intro = computed(() => plainText(topic?.value?.description, 160))
   <div class="rc-stack rc-learning">
     <PageHeader :title="topic?.title ?? 'Jalur belajar'" :subtitle="intro || undefined">
       <template #actions>
-        <PlayButton to="/learn/topics" variant="outline" size="sm">Semua topik</PlayButton>
+        <PlayButton to="/learn/topics" variant="outline" size="sm">Semua course</PlayButton>
         <PlayButton to="/my-learning/mastery" variant="outline" size="sm">Penguasaan</PlayButton>
       </template>
     </PageHeader>
@@ -37,16 +37,16 @@ const intro = computed(() => plainText(topic?.value?.description, 160))
     </PlayCard>
 
     <section aria-labelledby="path-title">
-      <h2 id="path-title" class="rc-h2">Bagian topik</h2>
+      <h2 id="path-title" class="rc-h2">Bagian course</h2>
       <LoadingSkeleton v-if="loading" variant="card" :count="3" />
-      <ErrorState v-else-if="failed" title="Topik tidak dapat dimuat" message="Topik ini tidak ditemukan atau gagal dimuat. Coba muat ulang halaman." />
+      <ErrorState v-else-if="failed" title="Course tidak dapat dimuat" message="Course ini tidak ditemukan atau gagal dimuat. Coba muat ulang halaman." />
       <LearningPath v-else-if="nodes.length" :nodes="nodes" />
       <EmptyState
         v-else
         icon-name="i-lucide-route"
         title="Belum ada bagian"
-        message="Topik ini belum punya bagian belajar. Coba lagi nanti."
-        cta-label="Pilih topik lain"
+        message="Course ini belum punya bagian belajar. Coba lagi nanti."
+        cta-label="Pilih course lain"
         cta-to="/learn/topics"
       />
     </section>

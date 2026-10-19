@@ -1,0 +1,358 @@
+{
+  "slug": "utbk-snbt",
+  "title": "Persiapan UTBK-SNBT",
+  "category": "Persiapan Ujian",
+  "description": "Persiapan Ujian Tulis Berbasis Komputer (UTBK) untuk Seleksi Nasional Berbasis Tes (SNBT) mengikuti kerangka resmi SNPMB: empat subtes Tes Potensi Skolastik dan tiga subtes Tes Literasi, lengkap dengan strategi waktu dan cara berlatih.",
+  "durationMinutes": 360,
+  "subTopics": [
+    {
+      "slug": "mengenal-utbk-snbt",
+      "title": "Mengenal UTBK-SNBT",
+      "description": "Struktur tes, jumlah soal, alokasi waktu, dan cara mengatur waktu sesuai kerangka resmi UTBK-SNBT 2026 dari SNPMB.",
+      "prerequisites": [],
+      "lessons": [
+        {
+          "title": "Struktur tes dan alokasi waktu",
+          "description": "Dua komponen, tujuh subtes, dan waktu tiap subtes menurut kerangka resmi.",
+          "steps": [
+            {
+              "title": "Dua komponen dan tujuh subtes",
+              "description": "UTBK-SNBT 2026 terdiri atas Tes Potensi Skolastik dan Tes Literasi. Tes Potensi Skolastik memuat empat subtes: Penalaran Umum, Pengetahuan dan Pemahaman Umum, Pemahaman Bacaan dan Menulis, serta Pengetahuan Kuantitatif. Tes Literasi memuat tiga subtes: Literasi dalam Bahasa Indonesia, Literasi dalam Bahasa Inggris, dan Penalaran Matematika. Rincian resmi tersedia pada halaman kerangka UTBK-SNBT di situs SNPMB (snpmb.id)."
+            },
+            {
+              "title": "Jumlah soal dan waktu tiap subtes",
+              "description": "Menurut kerangka UTBK-SNBT 2026, Penalaran Umum berisi 30 soal dalam 30 menit (tiga bagian, masing-masing 10 soal dalam 10 menit), Pengetahuan dan Pemahaman Umum 20 soal dalam 15 menit, Pemahaman Bacaan dan Menulis 20 soal dalam 25 menit, dan Pengetahuan Kuantitatif 20 soal dalam 20 menit. Tes Potensi Skolastik berjumlah 90 soal dalam 90 menit. Tes Literasi: Literasi dalam Bahasa Indonesia 30 soal dalam 42,5 menit, Literasi dalam Bahasa Inggris 20 soal dalam 20 menit, dan Penalaran Matematika 20 soal dalam 42,5 menit, berjumlah 70 soal dalam 105 menit. Seluruh tes berjumlah 160 soal dalam 195 menit tanpa waktu istirahat."
+            },
+            {
+              "title": "Ketentuan umum bagi peserta",
+              "description": "Peserta SNBT hanya diperbolehkan mengikuti UTBK satu kali pada tahun pendaftarannya, dan hasil UTBK hanya berlaku untuk SNBT dan penerimaan di perguruan tinggi negeri pada tahun yang sama. Karena jadwal, ketentuan, dan angka resmi dapat diperbarui, selalu cocokkan rencana belajarmu dengan pengumuman terbaru di snpmb.id."
+            }
+          ]
+        },
+        {
+          "title": "Mengatur waktu dan cara berlatih",
+          "description": "Menghitung waktu rata-rata per soal dan menyusun kebiasaan berlatih yang terukur.",
+          "steps": [
+            {
+              "title": "Waktu rata-rata per soal",
+              "description": "Dari waktu resmi, rata-rata waktu per soal adalah sekitar 1 menit untuk Penalaran Umum, 45 detik untuk Pengetahuan dan Pemahaman Umum, 75 detik untuk Pemahaman Bacaan dan Menulis, 60 detik untuk Pengetahuan Kuantitatif, 85 detik untuk Literasi dalam Bahasa Indonesia, 60 detik untuk Literasi dalam Bahasa Inggris, dan sekitar 2 menit 7 detik untuk Penalaran Matematika. Angka ini rata-rata: soal mudah sebaiknya selesai lebih cepat agar ada sisa waktu untuk soal yang lebih sulit."
+            },
+            {
+              "title": "Berlatih dengan catatan kesalahan",
+              "description": "Latihan yang efektif mencatat jenis kesalahan, bukan hanya skor. Setelah mengerjakan satu set soal, kelompokkan soal yang salah menjadi tiga jenis: tidak paham konsep, salah hitung atau salah baca, dan kehabisan waktu. Tiap jenis punya obat berbeda: pelajari ulang konsepnya, perlambat dan periksa angka, atau latih dengan batas waktu per soal. Ulangi soal yang sama beberapa hari kemudian untuk memastikan konsepnya benar-benar melekat."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "penalaran-umum",
+      "title": "Penalaran Umum",
+      "description": "Subtes Tes Potensi Skolastik yang mengukur penalaran induktif, deduktif, dan kuantitatif: tiga bagian dengan 10 soal dalam 10 menit tiap bagian.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Penalaran induktif",
+          "description": "Menemukan prinsip atau aturan umum dari fakta dan contoh.",
+          "steps": [
+            {
+              "title": "Mencari pola dan aturan dari contoh",
+              "description": "Penalaran induktif bergerak dari kasus khusus ke aturan umum. Langkahnya: amati semua fakta, cari kesamaan atau perubahan yang teratur, rumuskan aturan sementara, lalu uji pada fakta yang belum dipakai. Contoh pola bilangan 2, 5, 10, 17, 26: selisih berurutannya 3, 5, 7, 9 sehingga selisih berikutnya 11 dan suku berikutnya 37. Aturan yang benar harus cocok dengan seluruh fakta, bukan hanya sebagian."
+            },
+            {
+              "title": "Kesimpulan induktif bersifat kemungkinan",
+              "description": "Kesimpulan induktif tidak pernah sepasti kesimpulan deduktif; ia hanya sekuat dukungan datanya. Waspadai generalisasi terburu-buru dari contoh yang sedikit, dan perhatikan kata pembatas seperti semua, selalu, atau tidak pernah yang sering membuat sebuah pilihan terlalu kuat. Pilihan terbaik adalah pernyataan yang paling didukung oleh fakta yang diberikan tanpa menambahkan informasi baru."
+            }
+          ]
+        },
+        {
+          "title": "Penalaran deduktif",
+          "description": "Berpikir logis dari premis yang sudah diketahui menuju kesimpulan yang pasti.",
+          "steps": [
+            {
+              "title": "Silogisme dan pernyataan bersyarat",
+              "description": "Dalam silogisme, jika semua A adalah B dan C adalah A, maka C adalah B. Untuk pernyataan bersyarat Jika P maka Q, yang pasti ekuivalen adalah kontraposisinya: Jika bukan Q maka bukan P. Konvers (Jika Q maka P) dan invers (Jika bukan P maka bukan Q) tidak otomatis benar. Contoh: Semua peserta yang lulus pelatihan mendapat sertifikat. Rina tidak mendapat sertifikat. Maka Rina tidak lulus pelatihan."
+            },
+            {
+              "title": "Menarik kesimpulan yang harus benar",
+              "description": "Soal deduktif meminta kesimpulan yang pasti benar jika semua premis benar, bukan yang mungkin benar. Gambarlah diagram Venn atau tabel untuk premis berkuantor semua, sebagian, dan tidak ada. Premis sebagian tidak menjamin hubungan pada seluruh anggota, dan tidak adanya informasi bukan berarti sebuah hubungan tidak ada. Jika sebuah pilihan memerlukan asumsi tambahan, pilihan itu bukan kesimpulan deduktif."
+            }
+          ]
+        },
+        {
+          "title": "Penalaran kuantitatif",
+          "description": "Bernalar dengan angka dan operasi aritmetika dasar.",
+          "steps": [
+            {
+              "title": "Persentase, perbandingan, dan rata-rata",
+              "description": "Perubahan persentase berurutan tidak saling meniadakan: harga 100 yang naik 20 persen menjadi 120, lalu turun 20 persen menjadi 96, jadi turun 4 persen dari harga awal. Rata-rata gabungan dihitung dari jumlah keseluruhan dibagi banyak data: 4 peserta dengan rata-rata 80 dan 6 peserta dengan rata-rata 90 menghasilkan (320 + 540) dibagi 10, yaitu 86. Ubah perbandingan menjadi bagian yang sama sebelum menghitung."
+            },
+            {
+              "title": "Soal cerita kecepatan dan pekerjaan",
+              "description": "Pada soal gerak, jarak sama dengan kecepatan dikali waktu: 60 km per jam selama 2,5 jam menempuh 150 km. Pada soal pekerjaan, jumlahkan laju kerja per satuan waktu: jika A selesai dalam 6 jam dan B dalam 3 jam, laju gabungannya 1/6 + 1/3 = 1/2 pekerjaan per jam sehingga selesai dalam 2 jam. Tuliskan besaran yang diketahui dan ditanya sebelum menghitung agar tidak tertukar satuan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pengetahuan-dan-pemahaman-umum",
+      "title": "Pengetahuan dan Pemahaman Umum",
+      "description": "Subtes Tes Potensi Skolastik tentang pengetahuan leksikal, informasi umum dalam konteks sosial budaya Indonesia, serta kemampuan menganalisis dan menyimpulkan bacaan: 20 soal dalam 15 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Pengetahuan leksikal",
+          "description": "Kosakata, makna kata, dan hubungan makna dalam konteks.",
+          "steps": [
+            {
+              "title": "Makna kata dan hubungan antarmakna",
+              "description": "Pengetahuan leksikal adalah pengetahuan tentang kata. Kuasai makna denotatif (makna lugas) dan konotatif (makna tambahan yang bernilai rasa), serta hubungan makna: sinonim (arif dan bijaksana), antonim (hemat dan boros), hiponim dan hipernim (mawar termasuk bunga). Saat ragu, uji pilihan dengan memasukkannya ke kalimat asal dan perhatikan apakah makna dan nuansanya tetap sama."
+            },
+            {
+              "title": "Menebak makna dari imbuhan dan konteks",
+              "description": "Kata asing sering dapat ditebak dari konteks kalimat, dari kata dasar dan imbuhannya (misalnya per-an membentuk kata benda seperti perkebunan dan pertemuan), atau dari pasangan kata yang sejajar dalam kalimat. Perhatikan pula kata yang berpolisemi, yaitu satu kata dengan beberapa makna: makna yang dipilih harus mengikuti kalimatnya, bukan makna yang paling sering kamu temui."
+            }
+          ]
+        },
+        {
+          "title": "Memahami dan menyimpulkan bacaan",
+          "description": "Menghubungkan, menganalisis, dan menyimpulkan kata, frasa, dan kalimat dalam bacaan.",
+          "steps": [
+            {
+              "title": "Hubungan antarkalimat dan antarparagraf",
+              "description": "Penanda hubungan membantu membaca alur: sebab-akibat (karena, sehingga, akibatnya), pertentangan (namun, tetapi, sebaliknya), tambahan (selain itu, lagi pula), urutan (pertama, kemudian), dan contoh (misalnya). Dalam paragraf, kalimat utama memuat gagasan pokok dan kalimat lain menjelaskan atau memberi bukti; kalimat utama bisa berada di awal, di akhir, atau di kedua tempat."
+            },
+            {
+              "title": "Menyimpulkan makna dan informasi dari teks",
+              "description": "Kesimpulan yang baik didukung langsung oleh teks. Ganti kata yang ditanyakan dengan pilihan jawaban untuk menguji kecocokannya, periksa nuansa positif atau negatif kalimat, dan singkirkan pilihan yang benar secara umum tetapi tidak disebut atau tidak dapat disimpulkan dari bacaan. Pengetahuan umum membantu memahami konteks, tetapi jawaban tetap harus sesuai dengan isi bacaan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pemahaman-bacaan-dan-menulis",
+      "title": "Pemahaman Bacaan dan Menulis",
+      "description": "Subtes Tes Potensi Skolastik tentang pemilihan, penataan, dan perbaikan gagasan dalam tulisan berbahasa Indonesia yang baku: 20 soal dalam 25 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Pemilihan gagasan",
+          "description": "Judul, diksi, gagasan pelengkap, dan pelengkapan paragraf.",
+          "steps": [
+            {
+              "title": "Memilih judul dan gagasan pelengkap",
+              "description": "Judul yang baik mencerminkan gagasan utama seluruh teks, ringkas, dan tidak terlalu luas atau terlalu sempit. Temukan gagasan utama setiap paragraf, lalu cari gagasan yang menjadi irisannya. Gagasan pelengkap harus berkaitan langsung dengan topik paragraf, tidak mengulang kalimat lain, dan tidak membawa topik baru."
+            },
+            {
+              "title": "Melengkapi paragraf dan memilih diksi",
+              "description": "Kalimat rumpang harus koheren dengan kalimat sebelum dan sesudahnya dalam topik, logika, dan penanda hubungan. Pada soal diksi, pilih kata yang tepat makna, sesuai dengan konteks dan ragam baku, serta serasi dengan kata di sekitarnya. Misalnya, kata meningkatkan serasi dengan mutu atau kualitas, sedangkan menaikkan lebih serasi dengan harga atau bendera."
+            }
+          ]
+        },
+        {
+          "title": "Penataan gagasan",
+          "description": "Kalimat inti, penggabungan kalimat, tanda baca, urutan dan variasi kalimat.",
+          "steps": [
+            {
+              "title": "Kalimat inti dan penggabungan kalimat",
+              "description": "Kalimat inti memuat unsur wajib, yaitu subjek dan predikat, ditambah objek, pelengkap, atau keterangan jika predikatnya menuntut. Menggabungkan kalimat dapat memakai konjungsi koordinatif (dan, tetapi, atau) untuk gagasan sederajat dan konjungsi subordinatif (karena, sehingga, meskipun, ketika) untuk gagasan bertingkat. Hindari memakai dua konjungsi yang bertentangan fungsinya dalam satu kalimat, misalnya meskipun dipasangkan dengan tetapi."
+            },
+            {
+              "title": "Urutan kalimat dan tanda baca",
+              "description": "Paragraf yang tertata biasanya bergerak dari pengantar, ke rincian, lalu penutup, dengan kalimat yang saling menjelaskan lewat kata rujukan dan penanda hubungan. Pada tanda baca, anak kalimat yang mendahului induk kalimat dipisahkan koma (Meskipun hujan, pertandingan tetap berlangsung), sedangkan tanda titik dua tidak dipakai jika rincian merupakan pelengkap yang mengakhiri pernyataan. Variasi kalimat dibuat dengan mengubah posisi keterangan atau struktur kalimat tanpa mengubah makna."
+            }
+          ]
+        },
+        {
+          "title": "Perbaikan gagasan: ejaan dan kalimat efektif",
+          "description": "Ejaan kata serapan, penulisan huruf dan kata, kata mubazir, dan kalimat ringkas.",
+          "steps": [
+            {
+              "title": "Ejaan dan kata serapan baku",
+              "description": "Rujukan ejaan yang berlaku adalah Ejaan yang Disempurnakan (EYD) Edisi V (2022) dari Badan Pengembangan dan Pembinaan Bahasa, serta Kamus Besar Bahasa Indonesia. Bentuk baku yang sering diuji: aktivitas (bukan aktifitas), analisis (bukan analisa), apotek (bukan apotik), atlet (bukan atlit), jadwal (bukan jadual), nasihat (bukan nasehat), risiko (bukan resiko), izin (bukan ijin), praktik (bukan praktek), silakan (bukan silahkan), kualitas (bukan kwalitas), objek (bukan obyek), sistem (bukan sistim), hakikat (bukan hakekat), persentase (bukan prosentase), dan sekadar (bukan sekedar)."
+            },
+            {
+              "title": "Huruf, kata gabung, dan kata mubazir",
+              "description": "Awalan di- ditulis serangkai dengan kata kerja (dibaca, ditulis) tetapi preposisi di dipisah dari kata tempat (di rumah, di sekolah). Contoh penulisan kata gabung: kerja sama, tanda tangan, dan tata usaha ditulis terpisah, sedangkan olahraga ditulis serangkai. Hilangkan kata mubazir yang mengulang makna: para hadirin sekalian cukup hadirin, agar supaya cukup agar atau supaya, demi untuk cukup untuk, dan naik ke atas cukup naik. Kalimat efektif singkat, jelas, dan tidak berulang makna."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pengetahuan-kuantitatif",
+      "title": "Pengetahuan Kuantitatif",
+      "description": "Subtes Tes Potensi Skolastik tentang bilangan, aljabar, geometri dan pengukuran, analisis data, dan peluang yang selaras dengan kurikulum SMA atau sederajat: 20 soal dalam 20 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Bilangan dan aljabar",
+          "description": "Operasi bilangan, eksponen, persamaan, pertidaksamaan, dan fungsi.",
+          "steps": [
+            {
+              "title": "Bilangan, persen, perbandingan, dan eksponen",
+              "description": "Sederhanakan pecahan sebelum menghitung, ubah persen menjadi pecahan atau desimal, dan pakai perbandingan senilai (naik bersama) atau berbalik nilai (satu naik, satu turun). Sifat eksponen: a pangkat m dikali a pangkat n sama dengan a pangkat (m + n), a pangkat m dipangkatkan n sama dengan a pangkat (m x n), dan a pangkat 0 sama dengan 1. Contoh: 2 pangkat 3 dikali 2 pangkat 4 sama dengan 2 pangkat 7, yaitu 128."
+            },
+            {
+              "title": "Persamaan, pertidaksamaan, dan fungsi",
+              "description": "Persamaan kuadrat ax^2 + bx + c = 0 diselesaikan dengan pemfaktoran atau rumus kuadrat; contoh x^2 - 5x + 6 = 0 difaktorkan menjadi (x - 2)(x - 3) = 0 sehingga x = 2 atau x = 3. Pada pertidaksamaan, tanda berbalik saat kedua ruas dikali atau dibagi bilangan negatif. Untuk fungsi f(x) = 2x + 3, nilai f(4) diperoleh dengan mengganti x dengan 4 sehingga hasilnya 11."
+            }
+          ]
+        },
+        {
+          "title": "Geometri dan pengukuran",
+          "description": "Bangun datar, bangun ruang, satuan, dan skala.",
+          "steps": [
+            {
+              "title": "Bangun datar dan bangun ruang",
+              "description": "Luas segitiga adalah setengah alas dikali tinggi, luas lingkaran pi dikali jari-jari kuadrat, dan keliling lingkaran 2 dikali pi dikali jari-jari. Teorema Pythagoras menyatakan kuadrat sisi miring sama dengan jumlah kuadrat sisi lainnya, misalnya segitiga siku-siku 3, 4, 5. Volume balok adalah panjang dikali lebar dikali tinggi, tabung pi r kuadrat t, kerucut sepertiga pi r kuadrat t, dan bola empat per tiga pi r pangkat tiga. Tabung berjari-jari 7 cm dan tinggi 10 cm bervolume 1.540 cm kubik dengan pi = 22/7."
+            },
+            {
+              "title": "Satuan, skala, dan kesebangunan",
+              "description": "Samakan satuan sebelum menghitung. Pada peta berskala 1 : 50.000, jarak 3 cm di peta berarti 3 x 50.000 = 150.000 cm di lapangan, yaitu 1,5 km. Dua bangun sebangun memiliki sudut yang sama dan sisi yang seperbandingan; perbandingan luasnya sama dengan kuadrat perbandingan sisinya, dan perbandingan volumenya sama dengan pangkat tiga perbandingan sisinya."
+            }
+          ]
+        },
+        {
+          "title": "Analisis data dan peluang",
+          "description": "Ukuran pemusatan dan penyebaran, peluang, dan kombinatorik dasar.",
+          "steps": [
+            {
+              "title": "Rata-rata, median, modus, dan jangkauan",
+              "description": "Rata-rata adalah jumlah data dibagi banyak data, median adalah nilai tengah setelah data diurutkan, modus adalah nilai yang paling sering muncul, dan jangkauan adalah selisih data terbesar dan terkecil. Untuk data 4, 6, 6, 7, 9, 10: rata-rata 42 dibagi 6 sama dengan 7, median (6 + 7) dibagi 2 sama dengan 6,5, modus 6, dan jangkauan 6. Baca tabel dan diagram dengan memperhatikan satuan dan skala sumbu."
+            },
+            {
+              "title": "Peluang dan kaidah pencacahan",
+              "description": "Peluang suatu kejadian adalah banyak hasil yang diinginkan dibagi banyak seluruh hasil yang mungkin. Peluang dua dadu berjumlah 7 adalah 6 dari 36 hasil, yaitu 1/6. Untuk kejadian saling lepas, P(A atau B) = P(A) + P(B); secara umum P(A atau B) = P(A) + P(B) - P(A dan B). Pakai permutasi jika urutan penting dan kombinasi jika tidak: dari 5 orang memilih 2 dengan urutan ada 20 cara, tanpa urutan ada 10 cara."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "literasi-bahasa-indonesia",
+      "title": "Literasi dalam Bahasa Indonesia",
+      "description": "Subtes Tes Literasi yang mengukur kemampuan menemukan, memahami, menilai, dan merefleksi informasi dalam teks bertema sains dan teknologi, sosial humaniora, dan sastra: 30 soal dalam 42,5 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Menemukan dan memahami informasi",
+          "description": "Informasi eksplisit, gagasan utama, dan kesimpulan dari teks.",
+          "steps": [
+            {
+              "title": "Menemukan informasi dalam teks, tabel, dan grafik",
+              "description": "Soal jenis ini menanyakan informasi yang tertulis jelas. Baca pertanyaan lebih dulu, tentukan kata kunci, lalu cari bagian teks yang memuatnya, termasuk di tabel, grafik, atau infografik. Waspadai pilihan yang mengubah satu kata penting dari teks, misalnya sebagian menjadi seluruh, atau meningkat menjadi menurun."
+            },
+            {
+              "title": "Memahami gagasan utama dan menyimpulkan",
+              "description": "Bedakan gagasan utama (yang dibahas sepanjang paragraf atau teks) dari rincian pendukungnya. Pada teks sains, pahami istilah dan alur proses (sebab, tahapan, hasil); pada teks sosial humaniora, pahami pihak, peristiwa, dan hubungan sebab-akibatnya. Kesimpulan yang tepat dapat diturunkan dari teks tanpa tambahan asumsi, dan bukan sekadar pernyataan yang benar menurut pengetahuan umum."
+            }
+          ]
+        },
+        {
+          "title": "Menilai dan merefleksi teks",
+          "description": "Menilai isi dan bukti, serta menghubungkan teks dengan pengetahuan dan nilai.",
+          "steps": [
+            {
+              "title": "Menilai bukti, argumen, dan sumber",
+              "description": "Menilai berarti memeriksa kualitas teks. Bedakan fakta (dapat diverifikasi) dari opini (pandangan penulis), tanyakan apakah bukti cukup dan relevan untuk mendukung klaim, dan perhatikan kredibilitas sumber, kemungkinan bias, serta tujuan penulis: menginformasikan, membujuk, atau menghibur. Perhatikan juga struktur teks, apakah berupa deskripsi, eksposisi, argumentasi, atau narasi."
+            },
+            {
+              "title": "Merefleksi dan mengapresiasi teks sastra",
+              "description": "Merefleksi berarti menghubungkan isi teks dengan pengetahuan, pengalaman, atau konteks lain, lalu mempertimbangkan implikasinya. Pada teks sastra, telaah tema, tokoh dan perwatakan, latar, alur, amanat, dan gaya bahasa seperti majas. Jawaban harus berpijak pada teks: kutip atau parafrasekan bagian yang mendukung tafsiranmu, bukan sekadar selera pribadi."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "literasi-bahasa-inggris",
+      "title": "Literasi dalam Bahasa Inggris",
+      "description": "Subtes Tes Literasi yang mengukur kemampuan memahami teks berbahasa Inggris bertema sains dan teknologi, sosial humaniora, dan personal: 20 soal dalam 20 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt"
+      ],
+      "lessons": [
+        {
+          "title": "Main idea and supporting details",
+          "description": "Memahami gagasan utama, rincian, makna kata dalam konteks, dan kata rujukan.",
+          "steps": [
+            {
+              "title": "Finding the main idea and details",
+              "description": "Untuk menemukan gagasan utama (main idea), baca judul, kalimat pertama dan terakhir tiap paragraf, lalu cari topik yang dibahas semua paragraf. Supporting details menjelaskan atau membuktikan gagasan itu. Pilihan yang hanya benar untuk satu detail biasanya terlalu sempit, sedangkan pilihan yang meluas melampaui teks terlalu luas. Pada pertanyaan detail, lakukan scanning: cari kata kunci dalam teks, lalu baca kalimat di sekitarnya."
+            },
+            {
+              "title": "Vocabulary in context and reference words",
+              "description": "Makna kata dalam teks ditentukan oleh konteksnya, bukan oleh arti kamus yang paling sering: ganti kata itu dengan pilihan jawaban dan periksa apakah kalimatnya tetap masuk akal. Untuk kata rujukan seperti this, they, and it, cari benda atau gagasan terdekat sebelumnya yang cocok dalam jumlah dan makna. Kata penghubung memberi petunjuk alur: however dan although menandai pertentangan, therefore dan as a result menandai akibat, in addition dan moreover menandai tambahan, for example menandai contoh."
+            }
+          ]
+        },
+        {
+          "title": "Inference, purpose, and evaluating texts",
+          "description": "Menyimpulkan makna tersirat, memahami tujuan penulis, dan membaca teks ilmiah.",
+          "steps": [
+            {
+              "title": "Making inferences",
+              "description": "Inferensi adalah kesimpulan yang tidak dinyatakan langsung tetapi didukung kuat oleh teks. Bedakan informasi yang stated (tertulis) dari yang implied (tersirat). Pilihan yang memakai kata ekstrem seperti always, never, all, atau only sering terlalu kuat dibandingkan teks. Jawaban yang benar dapat ditunjuk bukti kalimatnya; jika kamu harus membayangkan informasi baru, pilihan itu kemungkinan salah."
+            },
+            {
+              "title": "Author's purpose, tone, and scientific texts",
+              "description": "Tujuan penulis dapat berupa to inform, to persuade, to explain a process, atau to entertain, dan nada (tone) dapat netral, kritis, optimis, atau skeptis, yang terlihat dari pilihan kata. Teks sains sering mengikuti pola question, hypothesis, method, results, dan conclusion; baca grafik atau tabel dengan memperhatikan judul, satuan, dan tren. Dengan 20 soal dalam 20 menit, targetkan sekitar satu menit per soal dan lewati dulu teks yang terlalu padat jika sistem memungkinkan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "penalaran-matematika",
+      "title": "Penalaran Matematika",
+      "description": "Subtes Tes Literasi yang mengukur kemampuan menganalisis argumen matematika, menentukan strategi, mengenali pola dan struktur, serta mengembangkan argumen logis dalam konteks pribadi, pekerjaan, sosial, dan ilmiah: 20 soal dalam 42,5 menit.",
+      "prerequisites": [
+        "mengenal-utbk-snbt",
+        "pengetahuan-kuantitatif"
+      ],
+      "lessons": [
+        {
+          "title": "Merumuskan dan memilih strategi",
+          "description": "Mengubah situasi nyata menjadi model matematika dan memilih strategi yang tepat.",
+          "steps": [
+            {
+              "title": "Dari situasi nyata ke model matematika",
+              "description": "Proses pertama dalam penalaran matematika adalah merumuskan: tentukan besaran yang berubah, beri simbol, dan tuliskan hubungannya. Contoh: tarif taksi Rp8.000 untuk buka pintu ditambah Rp4.000 per kilometer dimodelkan sebagai biaya = 8.000 + 4.000 x k, sehingga untuk 12 km biayanya 8.000 + 48.000 = Rp56.000. Jelaskan dulu apa yang ditanyakan sebelum memilih rumus."
+            },
+            {
+              "title": "Memilih strategi dan mengenali pola",
+              "description": "Strategi yang berguna meliputi membuat tabel, menggambar diagram, bekerja mundur, mencoba nilai secara sistematis, dan menyederhanakan masalah. Kenali struktur pola: pertambahan tetap (aritmetika) berbeda dari perkalian tetap (geometri). Tabungan Rp100.000 yang bertambah Rp10.000 per bulan menjadi 110.000, 120.000, 130.000, sedangkan yang bertambah 10 persen berbunga majemuk menjadi 110.000, 121.000, 133.100."
+            }
+          ]
+        },
+        {
+          "title": "Menggunakan, menafsirkan, dan mengevaluasi",
+          "description": "Menjalankan prosedur, membaca hasil dalam konteks, dan menilai argumen.",
+          "steps": [
+            {
+              "title": "Menafsirkan hasil dalam konteks",
+              "description": "Hasil hitungan harus dibaca kembali dalam situasi awal: periksa satuan, kewajaran, dan pembulatan. Jika dibutuhkan 7,3 bus untuk mengangkut peserta, jawaban yang masuk akal adalah 8 bus karena bus tidak dapat dibagi, bukan 7 bus hasil pembulatan biasa. Bandingkan hasil dengan perkiraan kasar untuk menangkap salah hitung."
+            },
+            {
+              "title": "Mengevaluasi argumen matematika",
+              "description": "Periksa apakah sebuah klaim benar dengan mencari contoh yang cocok dan contoh penyangkalnya. Diskon beruntun 20 persen lalu 20 persen bukan diskon 40 persen: harga 100 menjadi 80, lalu 64, sehingga diskon totalnya 36 persen. Rata-rata yang naik tidak berarti semua nilai naik, dan grafik dengan sumbu yang dipotong dapat membuat perbedaan kecil tampak besar. Argumen yang kuat menyebutkan data, langkah, dan alasan secara runtut."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

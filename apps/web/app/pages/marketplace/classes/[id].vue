@@ -152,6 +152,13 @@ useHead({
         </p>
         <p v-if="item.description" class="rc-cdetail__text">{{ item.description }}</p>
 
+        <section v-if="item.concepts?.length" class="rc-cdetail__concepts" aria-labelledby="concepts-title">
+          <h2 id="concepts-title" class="rc-h2">Konsep yang dibahas</h2>
+          <ul class="rc-conceptlist">
+            <li v-for="concept in item.concepts" :key="concept.id" class="rc-chip rc-chip--info">{{ concept.title }}</li>
+          </ul>
+        </section>
+
         <section v-if="sessions.length" class="rc-cdetail__sessions" aria-labelledby="sessions-title">
           <h2 id="sessions-title" class="rc-h2">Jadwal sesi</h2>
           <ol class="rc-cdetail__list">

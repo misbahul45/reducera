@@ -15,7 +15,7 @@
 4. **Two surfaces, one token set.** The application uses the Play skin through `--rc-*` variables and the shape block. The landing page is a separate marketing surface in a fixed dark skin after Arcjet; it is not learner themed, but it reads the default theme's gamification icons so what it sells is what the app shows.
 5. **Gamify rules are rows.** `RewardRule(code, version, eventType, rewardKind, amount, dailyCap, params, active)` is read by the engine; the current catalog (`MASTERY_PROGRESS`, `CONCEPT_PASSED`, `STREAK_BONUS_7`) moves from constants to rows and new rules are added by rows (`PATH_NODE_MASTERED` pays one star, `STREAK_FREEZE_EARNED`). Level thresholds are rows (`LevelThreshold`) and the level is computed from ledger XP, not from active days. Achievements are rows with a typed rule and an icon name; an evaluator runs inside the grading transaction after the reward engine. Changing a number is a new rule version, never an edit.
 6. **Currencies.** `GamificationLedger` gains `kind` (`XP`, `STAR`); stars are a projection of `STAR` rows, written in the same transaction. Spending stars is not built.
-7. **Streak.** A streak day is a local day with at least one qualifying learning event (a graded assessment with evidence). Chat messages, step creation and logins never qualify. `User.timezone` defines the day. One freeze is earned per seven consecutive days, at most two are held, a missed day consumes one.
+7. **Streak.** A streak day is a local day with at least one qualifying learning event (a passed assessment with evidence, ADR-028). Chat messages, step creation and logins never qualify. `User.timezone` defines the day. One freeze is earned per seven consecutive days, at most two are held, a missed day consumes one.
 8. **Boards.** A learner joins a board explicitly; boards are scoped to a topic, ranked by concepts passed in the current week, and show a handle, not a name. There is no global board in the UI.
 9. **Not built, on purpose** (strategy 08): quests and missions, a lives mechanic (`souls` stays hidden until a rule exists), sold streak freezes, a global board, rewards for activity. "Selling gamification" means the landing page presents the mechanisms that exist.
 10. **Dynamic user themes later.** The resolver accepts a user theme as the first entry of its chain and the validator and lifecycle already exist; the user preference field and the endpoint are the next stage and are not built here.
@@ -25,6 +25,6 @@
 - One look across the application and a data driven way to change it; the owner can add a theme by data.
 - Light mode uses a darker green than the brand bright green because the validator requires AA contrast for text; bright greens are decoration only. Dark mode uses the bright green.
 - Level and streak change meaning (learning, not activity); existing counters on `User` become projections.
-- A chat message no longer extends a streak (a behavior change that closes H-008 vectors 2 and 3, to be confirmed by the owner with D-25).
+- A chat message no longer extends a streak (a behavior change that closes H-008 vectors 2 and 3, confirmed by the owner with D-25 in ADR-028).
 - The global leaderboard rows written by the ledger projection stay in the table; the UI stops showing a global board.
 - Design: `docs/architecture/play-ui-and-themed-gamify.md`; tasks: `docs/plans/play-ui-plan.md`.

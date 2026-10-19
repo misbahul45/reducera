@@ -16,36 +16,41 @@ const items = computed(() =>
     ...node,
     offset: pathOffset(index),
     icon: node.state === 'locked' ? ('lock' as const) : node.state === 'done' ? ('star' as const) : null,
-    label: `${node.title}. ${STATE_TEXT[node.state]}`,
+    label: `${node.unit ? `${node.unit}: ` : ''}${node.title}. ${STATE_TEXT[node.state]}`,
+    newUnit: Boolean(node.unit) && node.unit !== props.nodes[index - 1]?.unit,
   })),
 );
 </script>
 
 <template>
   <ol class="rc-path">
-    <li
-      v-for="item in items"
-      :key="item.id"
-      class="rc-path__item"
-      :class="`rc-path__item--${item.state}`"
-      :style="{ '--path-offset': item.offset }"
-    >
-      <span v-if="item.state === 'current'" class="rc-path__start">Mulai</span>
+    <template v-for="item in items" :key="item.id">
+      <li v-if="item.newUnit" class="rc-path__unit">
+        <span class="rc-path__unit-name">{{ item.unit }}</span>
+        <span v-if="item.unitTotal" class="rc-path__unit-count">{{ item.unitDone ?? 0 }}/{{ item.unitTotal }} selesai</span>
+      </li>
+      <li
+        class="rc-path__item"
+        :class="[`rc-path__item--${item.state}`, { 'rc-path__item--active': item.active }]"
+        :style="{ '--path-offset': item.offset }"
+      >
+        <span v-if="item.state === 'current'" class="rc-path__start">Mulai</span>
 
-      <NuxtLink v-if="item.to" :to="item.to" class="rc-path__node" :aria-label="item.label">
-        <GameIcon v-if="item.icon" :name="item.icon" :size="36" decorative />
-        <UIcon v-else name="i-lucide-play" class="rc-path__play" aria-hidden="true" />
-      </NuxtLink>
-      <button v-else type="button" class="rc-path__node" disabled aria-disabled="true" :aria-label="item.label">
-        <GameIcon :name="item.icon" :size="32" decorative />
-      </button>
+        <NuxtLink v-if="item.to" :to="item.to" class="rc-path__node" :aria-label="item.label" :aria-current="item.active ? 'step' : undefined">
+          <GameIcon v-if="item.icon" :name="item.icon" :size="36" decorative />
+          <UIcon v-else name="i-lucide-play" class="rc-path__play" aria-hidden="true" />
+        </NuxtLink>
+        <button v-else type="button" class="rc-path__node" disabled aria-disabled="true" :aria-label="item.label">
+          <GameIcon :name="item.icon" :size="32" decorative />
+        </button>
 
-      <div class="rc-path__text">
-        <h3 class="rc-path__title">{{ item.title }}</h3>
-        <p v-if="item.summary" class="rc-path__summary">{{ item.summary }}</p>
-        <p v-if="item.lessons" class="rc-hint">{{ item.lessons }} pelajaran</p>
-      </div>
-    </li>
+        <div class="rc-path__text">
+          <h3 class="rc-path__title">{{ item.title }}</h3>
+          <p v-if="item.summary" class="rc-path__summary">{{ item.summary }}</p>
+          <p v-if="item.lessons" class="rc-hint">{{ item.lessons }} pelajaran</p>
+        </div>
+      </li>
+    </template>
   </ol>
 </template>
 
@@ -76,6 +81,55 @@ const items = computed(() =>
   height: 1.5rem;
   border-left: 4px dotted var(--rc-border);
   transform: translateX(-50%);
+}
+.rc-path__unit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+  padding: 0.625rem 1rem;
+  border-radius: calc(var(--rc-radius, 16px) - 2px);
+  background-color: var(--rc-secondary);
+  box-shadow: 0 var(--rc-depth, 4px) 0 0 var(--rc-secondary-depth);
+  color: var(--rc-secondary-fg);
+}
+.rc-path__unit:first-child {
+  margin-top: 0;
+}
+.rc-path__unit-name {
+  min-width: 0;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+.rc-path__unit-count {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  opacity: 0.9;
+}
+.rc-path__item--active .rc-path__title {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+.rc-path__item--active .rc-path__node {
+  outline: 4px solid color-mix(in srgb, var(--rc-gold) 55%, transparent);
+  outline-offset: 4px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .rc-path__start {
+    animation: rc-path-bob 1.6s ease-in-out infinite;
+  }
+}
+@keyframes rc-path-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 .rc-path__start {
   padding: 0.25rem 0.875rem;

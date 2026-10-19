@@ -6,8 +6,10 @@ import ErrorState from '~/components/ui/ErrorState.vue';
 import LoadingSkeleton from '~/components/ui/LoadingSkeleton.vue';
 import { creatorApi } from '~/lib/api';
 import { describeApiError } from '~/lib/api-error';
-import { applicationPayload, applicationProblem, applicationStage } from '~/lib/creator-application';
+import type { User } from '~/interfaces/auth';
+import { applicationPayload, applicationProblem, applicationStage, eligibilityCopy, eligibleTopics, type TopicEligibility } from '~/lib/creator-application';
 import { formatDate } from '~/lib/format';
+import { userTopicService } from '~/services/learning/userTopic';
 
 definePageMeta({
   title: 'Jadi Kreator — ReduCera',
@@ -21,7 +23,33 @@ const { data: application, status, error, refresh } = useAsyncData('creator:appl
 
 const stage = computed(() => applicationStage(application.value));
 
-const form = reactive({ fullName: '', bio: '', expertise: '', portfolioUrl: '', cvUrl: '' });
+const user = useState<User | null>('user');
+const { data: topics, status: topicStatus } = useAsyncData(
+  'creator-topic-eligibility',
+  async (): Promise<TopicEligibility[]> => {
+    if (!user.value?.id) return [];
+    const res = await userTopicService.findAll<true>({ page: 1, limit: 50, userId: user.value.id, include: 'topic' });
+    const owned = (res.data?.data ?? []).flatMap((row) => (row.topic ? [{ id: row.topic.id, title: row.topic.title }] : []));
+    const checked = await Promise.all(
+      owned.map(async (topic): Promise<TopicEligibility> => {
+        const result = await creatorApi.checkEligibility(topic.id).catch(() => undefined);
+        return {
+          topicId: topic.id,
+          title: topic.title,
+          eligible: Boolean(result?.eligible),
+          score: result?.score ?? null,
+          passedConcepts: result?.passedConcepts ?? 0,
+          totalConcepts: result?.totalConcepts ?? 0,
+        };
+      }),
+    );
+    return checked;
+  },
+  { lazy: true, server: false },
+);
+const ready = computed(() => eligibleTopics(topics.value ?? []));
+
+const form = reactive({ fullName: '', bio: '', expertise: '', portfolioUrl: '', cvUrl: '', expertiseTopicId: '' });
 const submitting = ref(false);
 const formError = ref<string | null>(null);
 
@@ -72,6 +100,28 @@ async function submit() {
     </PlayCard>
 
     <PlayCard v-else as="form" class="rc-studio-form" aria-label="Form pengajuan kreator" novalidate @submit.prevent="submit">
+      <fieldset class="rc-fieldset">
+        <legend class="rc-h2">Course yang sudah kamu kuasai</legend>
+        <p class="rc-hint">Kamu bisa mengajukan diri setelah semua konsep sebuah course lulus dengan rata-rata 85%.</p>
+        <LoadingSkeleton v-if="(topicStatus === 'pending' || topicStatus === 'idle') && !topics" variant="row" :count="2" />
+        <p v-else-if="!topics || topics.length === 0" class="rc-hint">
+          Kamu belum mengikuti course apa pun. <NuxtLink to="/learn/topics">Pilih course</NuxtLink> dan selesaikan penilaiannya dulu.
+        </p>
+        <ul v-else class="rc-studio-list">
+          <li v-for="row in topics" :key="row.topicId" class="rc-card">
+            <label class="rc-check" :class="{ 'is-disabled': !row.eligible }">
+              <input v-model="form.expertiseTopicId" type="radio" name="expertise-topic" :value="row.topicId" :disabled="!row.eligible" />
+              <span>
+                <strong>{{ row.title }}</strong>
+                <span class="rc-hint">{{ eligibilityCopy(row) }}</span>
+              </span>
+            </label>
+          </li>
+        </ul>
+        <p v-if="topics && topics.length > 0 && ready.length === 0" class="rc-alert rc-alert--info" role="status">
+          Belum ada course yang memenuhi syarat. Lanjutkan belajar dan kerjakan penilaiannya.
+        </p>
+      </fieldset>
       <label class="rc-label">
         Nama lengkap
         <input v-model="form.fullName" class="rc-field" maxlength="200" autocomplete="name" />
@@ -94,7 +144,7 @@ async function submit() {
       </label>
       <p v-if="formError" class="rc-alert rc-alert--error" role="alert">{{ formError }}</p>
       <div class="rc-actions">
-        <PlayButton type="submit" :loading="submitting">Kirim pengajuan</PlayButton>
+        <PlayButton type="submit" :loading="submitting" :disabled="ready.length === 0">Kirim pengajuan</PlayButton>
       </div>
     </PlayCard>
   </div>

@@ -167,6 +167,11 @@ describe('reward rules', () => {
       expect(grants.find((g) => g.ruleId === 'CONCEPT_PASSED')).toMatchObject({ points: 50, sourceType: 'LEARNING_EVENT', sourceId: 'evt-9', conceptId: 'c1' });
     });
 
+    it('marks the pass grant, and only it, as owed once per cause whatever the rule version', () => {
+      expect(grants.find((g) => g.ruleId === 'CONCEPT_PASSED')?.oncePerCause).toBe(true);
+      expect(grants.find((g) => g.ruleId === 'MASTERY_PROGRESS')?.oncePerCause).toBeUndefined();
+    });
+
     it('omits a grant that would be worth nothing', () => {
       const none = evaluateAssessment({ userId: 'u1', conceptId: 'c1', eventId: 'e', after: { score: 0.45, evidenceCount: 1 }, alreadyPaidProgress: 0 });
 

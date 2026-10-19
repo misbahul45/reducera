@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   ConceptProgress,
+  LearnerSnapshot,
   NextConceptDecision,
   NextConceptInput,
   PersonalPolicySnapshot,
@@ -15,6 +16,7 @@ import {
 export const PASS_SCORE = 0.7;
 export const PASS_EVIDENCE = 3;
 export const STABLE_EVIDENCE = 3;
+export const TEACHING_POLICY_VERSION = 'teaching-policy-v2';
 const PERSONAL_POLICY_MIN_ATTEMPTS = 5;
 const PREFERENCE_MIN_ATTEMPTS = 3;
 const PREFERENCE_MIN_SUCCESS_RATE = 0.7;
@@ -34,6 +36,14 @@ const BASE_MAX_ATTEMPTS: Record<TeachingStrategy, number> = {
   REVIEW: 3,
   CHALLENGE: 5,
   TRANSFER: 3,
+};
+
+type MasteryBandCode = Extract<StrategyReasonCode, 'LOW_MASTERY' | 'MID_MASTERY' | 'HIGH_MASTERY'>;
+
+const BAND_STRATEGIES: Record<MasteryBandCode, readonly TeachingStrategy[]> = {
+  LOW_MASTERY: ['WORKED_EXAMPLE', 'GUIDED_EXAMPLE', 'HINT'],
+  MID_MASTERY: ['GUIDED_EXAMPLE', 'WORKED_EXAMPLE', 'SOCRATIC', 'EXPLAIN'],
+  HIGH_MASTERY: ['EXPLAIN', 'SOCRATIC', 'COUNTEREXAMPLE', 'CHALLENGE'],
 };
 
 interface Selection {
@@ -93,25 +103,33 @@ export class LearnerPolicyService {
     if (intent === 'CHALLENGE') return { strategy: 'CHALLENGE', reasonCodes: ['INTENT_CHALLENGE'] };
 
     if (intent === 'PRACTICE' && learner.evidenceCount >= STABLE_EVIDENCE) {
-      const preferred = this.mostEffectiveStrategy(policy);
+      const preferred = this.preferredStrategy(policy);
       if (preferred) return { strategy: preferred, reasonCodes: ['PERSONAL_STRATEGY_PREFERRED'] };
     }
 
     if (intent === 'DOUBT') {
-      const band = masteryBand(learner.mastery, 0.3, 0.6);
-      const strategy = band === 'LOW_MASTERY' ? 'WORKED_EXAMPLE' : band === 'MID_MASTERY' ? 'GUIDED_EXAMPLE' : 'SOCRATIC';
-      return { strategy, reasonCodes: [band] };
+      const band = masteryBand(learner.mastery, 0.3, 0.6) as MasteryBandCode;
+      const fallback = band === 'LOW_MASTERY' ? 'WORKED_EXAMPLE' : band === 'MID_MASTERY' ? 'GUIDED_EXAMPLE' : 'SOCRATIC';
+      return this.withinBand(band, fallback, learner, policy);
     }
 
     if (intent === 'NEW_LEARNING') {
       if (!concept.prerequisiteMasteryMet) return { strategy: 'REMEDIATE', reasonCodes: ['PREREQUISITE_NOT_MET'] };
-      const band = masteryBand(learner.mastery, 0.4, 0.7);
-      const strategy = band === 'LOW_MASTERY' ? 'WORKED_EXAMPLE' : band === 'MID_MASTERY' ? 'GUIDED_EXAMPLE' : 'EXPLAIN';
-      return { strategy, reasonCodes: [band] };
+      const band = masteryBand(learner.mastery, 0.4, 0.7) as MasteryBandCode;
+      const fallback = band === 'LOW_MASTERY' ? 'WORKED_EXAMPLE' : band === 'MID_MASTERY' ? 'GUIDED_EXAMPLE' : 'EXPLAIN';
+      return this.withinBand(band, fallback, learner, policy);
     }
 
     if (learner.daysSinceLastReview > REVIEW_AFTER_DAYS) return { strategy: 'REVIEW', reasonCodes: ['REVIEW_DUE'] };
     return { strategy: 'PRACTICE', reasonCodes: ['INTENT_PRACTICE'] };
+  }
+
+  private withinBand(band: MasteryBandCode, fallback: TeachingStrategy, learner: LearnerSnapshot, policy: PersonalPolicySnapshot): Selection {
+    if (learner.evidenceCount >= STABLE_EVIDENCE) {
+      const preferred = this.preferredStrategy(policy, BAND_STRATEGIES[band]);
+      if (preferred) return { strategy: preferred, reasonCodes: [band, 'PERSONAL_STRATEGY_PREFERRED'] };
+    }
+    return { strategy: fallback, reasonCodes: [band] };
   }
 
   private zpdDifficulty(mastery: number, conceptDifficulty: number): number {
@@ -127,8 +145,9 @@ export class LearnerPolicyService {
     return 'MINIMAL';
   }
 
-  private mostEffectiveStrategy(policy: PersonalPolicySnapshot): TeachingStrategy | null {
+  preferredStrategy(policy: PersonalPolicySnapshot, allowed?: readonly TeachingStrategy[]): TeachingStrategy | null {
     const ranked = (Object.entries(policy.strategyEvidence) as Array<[TeachingStrategy, { successes: number; attempts: number }]>)
+      .filter(([strategy]) => allowed === undefined || allowed.includes(strategy))
       .filter(([, stats]) => stats.attempts >= PREFERENCE_MIN_ATTEMPTS)
       .map(([strategy, stats]) => ({ strategy, rate: stats.successes / stats.attempts }))
       .filter((entry) => entry.rate >= PREFERENCE_MIN_SUCCESS_RATE)

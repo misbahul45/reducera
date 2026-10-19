@@ -6,6 +6,7 @@ export interface PersonalityQuizQuestion {
   difficulty: "easy" | "medium" | "hard" | "hots"
   options?: string[] | null
   answer?: string | null
+  sources?: number[]
 }
 
 export interface PersonalityQuizUserAttemptItem {
@@ -39,6 +40,7 @@ export interface PersonalityQuizBase {
   lessonId: string
   title: string
   questions: PersonalityQuizQuestion[]
+  sources?: unknown
   userAttempt?: PersonalityQuizUserAttempt
   result?: PersonalityQuizResultOrNull
   takenAt?: string | Date | null

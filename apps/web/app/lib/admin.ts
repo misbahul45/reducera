@@ -1,5 +1,5 @@
 export type Tone = 'neutral' | 'success' | 'warning' | 'error' | 'info';
-export type StatusDomain = 'payout' | 'refund' | 'content' | 'tenant' | 'application' | 'payment';
+export type StatusDomain = 'payout' | 'refund' | 'content' | 'tenant' | 'application' | 'payment' | 'prompt' | 'gate' | 'optimizationRun' | 'benchmark';
 
 export const REASON_MIN = 3;
 export const REASON_MAX = 500;
@@ -53,6 +53,33 @@ const META: Record<StatusDomain, Record<string, { label: string; tone: Tone }>> 
     CANCELLED: { label: 'Dibatalkan', tone: 'neutral' },
     EXPIRED: { label: 'Kedaluwarsa', tone: 'neutral' },
   },
+  prompt: {
+    DRAFT: { label: 'Draf', tone: 'neutral' },
+    EXPERIMENTAL: { label: 'Uji coba', tone: 'info' },
+    VALIDATED: { label: 'Lolos gerbang', tone: 'warning' },
+    ACTIVE: { label: 'Aktif', tone: 'success' },
+    REJECTED: { label: 'Ditolak', tone: 'error' },
+    ROLLED_BACK: { label: 'Ditarik', tone: 'error' },
+    ARCHIVED: { label: 'Diarsipkan', tone: 'neutral' },
+  },
+  gate: {
+    PASS: { label: 'Lolos', tone: 'success' },
+    FAIL: { label: 'Gagal', tone: 'error' },
+    INSUFFICIENT_DATA: { label: 'Data kurang', tone: 'warning' },
+    NOT_MEASURED: { label: 'Belum terukur', tone: 'neutral' },
+  },
+  benchmark: {
+    QUEUED: { label: 'Antre', tone: 'neutral' },
+    RUNNING: { label: 'Berjalan', tone: 'info' },
+    COMPLETED: { label: 'Selesai', tone: 'success' },
+    FAILED: { label: 'Gagal', tone: 'error' },
+  },
+  optimizationRun: {
+    PENDING: { label: 'Menunggu keputusan', tone: 'warning' },
+    ACCEPTED: { label: 'Disetujui', tone: 'success' },
+    REJECTED: { label: 'Ditolak', tone: 'error' },
+    DEFERRED: { label: 'Ditunda', tone: 'neutral' },
+  },
 };
 
 export function statusMeta(domain: StatusDomain, status: string): { label: string; tone: Tone } {
@@ -80,9 +107,97 @@ const CONTENT_ACTIONS: Record<string, ContentAction[]> = {
   SUSPENDED: ['reinstate', 'archive'],
 };
 
+export type PromptAction = 'canary' | 'evaluate' | 'approve' | 'reject' | 'rollback';
+
+const PROMPT_ACTIONS: Record<string, PromptAction[]> = {
+  DRAFT: ['canary', 'reject'],
+  EXPERIMENTAL: ['evaluate', 'reject'],
+  VALIDATED: ['approve', 'reject'],
+  ACTIVE: ['rollback'],
+};
+
+export const promptActions = (status: string): PromptAction[] => [...(PROMPT_ACTIONS[status] ?? [])];
+
+export const CANARY_MIN_PERCENT = 1;
+export const CANARY_MAX_PERCENT = 50;
+
+export function canaryProblem(percent: number): string | null {
+  if (!Number.isInteger(percent)) return 'Porsi uji coba harus bilangan bulat.';
+  if (percent < CANARY_MIN_PERCENT || percent > CANARY_MAX_PERCENT) return `Porsi uji coba ${CANARY_MIN_PERCENT} sampai ${CANARY_MAX_PERCENT} persen.`;
+  return null;
+}
+
+export const TEMPLATE_MIN = 200;
+export const TEMPLATE_MAX = 20000;
+export const TEMPLATE_REQUIRED = ['user_step_title', 'domain_block', 'user_input', 'rag', 'web', 'memory', 'conversation', 'current_material'] as const;
+export const TEMPLATE_OPTIONAL = ['learner_section', 'learner_name'] as const;
+export const TEMPLATE_PLACEHOLDERS = [...TEMPLATE_REQUIRED, ...TEMPLATE_OPTIONAL] as const;
+const PLACEHOLDER = /\{\{\s*([a-z_]+)\s*\}\}/g;
+
+const AI_PROBLEM_COPY: ReadonlyArray<[RegExp, (match: RegExpMatchArray) => string]> = [
+  [/Only (\d+) turns of (\S+) are measured; an improvement needs at least (\d+)/, (m) => `Baru ${m[1]} jawaban dari ${m[2]} yang terukur. Usulan AI butuh minimal ${m[3]}.`],
+  [/There are already (\d+) AI proposals waiting/, (m) => `Sudah ada ${m[1]} usulan AI yang menunggu. Tolak atau mulai uji coba salah satunya dulu.`],
+  [/failed the safety checks/, () => 'AI mengusulkan templat yang tidak lolos pemeriksaan keamanan, jadi tidak disimpan. Coba lagi.'],
+  [/could not produce a proposal/, () => 'Layanan AI belum bisa membuat usulan sekarang. Coba lagi nanti.'],
+];
+
+export function aiProposalProblem(message: string | null | undefined, fallback: string): string {
+  for (const [pattern, copy] of AI_PROBLEM_COPY) {
+    const match = (message ?? '').match(pattern);
+    if (match) return copy(match);
+  }
+  return message?.trim() ? message : fallback;
+}
+
+export function templateProblem(body: string): string | null {
+  if (body.trim().length < TEMPLATE_MIN) return `Templat minimal ${TEMPLATE_MIN} karakter.`;
+  if (body.length > TEMPLATE_MAX) return `Templat maksimal ${TEMPLATE_MAX} karakter.`;
+  const used = new Set([...body.matchAll(PLACEHOLDER)].map((match) => match[1] as string));
+  const unknown = [...used].find((name) => !(TEMPLATE_PLACEHOLDERS as readonly string[]).includes(name));
+  if (unknown) return `Penanda {{${unknown}}} tidak dikenal.`;
+  const missing = TEMPLATE_REQUIRED.find((name) => !used.has(name));
+  if (missing) return `Penanda {{${missing}}} wajib ada.`;
+  const rest = body.replace(PLACEHOLDER, '');
+  if (rest.includes('{{') || rest.includes('}}')) return 'Ada penanda yang rusak.';
+  return null;
+}
+
+export function formatRate(value: number | null | undefined): string {
+  return value === null || value === undefined ? '—' : `${Math.round(value * 100)}%`;
+}
+
+export function formatMillis(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return value >= 1000 ? `${(value / 1000).toFixed(1)} dtk` : `${Math.round(value)} ms`;
+}
+
+export const GATE_LABELS: Record<string, string> = {
+  sample_size: 'Jumlah sampel',
+  learning_outcome: 'Hasil belajar setelah jawaban',
+  grounding: 'Jawaban beracuan sumber',
+  latency_p95: 'Latensi p95',
+  token_cost: 'Token per jawaban',
+  correctness: 'Ketepatan isi',
+  pedagogy: 'Mutu pengajaran',
+  hallucination_rate: 'Tingkat halusinasi',
+  offline_correctness: 'Ketepatan isi pada benchmark',
+  offline_citation_faithfulness: 'Sitasi benar dan relevan pada benchmark',
+  offline_safety: 'Keamanan pada benchmark',
+  offline_pedagogy_judge: 'Mutu pengajaran menurut juri AI',
+  judge_calibration: 'Kalibrasi juri AI',
+};
+
+export const gateLabel = (id: string): string => GATE_LABELS[id] ?? id;
+
 export const payoutActions = (status: string): PayoutAction[] => [...(PAYOUT_ACTIONS[status] ?? [])];
 export const refundActions = (status: string): RefundAction[] => [...(REFUND_ACTIONS[status] ?? [])];
 export const contentActions = (status: string): ContentAction[] => [...(CONTENT_ACTIONS[status] ?? [])];
+
+export type TagDecision = 'approve-tags' | 'reject-tags';
+
+export const canDecideTags = (status: string, pending: number | undefined): boolean => status === 'PUBLISHED' && (pending ?? 0) > 0;
+
+export const pendingTagsLabel = (pending: number | undefined): string => ((pending ?? 0) > 0 ? `${pending} tag menunggu` : '');
 
 export function tenantAction(status: string): 'suspend' | 'activate' | null {
   if (status === 'ACTIVE') return 'suspend';
@@ -150,7 +265,22 @@ const AUDIT_LABELS: Record<string, string> = {
   REWARD_REVERSED: 'Hadiah dibatalkan',
   PURCHASE_COMPLETED: 'Pembelian selesai',
   QUIZ_SUBMITTED: 'Kuis dikirim',
+  PROMPT_PROPOSED: 'Versi prompt diusulkan',
+  PROMPT_CANARY_STARTED: 'Uji coba prompt dimulai',
+  PROMPT_EVALUATED: 'Versi prompt dievaluasi',
+  PROMPT_AUTO_ROLLED_BACK: 'Versi prompt ditarik otomatis',
+  PROMPT_APPROVED: 'Versi prompt disetujui',
+  PROMPT_REJECTED: 'Versi prompt ditolak',
+  PROMPT_ROLLED_BACK: 'Versi prompt ditarik',
   LESSON_COMPLETED: 'Pelajaran selesai',
+  GAMIFY_RULE_PUBLISHED: 'Versi aturan hadiah diterbitkan',
+  GAMIFY_RULE_ACTIVATED: 'Versi aturan hadiah diaktifkan',
+  GAMIFY_RULE_DEACTIVATED: 'Aturan hadiah dimatikan',
+  GAMIFY_LEVELS_REPLACED: 'Tangga level diganti',
+  GAMIFY_ACHIEVEMENT_CREATED: 'Pencapaian dibuat',
+  GAMIFY_ACHIEVEMENT_UPDATED: 'Pencapaian diubah',
+  GAMIFY_ACHIEVEMENT_ACTIVATED: 'Pencapaian diaktifkan',
+  GAMIFY_ACHIEVEMENT_DEACTIVATED: 'Pencapaian dinonaktifkan',
 };
 
 export function auditActionLabel(action: string): string {

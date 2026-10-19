@@ -3,7 +3,6 @@ import type { User } from "../auth";
 import type { BaseTopic } from "../curriculum/topics";
 import type { LearningStyleProfile } from "./LearningStyle";
 
-
 export enum TopicAccessType {
   FREE = "FREE",
   PURCHASED = "PURCHASED",
@@ -14,7 +13,6 @@ export enum UserTopicStatus {
   IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
 }
-
 
 export interface UserTopic {
   id: string;
@@ -30,12 +28,10 @@ export interface UserTopic {
   purchasedAt?: string | Date | null;
   expiredAt?: string | Date | null;
 
-  // relations
   user?: User;
   topic?: BaseTopic;
   learningStyleProfile?: LearningStyleProfile | null;
 }
-
 
 export interface UserTopicDetailResponse<
   IncludeRelations extends boolean = false

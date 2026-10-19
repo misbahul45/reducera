@@ -8,6 +8,7 @@ from llama_index.core.base.embeddings.base import BaseEmbedding
 
 from config import llm_registry
 from config.envs import ENVS
+from config.local_embedding import LocalEmbedding
 
 logger = logging.getLogger("providers")
 
@@ -103,15 +104,27 @@ class HuggingFaceEmbedding(BaseEmbedding):
         return self._get_text_embedding(text)
 
 
-def build_embedding_model() -> HuggingFaceEmbedding:
-    model = ENVS["HF_EMBEDDING_MODEL"]
-    return HuggingFaceEmbedding(
-        model_name=model,
-        endpoint=resolve_embedding_endpoint(ENVS["HF_EMBEDDING_URL"], model),
-        token=ENVS["HF_TOKEN"],
-        dimensions=ENVS["EMBEDDING_DIM"],
-        embed_batch_size=EMBED_BATCH_SIZE,
-    )
+def build_embedding_model() -> BaseEmbedding:
+    provider = ENVS["EMBEDDING_PROVIDER"]
+    if provider == "local":
+        return LocalEmbedding(
+            model_name=ENVS["LOCAL_EMBEDDING_MODEL"],
+            dimensions=ENVS["EMBEDDING_DIM"],
+            max_length=ENVS["LOCAL_EMBEDDING_MAX_LENGTH"],
+            threads=ENVS["LOCAL_EMBEDDING_THREADS"],
+            allow_download=ENVS["LOCAL_EMBEDDING_ALLOW_DOWNLOAD"],
+            embed_batch_size=EMBED_BATCH_SIZE,
+        )
+    if provider == "huggingface":
+        model = ENVS["HF_EMBEDDING_MODEL"]
+        return HuggingFaceEmbedding(
+            model_name=model,
+            endpoint=resolve_embedding_endpoint(ENVS["HF_EMBEDDING_URL"], model),
+            token=ENVS["HF_TOKEN"],
+            dimensions=ENVS["EMBEDDING_DIM"],
+            embed_batch_size=EMBED_BATCH_SIZE,
+        )
+    raise ValueError(f"unsupported EMBEDDING_PROVIDER '{provider}'; use 'huggingface' or 'local'")
 
 
 def build_chat_model(mode: str = "flash", route: str | None = None):

@@ -188,7 +188,7 @@ def test_experiment_runner_finalize_rejects_insufficient_per_arm():
 def test_experiment_runner_declares_winner_when_treatment_beats_control():
     runner = ExperimentRunner()
     run = runner.new_run(_experiment(metrics=[ExperimentMetric.LEARNING_GAIN]))
-    rng_arm = lambda b: 0.6 + b  # arm B
+    rng_arm = lambda b: 0.6 + b
     rng_arm_b = lambda b: 0.3 + b
     for _ in range(10):
         runner.record(run, ExperimentArm.D_FULL_STACK, ExperimentMetric.LEARNING_GAIN, 0.9)

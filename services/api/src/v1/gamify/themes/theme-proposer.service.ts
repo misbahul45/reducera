@@ -9,7 +9,7 @@ import {
 
 export type Mood = 'calm' | 'energetic' | 'analytical' | 'welcoming' | 'playful' | 'serious' | 'mysterious' | 'natural';
 
-const MOOD_HUE_BASE: Record<Mood, number> = {
+export const MOOD_HUE_BASE: Record<Mood, number> = {
   calm: 200,
   energetic: 30,
   analytical: 220,

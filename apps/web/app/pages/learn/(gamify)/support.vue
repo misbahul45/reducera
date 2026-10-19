@@ -5,9 +5,9 @@ useHead({ title: 'Bantuan — ReduCera' });
 const faqs: ReadonlyArray<{ q: string; a: string }> = [
   { q: 'Dari mana XP berasal?', a: 'XP hanya diberikan untuk penguasaan yang terbukti: kemajuan skor sebuah konsep dan bonus saat konsep itu lulus. Menyelesaikan langkah, login, atau mengobrol dengan tutor tidak memberi XP.' },
   { q: 'Kapan sebuah konsep dianggap lulus?', a: 'Skor penguasaanmu mencapai 0,7 atau lebih dengan sedikitnya tiga bukti penilaian. Satu penilaian saja belum cukup.' },
-  { q: 'Bagaimana streak dihitung?', a: 'Satu hari dihitung bila kamu menyelesaikan sedikitnya satu penilaian yang menghasilkan bukti belajar, menurut zona waktu akunmu. Tujuh hari beruntun memberi bonus XP dan satu pembeku streak (maksimal dua).' },
-  { q: 'Apa itu bintang?', a: 'Satu bintang untuk setiap sub-topik yang seluruh konsepnya sudah lulus. Bintang hanya ditampilkan dan belum bisa dibelanjakan.' },
-  { q: 'Mengapa saya tidak ada di papan peringkat?', a: 'Papan peringkat bersifat opsional. Ikut serta di halaman Peringkat dengan nama panggilan; nama aslimu tidak pernah tampil. Peringkat dihitung dari konsep yang pertama kali kamu lulus minggu ini di sebuah topik.' },
+  { q: 'Bagaimana streak dihitung?', a: 'Satu hari dihitung bila kamu lulus sedikitnya satu penilaian (nilai kuis mencapai nilai lulusnya, atau jurnal latihan tepat tanpa melihat jawaban), menurut zona waktu akunmu. Tujuh hari beruntun memberi bonus XP dan satu pembeku streak (maksimal dua).' },
+  { q: 'Apa itu bintang?', a: 'Satu bintang untuk setiap bagian course yang seluruh konsepnya sudah lulus. Bintang hanya ditampilkan dan belum bisa dibelanjakan.' },
+  { q: 'Mengapa saya tidak ada di papan peringkat?', a: 'Papan peringkat bersifat opsional. Ikut serta di halaman Peringkat dengan nama panggilan; nama aslimu tidak pernah tampil. Peringkat dihitung dari konsep yang pertama kali kamu lulus minggu ini di sebuah course.' },
   { q: 'Dari mana ikon dan warna berasal?', a: 'Dari tema yang tersimpan di database. Tema bawaan bernama Play; setiap ikon gamifikasi (streak, XP, bintang, level, lencana) bisa diganti oleh tema lain.' },
 ];
 </script>

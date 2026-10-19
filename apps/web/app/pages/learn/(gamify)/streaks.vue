@@ -16,7 +16,7 @@ const cardTone = computed(() => {
 
 <template>
   <div>
-    <PageHeader title="Streak" subtitle="Hari berturut-turut kamu menyelesaikan penilaian dengan bukti belajar. Login atau mengobrol tidak menambah streak." />
+    <PageHeader title="Streak" subtitle="Hari berturut-turut kamu lulus penilaian. Login atau mengobrol tidak menambah streak." />
 
     <LoadingSkeleton v-if="isLoading" variant="panel" :count="2" aria-label="Memuat streak" />
     <ErrorState v-else-if="isError || !me" title="Streak belum bisa dimuat" message="Periksa koneksimu lalu coba lagi." @retry="refetch()" />
@@ -54,7 +54,7 @@ const cardTone = computed(() => {
       <PlayCard tone="soft" as="section">
         <h2 class="rc-h2">Cara streak bekerja</h2>
         <ul class="rc-list">
-          <li>Satu hari dihitung bila kamu menyelesaikan sedikitnya satu penilaian yang menghasilkan bukti belajar.</li>
+          <li>Satu hari dihitung bila kamu lulus sedikitnya satu penilaian: nilai kuis mencapai nilai lulusnya, atau jurnal latihan terjawab tepat tanpa melihat jawaban.</li>
           <li>Hari mengikuti zona waktu akunmu, bukan zona waktu server.</li>
           <li>Satu penilaian atau seratus penilaian dalam sehari sama-sama dihitung satu hari.</li>
           <li>Setiap kelipatan 7 hari kamu mendapat bonus XP dan, bila belum penuh, satu pembeku streak.</li>

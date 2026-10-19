@@ -10,7 +10,7 @@ export const AUTH_PITCHES: Record<string, AuthPitch> = {
     lead: 'Lanjutkan dari',
     accent: 'tempatmu berhenti',
     tail: '.',
-    body: 'Satu penilaian hari ini menjaga streak-mu tetap menyala. XP dan bintang hanya untuk konsep yang benar-benar kamu kuasai.',
+    body: 'Lulus satu penilaian hari ini menjaga streak-mu tetap menyala. XP dan bintang hanya untuk konsep yang benar-benar kamu kuasai.',
   },
   '/register': {
     lead: 'Naik level karena',

@@ -67,7 +67,7 @@ LeaderboardScore  GLOBAL g-{user}  /  TOPIC t-{user}-{topic}  /  SUBTOPIC st-{us
 Invariants:
 
 1. **Ledger first.** A point is on the leaderboard only if a ledger entry carries it, except the legacy points that predate the ledger (the earlier step grants), which stay where they are and are never recomputed.
-2. **Evidence first.** The only rule that pays on activity is the legacy streak bonus, kept for compatibility and flagged; every other rule needs a learning event with a graded result.
+2. **Evidence first.** The only rule not tied to one learning event is the streak bonus, kept by decision D-22 (ADR-028); since the streak engine credits only passed assessments it pays on learning, not on activity. Every other rule needs a learning event with a graded result.
 3. **Once per cause.** Every entry has a unique key derived from its cause; a second attempt to grant the same cause returns the first entry.
 4. **Bounded.** Each concept can pay at most 100 points in total (50 for progress, 50 for passing), so the total is bounded by 100 times the number of concepts, whatever the learner does.
 5. **Append only.** An entry is never updated; a mistake is undone by a reversal entry that equals minus the original, names it, and can exist once.

@@ -5,11 +5,13 @@ import { useGamifyMe } from '~/composables/useGamify';
 import { useHydrated } from '~/composables/useHydrated';
 import { LEARNER_NAV, isNavActive, tabItems } from '~/lib/nav';
 import { authService } from '~/services/auth';
+import { useLearning } from '~/stores/learning';
 
 const route = useRoute();
 const user = useState<User | null>('user');
 const skipCheck = useState<boolean>('skipCheck', () => false);
 const queryClient = useQueryClient();
+const learning = useLearning();
 const { data: me } = useGamifyMe();
 const hydrated = useHydrated();
 const tabs = tabItems();
@@ -23,6 +25,7 @@ async function logout() {
     await authService.logout();
   } finally {
     queryClient.clear();
+    learning.resetAll();
     await navigateTo('/login', { replace: true });
   }
 }

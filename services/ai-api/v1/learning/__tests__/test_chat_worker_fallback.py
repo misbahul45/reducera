@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from errors.types import LLMError
+from v1.learning.service import ChatPrompt
 
 PAYLOAD = {
     "chatId": "c-1",
@@ -27,7 +28,7 @@ def test_llm_failure_surfaces_as_llm_error_without_a_name_error(scripted_llm):
     scripted_llm.fail("flash", "simulated LLM failure").fail("thinking", "simulated LLM failure")
 
     with patch.object(workers, "pipeline", pipeline), patch(
-        "v1.learning.service.get_propmpt_material", return_value="prompt"
+        "v1.learning.service.build_chat_prompt", return_value=ChatPrompt(text="prompt")
     ), patch.object(workers, "update_message_chat"):
         with pytest.raises(LLMError) as raised:
             workers.generating_new_content.run(dict(PAYLOAD))

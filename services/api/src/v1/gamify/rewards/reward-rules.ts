@@ -6,6 +6,7 @@ export const REWARD_RULES = {
   CONCEPT_PASSED: { id: 'CONCEPT_PASSED', version: 1 },
   STREAK_BONUS_7: { id: 'STREAK_BONUS_7', version: 1 },
   PATH_NODE_MASTERED: { id: 'PATH_NODE_MASTERED', version: 1 },
+  STREAK_FREEZE_EARNED: { id: 'STREAK_FREEZE_EARNED', version: 1 },
 } as const;
 
 export type RewardKindValue = 'XP' | 'STAR';
@@ -44,11 +45,18 @@ export interface NodeMasteredRule {
   stars: number;
 }
 
+export interface StreakFreezeRule {
+  version: number;
+  every: number;
+  maxHeld: number;
+}
+
 export interface RewardRuleSet {
   masteryProgress: MasteryProgressRule | null;
   conceptPassed: ConceptPassedRule | null;
   streakBonus: StreakBonusRule | null;
   nodeMastered: NodeMasteredRule | null;
+  streakFreeze: StreakFreezeRule | null;
 }
 
 const DEFAULT_PER_UNIT = 100;
@@ -58,6 +66,8 @@ const DEFAULT_PASS_POINTS = 50;
 const DEFAULT_STREAK_POINTS = 50;
 const DEFAULT_STREAK_EVERY = 7;
 const DEFAULT_NODE_STARS = 1;
+const DEFAULT_FREEZE_EVERY = 7;
+const DEFAULT_FREEZE_MAX_HELD = 2;
 
 export const DEFAULT_REWARD_RULE_ROWS: ReadonlyArray<RewardRuleRow> = [
   {
@@ -100,6 +110,16 @@ export const DEFAULT_REWARD_RULE_ROWS: ReadonlyArray<RewardRuleRow> = [
     params: null,
     active: true,
   },
+  {
+    code: REWARD_RULES.STREAK_FREEZE_EARNED.id,
+    version: REWARD_RULES.STREAK_FREEZE_EARNED.version,
+    eventType: 'STREAK_DAY_QUALIFIED',
+    rewardKind: 'XP',
+    amount: DEFAULT_FREEZE_EVERY,
+    dailyCap: null,
+    params: { maxHeld: DEFAULT_FREEZE_MAX_HELD },
+    active: true,
+  },
 ];
 
 const asRecord = (value: unknown): Record<string, unknown> => (value && typeof value === 'object' ? (value as Record<string, unknown>) : {});
@@ -112,6 +132,9 @@ const fraction = (value: unknown, fallback: number): number =>
 
 const positiveInteger = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : fallback;
+
+const nonNegativeInteger = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : fallback;
 
 const pick = (rows: ReadonlyArray<RewardRuleRow>, code: string): { present: boolean; row: RewardRuleRow | null } => {
   const all = rows.filter((r) => r.code === code);
@@ -131,6 +154,7 @@ export const buildRuleSet = (rows: ReadonlyArray<RewardRuleRow>): RewardRuleSet 
   const passed = resolve(REWARD_RULES.CONCEPT_PASSED.id);
   const streak = resolve(REWARD_RULES.STREAK_BONUS_7.id);
   const node = resolve(REWARD_RULES.PATH_NODE_MASTERED.id);
+  const freeze = resolve(REWARD_RULES.STREAK_FREEZE_EARNED.id);
 
   return {
     masteryProgress: progress
@@ -146,6 +170,13 @@ export const buildRuleSet = (rows: ReadonlyArray<RewardRuleRow>): RewardRuleSet 
       ? { version: streak.version, points: streak.amount, every: positiveInteger(asRecord(streak.params).every, DEFAULT_STREAK_EVERY) }
       : null,
     nodeMastered: node ? { version: node.version, stars: node.amount } : null,
+    streakFreeze: freeze
+      ? {
+          version: freeze.version,
+          every: positiveInteger(freeze.amount, DEFAULT_FREEZE_EVERY),
+          maxHeld: nonNegativeInteger(asRecord(freeze.params).maxHeld, DEFAULT_FREEZE_MAX_HELD),
+        }
+      : null,
   };
 };
 
@@ -161,6 +192,7 @@ export interface RewardGrant {
   sourceId: string;
   conceptId?: string;
   subTopicId?: string;
+  oncePerCause?: boolean;
 }
 
 export interface AssessmentRewardInput {
@@ -213,6 +245,7 @@ export const evaluateAssessment = (input: AssessmentRewardInput, rules: RewardRu
       ruleVersion: rules.conceptPassed.version,
       points: rules.conceptPassed.points,
       idempotencyKey: conceptPassedKey(input.userId, input.conceptId, rules.conceptPassed.version),
+      oncePerCause: true,
       ...common,
     });
   }
@@ -246,5 +279,6 @@ export const nodeMasteredGrant = (userId: string, subTopicId: string, rules: Rew
     sourceType: 'NODE',
     sourceId: subTopicId,
     subTopicId,
+    oncePerCause: true,
   };
 };

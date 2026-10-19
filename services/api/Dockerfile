@@ -23,6 +23,29 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm prune --prod --ignore-scripts
 
 
+FROM node:20-alpine AS tools
+WORKDIR /app
+
+ENV COREPACK_HOME=/opt/corepack \
+    CI=true
+
+RUN corepack enable && corepack prepare pnpm@10.15.0 --activate \
+    && chmod -R a+rX /opt/corepack
+
+RUN apk add --no-cache python3 make g++ openssl
+
+COPY package.json pnpm-lock.yaml .npmrc* ./
+
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+RUN chown -R node:node /app
+
+USER node
+
+CMD ["sh"]
+
+
 FROM node:20-alpine AS runner
 WORKDIR /app
 

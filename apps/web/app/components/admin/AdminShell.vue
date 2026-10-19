@@ -4,11 +4,13 @@ import type { User } from '~/interfaces/auth';
 import { ADMIN_NAV } from '~/lib/admin-nav';
 import { isNavActive } from '~/lib/nav';
 import { authService } from '~/services/auth';
+import { useLearning } from '~/stores/learning';
 
 const route = useRoute();
 const user = useState<User | null>('user');
 const skipCheck = useState<boolean>('skipCheck', () => false);
 const queryClient = useQueryClient();
+const learning = useLearning();
 const menuOpen = ref(false);
 
 const active = (target: string) => isNavActive(target, route.path);
@@ -28,6 +30,7 @@ async function logout() {
     await authService.logout();
   } finally {
     queryClient.clear();
+    learning.resetAll();
     await navigateTo('/login', { replace: true });
   }
 }

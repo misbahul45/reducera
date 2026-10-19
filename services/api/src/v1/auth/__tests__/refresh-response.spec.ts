@@ -11,6 +11,7 @@ import { AuthController } from '@/v1/auth/auth.controller';
 const issued = { accessToken: 'access-jwt', refreshToken: 'refresh-jwt', sessionToken: 'session-1' };
 
 const buildController = (env: Record<string, string> = {}) => {
+  const withSecret = { JWT_REFRESH_SECRET: 'test-refresh-secret', ...env };
   const authService = {
     refreshTokens: jest.fn().mockResolvedValue(issued),
     generateTokens: jest.fn().mockResolvedValue(issued),
@@ -22,7 +23,7 @@ const buildController = (env: Record<string, string> = {}) => {
     resendOtp: jest.fn().mockResolvedValue(undefined),
     revokeSessionOf: jest.fn().mockResolvedValue(undefined),
   };
-  const config = { get: jest.fn((key: string) => env[key]) };
+  const config = { get: jest.fn((key: string) => withSecret[key]) };
   const arcjet: any = {
     withRule: jest.fn().mockReturnThis(),
     protect: jest.fn().mockResolvedValue({ isDenied: () => false }),
@@ -144,6 +145,10 @@ describe('AuthController password recovery', () => {
 });
 
 describe('AuthController rate limiting', () => {
+  const fixedWindow = jest.requireMock('@arcjet/nest').fixedWindow as jest.Mock;
+
+  beforeEach(() => fixedWindow.mockClear());
+
   const denied = () => {
     const parts = buildController();
     parts.arcjet.protect.mockResolvedValue({ isDenied: () => true });
@@ -156,7 +161,6 @@ describe('AuthController rate limiting', () => {
     ['verify-email', (c) => c.verifyEmail({ identifier: 'a@b.test', otp: '123456' }, request())],
     ['forgot-password', (c) => c.forgotPassword({ email: 'a@b.test' }, request())],
     ['resend-token', (c) => c.resendToken({ email: 'a@b.test' }, request(), { type: 'email' })],
-    ['refresh-token', (c) => c.refresh(request(), response())],
     ['reset-password', (c) => c.resetPassword({ identifier: 'a@b.test', otp: '123456', newPassword: 'brand-new-1', confirmPassword: 'brand-new-1' }, request())],
   ];
 
@@ -166,5 +170,65 @@ describe('AuthController rate limiting', () => {
     await expect(call(controller)).rejects.toMatchObject({ status: 429 });
     await expect(call(controller)).rejects.toBeInstanceOf(HttpException);
     for (const fn of Object.values(authService)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('does not ask Arcjet about a refresh, because the refresh token is single use and nginx already throttles the route', async () => {
+    const { controller, arcjet } = buildController();
+
+    await controller.refresh(request(), response());
+
+    expect(arcjet.protect).not.toHaveBeenCalled();
+    expect(fixedWindow).not.toHaveBeenCalled();
+  });
+
+  it('sets one rule per address and one rule per email address for a login', async () => {
+    const { controller, arcjet } = buildController();
+
+    await controller.login({ email: 'ada@example.test', password: 'x' }, request(), response());
+
+    expect(fixedWindow).toHaveBeenCalledTimes(2);
+    expect(fixedWindow).toHaveBeenNthCalledWith(1, { mode: 'LIVE', window: '1m', max: 120, characteristics: ['ip.src', 'scope'] });
+    expect(fixedWindow).toHaveBeenNthCalledWith(2, { mode: 'LIVE', window: '1m', max: 10, characteristics: ['emailKey', 'scope'] });
+    expect(arcjet.withRule).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends Arcjet the route and a hash of the email address, never the address', async () => {
+    const { controller, arcjet } = buildController();
+
+    await controller.login({ email: 'ada@example.test', password: 'x' }, request(), response());
+
+    const [, props] = arcjet.protect.mock.calls[0];
+    expect(props.scope).toBe('login');
+    expect(props.emailKey).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(arcjet.protect.mock.calls)).not.toContain('ada@example.test');
+  });
+
+  it('counts a verification and a reset by the identifier the code was sent to', async () => {
+    const { controller, arcjet } = buildController();
+
+    await controller.verifyEmail({ identifier: 'ada@example.test', otp: '123456' }, request());
+    await controller.login({ email: 'ada@example.test', password: 'x' }, request(), response());
+
+    const [verify, login] = arcjet.protect.mock.calls.map((call: unknown[]) => call[1] as { scope: string; emailKey: string });
+    expect(verify.scope).toBe('verifyEmail');
+    expect(verify.emailKey).toBe(login.emailKey);
+  });
+
+  it('gives every route its own counter', async () => {
+    const { controller, arcjet } = buildController();
+
+    await controller.forgotPassword({ email: 'ada@example.test' }, request());
+    await controller.resendToken({ email: 'ada@example.test' }, request(), { type: 'email' });
+
+    const scopes = arcjet.protect.mock.calls.map((call: unknown[]) => (call[1] as { scope: string }).scope);
+    expect(new Set(scopes).size).toBe(2);
+  });
+
+  it('refuses to run without a secret to hash the key with', async () => {
+    const parts = buildController();
+    (parts.controller as any).configService = { get: jest.fn() };
+
+    await expect(parts.controller.login({ email: 'ada@example.test', password: 'x' }, request(), response())).rejects.toThrow('secret');
+    expect(parts.arcjet.protect).not.toHaveBeenCalled();
   });
 });

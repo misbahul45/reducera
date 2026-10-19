@@ -6,7 +6,7 @@ defineProps<{ decision: NextActivityDecision | null }>();
 
 <template>
   <div v-if="decision" class="next-card">
-    <h3>Topik {{ decision.topicId }}</h3>
+    <h3>Course {{ decision.topicId }}</h3>
     <p>Level {{ decision.level }} · {{ decision.rationaleKind }}</p>
     <NuxtLink :to="`/my-learning/topics/${decision.topicId}`">Mulai aktivitas</NuxtLink>
   </div>

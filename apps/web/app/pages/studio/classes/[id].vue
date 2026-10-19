@@ -2,6 +2,8 @@
 import PageHeader from '~/components/play/PageHeader.vue';
 import PlayButton from '~/components/play/PlayButton.vue';
 import PlayCard from '~/components/play/PlayCard.vue';
+import ConceptPicker from '~/components/studio/ConceptPicker.vue';
+import LiveConceptTags from '~/components/studio/LiveConceptTags.vue';
 import ErrorState from '~/components/ui/ErrorState.vue';
 import LoadingSkeleton from '~/components/ui/LoadingSkeleton.vue';
 import StatusBadge from '~/components/ui/StatusBadge.vue';
@@ -10,7 +12,7 @@ import { studioClassesApi } from '~/lib/api';
 import { describeApiError } from '~/lib/api-error';
 import { formatDateTime } from '~/lib/format';
 import { classMeta, priceText } from '~/lib/marketplace';
-import { classProblem, httpsUrlProblem, isEditable, sessionProblem } from '~/lib/studio';
+import { canTagSeparately, classProblem, httpsUrlProblem, isEditable, sessionProblem } from '~/lib/studio';
 
 definePageMeta({
   title: 'Kelola Kelas — ReduCera Studio',
@@ -36,6 +38,7 @@ const form = reactive({
   difficulty: 'BEGINNER',
   durationMinutes: null as number | null,
   capacity: null as number | null,
+  conceptIds: [] as string[],
 });
 
 watch(
@@ -50,6 +53,7 @@ watch(
     form.difficulty = value.difficulty;
     form.durationMinutes = value.durationMinutes;
     form.capacity = value.capacity;
+    form.conceptIds = (value.conceptLinks ?? []).map((link) => link.conceptId);
   },
   { immediate: true },
 );
@@ -94,6 +98,7 @@ async function save() {
         difficulty: form.difficulty,
         ...(form.durationMinutes ? { durationMinutes: Number(form.durationMinutes) } : {}),
         ...(form.capacity ? { capacity: Number(form.capacity) } : {}),
+        conceptIds: form.conceptIds,
       }),
     'Perubahan disimpan.',
     'Perubahan gagal disimpan.',
@@ -224,9 +229,15 @@ useHead({ title: () => (item.value ? `${item.value.title} — Studio` : 'Kelola 
             <input v-model.number="form.capacity" type="number" min="1" class="rc-field" :disabled="!editable" />
           </label>
         </div>
+        <ConceptPicker v-if="editable" v-model="form.conceptIds" :links="item.conceptLinks" />
+        <ConceptPicker v-else-if="!canTagSeparately(item.status)" v-model="form.conceptIds" :links="item.conceptLinks" disabled />
         <div v-if="editable" class="rc-actions">
           <PlayButton type="submit" :loading="saving">Simpan perubahan</PlayButton>
         </div>
+      </PlayCard>
+
+      <PlayCard v-if="!editable && canTagSeparately(item.status)" as="section" aria-label="Konsep yang dibahas">
+        <LiveConceptTags kind="class" :id="item.id" :status="item.status" :links="item.conceptLinks ?? []" @saved="refresh()" />
       </PlayCard>
 
       <section class="rc-stack" aria-labelledby="sessions-h">

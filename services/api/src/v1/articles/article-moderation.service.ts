@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Article, ContentStatus, Prisma, TenantStatus } from '@prisma/client';
+import { Article, ContentStatus, Prisma, ReviewStatus, TenantStatus } from '@prisma/client';
 import { AppError, AppErrorCode } from '@/common/lib/error';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { Actor, PolicyService } from '@/common/authz/policy.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { DomainEventBus } from '@/common/events/domain-event-bus';
 import { assertContentTransition } from '../marketplace/content-state';
+import { approveConceptLinks, conceptLinksOf, dropPendingConceptLinks, pendingConceptIds } from '../marketplace/product-concept-links';
 import { ARTICLE_AGGREGATE, ArticlePublishedPayload, ContentEvents } from '../marketplace/content-events';
 import { AdminArticleQueryDtoType } from './articles.dto';
 
@@ -26,7 +27,10 @@ const reviewSelect = {
   updatedAt: true,
   tenant: { select: { id: true, name: true, slug: true, status: true } },
   author: { select: { id: true, name: true, email: true } },
+  _count: { select: { conceptLinks: { where: { status: ReviewStatus.PROPOSED } } } },
 } satisfies Prisma.ArticleSelect;
+
+const withPendingTags = <T extends { _count: { conceptLinks: number } }>({ _count, ...row }: T) => ({ ...row, pendingConceptTags: _count.conceptLinks });
 
 @Injectable()
 export class ArticleModerationService {
@@ -42,6 +46,7 @@ export class ArticleModerationService {
     const where: Prisma.ArticleWhereInput = {
       status: query.status,
       ...(query.tenantId && { tenantId: query.tenantId }),
+      ...(query.pendingTags === 'true' && { conceptLinks: { some: { status: ReviewStatus.PROPOSED } } }),
     };
     const [data, total] = await Promise.all([
       this.prisma.article.findMany({
@@ -55,7 +60,7 @@ export class ArticleModerationService {
     ]);
     return {
       message: 'Successfully retrieved the article queue',
-      data: { data, pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
+      data: { data: data.map(withPendingTags), pagination: { page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) } },
     };
   }
 
@@ -75,7 +80,8 @@ export class ArticleModerationService {
     if (!article) {
       throw new AppError('Article not found', 404, AppErrorCode.NOT_FOUND);
     }
-    return { message: 'Successfully retrieved article', data: article };
+    const conceptLinks = await conceptLinksOf(this.prisma, { kind: 'article', id });
+    return { message: 'Successfully retrieved article', data: { ...withPendingTags(article), conceptLinks } };
   }
 
   approve(actor: Actor, id: string, note: string | undefined, traceId?: string) {
@@ -92,6 +98,7 @@ export class ArticleModerationService {
         throw new AppError('There is no version to publish', 409, AppErrorCode.INVALID_STATE_TRANSITION);
       }
       await tx.articleVersion.update({ where: { id: version.id }, data: { publishedAt: now } });
+      await approveConceptLinks(tx, { kind: 'article', id: article.id }, now);
       return {
         data: { publishedVersionId: version.id, publishedAt: article.publishedAt ?? now },
         after: async () => {
@@ -120,6 +127,72 @@ export class ArticleModerationService {
         },
       };
     });
+  }
+
+  async approveConcepts(actor: Actor, id: string, note: string | undefined, traceId?: string) {
+    this.policy.assertAdmin(actor);
+    const product = { kind: 'article', id } as const;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const article = await this.lockPublished(tx, id);
+      const pending = await pendingConceptIds(tx, product);
+      if (pending.length === 0) return { changed: false, conceptIds: pending };
+      await approveConceptLinks(tx, product, new Date());
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId: article.tenantId,
+          action: 'ARTICLE_CONCEPTS_APPROVED',
+          entityType: 'Article',
+          entityId: id,
+          after: { conceptIds: pending },
+          reason: note ?? null,
+          traceId,
+        },
+        tx,
+      );
+      return { changed: true, conceptIds: pending };
+    });
+    return { message: result.changed ? 'Concept tags approved' : 'No concept tags are waiting', data: { id, ...result } };
+  }
+
+  async rejectConcepts(actor: Actor, id: string, reason: string, traceId?: string) {
+    this.policy.assertAdmin(actor);
+    const product = { kind: 'article', id } as const;
+    const result = await this.prisma.$transaction(async (tx) => {
+      const article = await this.lockPublished(tx, id);
+      const pending = await pendingConceptIds(tx, product);
+      if (pending.length === 0) return { changed: false, conceptIds: pending };
+      await dropPendingConceptLinks(tx, product);
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          actorRole: actor.role,
+          tenantId: article.tenantId,
+          action: 'ARTICLE_CONCEPTS_REJECTED',
+          entityType: 'Article',
+          entityId: id,
+          before: { conceptIds: pending },
+          reason,
+          traceId,
+        },
+        tx,
+      );
+      return { changed: true, conceptIds: pending };
+    });
+    return { message: result.changed ? 'Concept tags rejected' : 'No concept tags are waiting', data: { id, ...result } };
+  }
+
+  private async lockPublished(tx: Prisma.TransactionClient, id: string) {
+    await tx.$queryRaw`SELECT id FROM "Article" WHERE id = ${id} FOR UPDATE`;
+    const article = await tx.article.findUnique({ where: { id }, select: { id: true, status: true, tenantId: true } });
+    if (!article) {
+      throw new AppError('Article not found', 404, AppErrorCode.NOT_FOUND);
+    }
+    if (article.status !== ContentStatus.PUBLISHED) {
+      throw new AppError('Only a published article has concept tags to decide on their own', 409, AppErrorCode.INVALID_STATE_TRANSITION);
+    }
+    return article;
   }
 
   reject(actor: Actor, id: string, reason: string, traceId?: string) {

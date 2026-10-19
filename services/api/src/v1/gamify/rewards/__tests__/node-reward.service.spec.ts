@@ -21,7 +21,7 @@ describe('NodeRewardService', () => {
 
     expect(result).toEqual({ stars: 1 });
     expect(ledger.grant).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'u1', kind: 'STAR', ruleId: 'PATH_NODE_MASTERED', points: 1, idempotencyKey: 'reward:PATH_NODE_MASTERED:v1:u1:sub-1', subTopicId: 'sub-1' }),
+      expect.objectContaining({ userId: 'u1', kind: 'STAR', ruleId: 'PATH_NODE_MASTERED', points: 1, idempotencyKey: 'reward:PATH_NODE_MASTERED:v1:u1:sub-1', subTopicId: 'sub-1', oncePerCause: true }),
       tx,
     );
     expect(tx.conceptMastery.findMany).toHaveBeenCalledWith({ where: { userId: 'u1', conceptId: { in: ['a', 'b'] } } });
@@ -61,7 +61,7 @@ describe('NodeRewardService', () => {
     const rule = (overrides: Record<string, unknown>) => ({ code: 'PATH_NODE_MASTERED', version: 2, eventType: 'NODE_MASTERED', rewardKind: 'STAR', amount: 2, dailyCap: null, params: null, active: true, ...overrides });
     const tuned = build({ ids: ['a'], rows: [passed('a')], ruleRows: [rule({})] });
     expect(await tuned.service.onAssessment({ userId: 'u1', subTopicId: 'sub-1' }, tuned.tx as never)).toEqual({ stars: 2 });
-    expect(tuned.ledger.grant).toHaveBeenCalledWith(expect.objectContaining({ ruleVersion: 2, points: 2, idempotencyKey: 'reward:PATH_NODE_MASTERED:v2:u1:sub-1' }), tuned.tx);
+    expect(tuned.ledger.grant).toHaveBeenCalledWith(expect.objectContaining({ ruleVersion: 2, points: 2, idempotencyKey: 'reward:PATH_NODE_MASTERED:v2:u1:sub-1', oncePerCause: true }), tuned.tx);
 
     const off = build({ ids: ['a'], rows: [passed('a')], ruleRows: [rule({ active: false })] });
     expect(await off.service.onAssessment({ userId: 'u1', subTopicId: 'sub-1' }, off.tx as never)).toEqual({ stars: 0 });

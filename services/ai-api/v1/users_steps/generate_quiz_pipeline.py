@@ -19,6 +19,9 @@ from v1.users_steps.dto import (
     StepBase,
     TopicBase,
 )
+from v1.learning.hybrid import rank_hybrid
+from v1.learning.sources import KIND_MATERIAL, KIND_TOPIC, render_sources
+from v1.learning.topic_sources import fetch_topic_sources
 from v1.users_steps.service import get_learning_style, get_steps, get_topic
 
 
@@ -109,7 +112,13 @@ def analyze_text(state: GenerateQuestionPipeline) -> QuizResponse:
     except RetrievalError as exc:
         logger.warning("[QUIZ] retrieval failed, the quiz is built from the summary only: %s", exc.message)
         retrieval_results = []
-    rag_context = "\n".join([r["text"] for r in retrieval_results]) or ""
+    topic = fetch_topic_sources(_session(state), lesson_id=state.lesson_id)
+    sources = rank_hybrid(summary, topic["sources"], retrieval_results or [], [], include_web=False)
+    by_index = {source.index: source for source in sources}
+    if not sources:
+        logger.warning("[QUIZ] no topic source exists for the lesson, the quiz is not written")
+        return QuizResponse(quiz=[], sources=[])
+    rag_context = render_sources(sources, (KIND_TOPIC, KIND_MATERIAL))
     ls = getattr(state.learning_style, "dominant_style", "reading")
 
     quiz_prompt = f"""
@@ -140,7 +149,9 @@ Tugas Anda: Membuat 10 Soal Simulasi Dunia Kerja (Workplace Simulation) untuk pe
 7. **Konteks Lengkap dalam Soal:** Setiap `question` harus self-contained, memuat semua konteks cerita (judul situasi, deskripsi/data, pertanyaan inti).
 8. **Variasi Tingkat Kesulitan:** Campurkan soal dengan tingkat kesulitan: Easy (2 soal), Medium (4 soal), Hard/HOTS (4 soal).
 9. **Jenis Soal Beragam:** Gunakan variasi jenis soal: Multiple Choice, Input, Matching, Scenario-Based.
-10 jangan keluar dari materi dan konteks yang diberikan, benar benar fokus itu.
+10. Jangan keluar dari materi dan konteks yang diberikan, benar benar fokus itu.
+12. **Sumber wajib:** setiap soal memuat `sources`, yaitu daftar nomor dokumen bernomor (1 sampai 3 nomor) yang menjadi dasar soal itu. Hanya pakai nomor yang ada. Soal tanpa sumber yang nyata tidak boleh dibuat.
+11. Jangan menyebut nomor step, label "Materi Step", atau nama bagian materi di dalam soal. Ceritakan situasinya saja.
 
 **STRUKTUR OUTPUT (Pydantic Compliance):**
 Output WAJIB JSON valid dengan skema berikut:
@@ -151,7 +162,8 @@ Output WAJIB JSON valid dengan skema berikut:
       "type": "multiple_choice | input | matching | scenario",
       "difficulty": "easy | medium | hard | hots",
       "options": ["String A", "String B", ...], // Array of Strings. Kosongkan [] jika input/scenario.
-      "answer": "String (Kunci jawaban atau poin-poin rubrik penilaian)"
+      "answer": "String (Kunci jawaban atau poin-poin rubrik penilaian)",
+      "sources": [1]
     }}
   ]
 }}
@@ -160,13 +172,14 @@ Output WAJIB JSON valid dengan skema berikut:
 <context>
 **Learning Profile:** {ls}
 **Materi Sertifikasi (Steps):** {summary}
-**Knowledge Base:** {rag_context}
+**Sumber bernomor (satu-satunya sumber fakta):**
+{rag_context}
 </context>
 
 <example_style>
 /* CONTOH 1: HARD (Tanpa Tabel - Fokus Strategi/Komunikasi) */
 {{
-  "question": "### ⚠️ Situasi: Eskalasi Keluhan Klien\\nAnda menerima email keluhan berat dari klien VIP terkait keterlambatan proyek (Materi Step 3: Crisis Mgmt).\\n\\n> 'Saya sangat kecewa. Jika tidak selesai besok, kontrak batal!'\\n\\nSecara teknis, tim butuh 2 hari lagi. Sebagai Project Lead, bagaimana respon negosiasi terbaik yang tetap menjaga integritas profesional?",
+  "question": "### ⚠️ Situasi: Eskalasi Keluhan Klien\\nAnda menerima email keluhan berat dari klien VIP terkait keterlambatan proyek.\\n\\n> 'Saya sangat kecewa. Jika tidak selesai besok, kontrak batal!'\\n\\nSecara teknis, tim butuh 2 hari lagi. Sebagai Project Lead, bagaimana respon negosiasi terbaik yang tetap menjaga integritas profesional?",
   "type": "multiple_choice",
   "difficulty": "hots",
   "options": [
@@ -178,7 +191,7 @@ Output WAJIB JSON valid dengan skema berikut:
 }}
 /* CONTOH 2: HOTS (Dengan Tabel - Fokus Analisis Data) */
 {{
-  "question": "### 📉 Situasi: Audit Keuangan\\nSaat melakukan rekonsiliasi (Materi Step 5), Anda menemukan anomali berikut:\\n\\n| Transaksi | Buku Besar | Rekening Koran |\\n|---|---|---|\\n| #TX99 | Rp 5.000.000 | Rp 500.000 |\\n\\nNilai selisih material. Apa langkah audit pertama yang harus dilakukan sebelum membuat jurnal koreksi?",
+  "question": "### 📉 Situasi: Audit Keuangan\\nSaat melakukan rekonsiliasi, Anda menemukan anomali berikut:\\n\\n| Transaksi | Buku Besar | Rekening Koran |\\n|---|---|---|\\n| #TX99 | Rp 5.000.000 | Rp 500.000 |\\n\\nNilai selisih material. Apa langkah audit pertama yang harus dilakukan sebelum membuat jurnal koreksi?",
   "type": "scenario",
   "difficulty": "hots",
   "options": [],
@@ -206,7 +219,19 @@ Output JSON only.
         logger.warning("[QUIZ] quiz generation failed: %s", exc)
         parsed = QuizResponse(quiz=[])
 
-    return parsed
+    kept = []
+    used: list[int] = []
+    for item in parsed.quiz:
+        valid = [number for number in dict.fromkeys(item.sources) if number in by_index][:3]
+        if not valid:
+            continue
+        item.sources = valid
+        kept.append(item)
+        used.extend(number for number in valid if number not in used)
+    if len(parsed.quiz) != len(kept):
+        logger.warning("[QUIZ] %d question(s) without a real source were dropped", len(parsed.quiz) - len(kept))
+
+    return QuizResponse(quiz=kept, sources=[by_index[number].as_citation() for number in sorted(used)])
 
 
 user_steps_pipeline = StateGraph(GenerateQuestionPipeline)

@@ -39,7 +39,7 @@ const isActive = (name: string | null) => (name ?? '').trim().toLowerCase() === 
 </script>
 
 <template>
-  <PlayScroller label="Kategori topik" class="rc-cats-scroller">
+  <PlayScroller label="Kategori course" class="rc-cats-scroller">
   <nav class="rc-cats" aria-label="Filter kategori">
     <template v-if="isLoading">
       <span v-for="n in 6" :key="n" class="rc-skel rc-cats__skel" aria-hidden="true"></span>

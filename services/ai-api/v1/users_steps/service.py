@@ -8,7 +8,10 @@ from config.agent_session import AgentSession
 from config.internal_client import InternalApiClient
 from errors.types import CrossServiceError, RetrievalError
 from v1.domain.governance import retrieval_scope
-from v1.users_steps.streaming import StageEvent
+from v1.learning.hybrid import rank_hybrid
+from v1.learning.sources import KIND_MATERIAL, KIND_TOPIC, apply_citations, render_sources
+from v1.learning.topic_sources import fetch_topic_sources
+from v1.users_steps.streaming import FinalEvent, SourcesEvent, StageEvent, chunk_text
 from v1.users_steps.dto import (
     LearningStyleProfileBase,
     StepBase,
@@ -88,11 +91,20 @@ def classify_learning_style(description: str | None) -> Optional[str]:
     return None
 
 
+NO_INTRO_SOURCES = "[Tidak ada sumber topik di database untuk pelajaran ini]"
+INTRO_CITATION_RULES = (
+    "- Setiap kalimat faktual diberi penanda sumber berupa nomor dokumen dalam kurung siku, misalnya [2], mengikuti id pada retrieved_document.\n"
+    "- Hanya pakai id yang benar-benar ada, jangan membuat id, dan jangan menulis daftar sumber karena aplikasi yang menampilkannya.\n"
+    "- Bila sumber tidak memuat sesuatu, jangan mengarangnya.\n"
+)
+
+
 async def build_learning_introduction_llm(
     steps: list,
     pipeline,
     learning_style=None,
     session: AgentSession | None = None,
+    lesson_id: str | None = None,
 ):
     from config.embedding_pipeline import EmbeddingPipeline
     if isinstance(learning_style, dict):
@@ -136,11 +148,10 @@ async def build_learning_introduction_llm(
     yield StageEvent("context", "done", {"steps": len(steps), "titles": [s.title for s in steps[:3]]})
     yield StageEvent("profile", "done" if style else "skipped", {"style": style})
 
-    retrieval_info = []
     scope = retrieval_scope(session.acting_user_id) if session else None
     queries = 0
-    sources = 0
     failed = 0
+    rag_results: list[dict] = []
     for s in steps if scope else []:
         queries += 1
         try:
@@ -149,14 +160,26 @@ async def build_learning_introduction_llm(
             logger.warning("[INTRODUCTION] retrieval failed for a step: %s", exc.message)
             failed += 1
             results = []
-        sources += len(results)
-        texts = [r["text"] for r in results]
-        if texts:
-            retrieval_info.append(f"- {s.title}: {' '.join(texts)}")
+        rag_results.extend(results)
 
-    retrieval_text = "\n".join(retrieval_info) if retrieval_info else ""
+    topic = fetch_topic_sources(session, lesson_id=lesson_id) if session and lesson_id else {"scope": {}, "sources": []}
+    sources = rank_hybrid(
+        " ".join(s.title for s in steps),
+        topic["sources"],
+        rag_results,
+        [],
+        include_web=False,
+    )
+    documents = render_sources(sources, (KIND_TOPIC, KIND_MATERIAL)) or NO_INTRO_SOURCES
+
     retrieval_state = "skipped" if not queries else "failed" if failed == queries else "done"
-    yield StageEvent("retrieval", retrieval_state, {"queries": queries, "sources": sources, "failed": failed})
+    topic_count = len([item for item in sources if item.kind == KIND_TOPIC])
+    yield StageEvent(
+        "retrieval",
+        retrieval_state,
+        {"queries": queries, "sources": len(sources) - topic_count, "topic": topic_count, "failed": failed},
+    )
+    yield SourcesEvent([item.as_citation() for item in sources])
     yield StageEvent("writing", "active", {})
 
     full_prompt = f"""
@@ -165,44 +188,51 @@ berdasarkan langkah-langkah berikut:
 
 {step_data}
 
-Gunakan informasi retrieval tambahan berikut untuk memperjelas deskripsi:
-{retrieval_text}
+Gunakan HANYA dokumen bernomor berikut sebagai sumber fakta:
+{documents}
 
 === TUJUAN PENGANTAR ===
 1. Menjelaskan isi setiap langkah dengan jelas.
 2. Menunjukkan nilai atau manfaat praktis dari setiap langkah.
 3. Memberikan gambaran alur pembelajaran.
 4. Membuat pembelajar tertarik dan termotivasi.
-5. Output dalam format Markdown yang komprehensif: gunakan header, bold, bullet, numbering, dan paragraf bebas.
+5. Output dalam format Markdown singkat: satu judul, paragraf pendek, dan paling banyak lima bullet.
+6. Panjang keseluruhan 120 sampai 180 kata. Ini pengantar mikro, bukan materi: jangan mengajarkan isi langkah.
 
 === GAYA PENULISAN ===
 {style_prompt}
 
 === ATURAN PENULISAN TAMBAHAN ===
 - Kalimat aktif dan friendly.
-- Beri sedikit sentuhan storytelling agar hidup.
 - Hindari jargon berlebihan namun tetap profesional.
 - Tidak menyebut AI atau proses teknis.
-- Buat alurnya: Hook → Context → Value → Roadmap langkah pembelajaran → Closing Motivation.
+- Buat alurnya ringkas: satu kalimat pembuka yang menarik, nilai praktisnya, lalu urutan langkah belajar.
+- Jangan memakai emoji, garis pemisah, atau judul bertingkat.
 - Teks harus enak dibaca saat di-streaming per chunk.
 - Sertakan informasi bahwa setelah memahami tiap materi, pembelajar akan selalu di-test dengan quiz yang membantu memperdalam pemahaman.
-
+{INTRO_CITATION_RULES}
 Instruksi tambahan:
-- Hanya gunakan informasi dari steps dan retrieval.
-- Mulai dengan sapaan, akhiri dengan call-to-action.
+- Hanya gunakan informasi dari steps dan dokumen bernomor.
+- Mulai dengan sapaan singkat, akhiri dengan satu kalimat ajakan untuk mulai.
 """
 
+    written: list[str] = []
     stream = pipeline.llm.stream(full_prompt)
     if hasattr(stream, "__aiter__"):
         async for chunk in stream:
-            text = getattr(chunk, "text", None)
-            if text:
-                yield text
+            piece = chunk_text(getattr(chunk, "text", None))
+            if piece:
+                written.append(piece)
+                yield piece
     else:
         for chunk in stream:
-            text = getattr(chunk, "text", None)
-            if text:
-                yield text
+            piece = chunk_text(getattr(chunk, "text", None))
+            if piece:
+                written.append(piece)
+                yield piece
+
+    final_text, citations = apply_citations("".join(written), sources)
+    yield FinalEvent(final_text.strip(), citations)
 
 
 def extract_quiz(result):

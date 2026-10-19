@@ -16,7 +16,7 @@ metadata:
 - Never create `.env` files inside service subdirectories.
 - Commit only `.env.example`. The real `.env` is gitignored.
 - Reference variables in compose via `${VAR}` with sensible defaults.
-- No compose service uses `env_file`. Each service lists the variables it needs under `environment:`; `ai-api` and `celery-worker` share `x-ai-runtime-environment`. A new variable goes into `.env.example` and into the list of the service that reads it. `scripts/check-compose-env.py` enforces this (ADR-011).
+- No compose service uses `env_file`. Each service lists the variables it needs under `environment:`; `ai-api`, `celery-worker` and `celery-chat-worker` share `x-ai-runtime-environment`. A new variable goes into `.env.example` and into the list of the service that reads it. `scripts/check-compose-env.py` enforces this (ADR-011).
 - Never hardcode secrets in `docker-compose.yml`, `Dockerfile`, or source code.
 - Rotate `COOKIE_SECRET`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` for every environment.
 - Generate secrets with `openssl rand -base64 48` or `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
@@ -28,13 +28,19 @@ metadata:
 | Service | Compose Name | Container Name | Internal Port | Host Port (dev) | Image (prod) |
 |---|---|---|---|---|---|
 | PostgreSQL | `postgres` | `reducera_postgres` | 5432 | 5433 | `postgres:15-alpine` |
+| PostgreSQL for learner SQL | `sandbox-db` | `reducera_sandbox_db` | 5432 | — | `postgres:15-alpine` |
 | Redis | `redis` | `reducera_redis` | 6379 | 6380 | `redis:7-alpine` |
 | Qdrant | `qdrant` | `reducera_qdrant` | 6333 | 6333 | `qdrant/qdrant:v1.12.4` |
 | NestJS API | `api` | `reducera_api` | 3002 | 3002 | `reducera/api:<tag>` |
 | FastAPI AI | `ai-api` | `reducera_ai_api` | 3003 | 3003 | `reducera/ai-api:<tag>` |
 | Celery Worker | `celery-worker` | `reducera_celery_worker` | — | — | `reducera/ai-api:<tag>` |
+| Celery Chat Worker | `celery-chat-worker` | `reducera_celery_chat_worker` | — | — | `reducera/ai-api:<tag>` |
 | Nuxt Web | `web` | `reducera_web` | 3000 | 3000 | `reducera/web:<tag>` |
 | Nginx | `nginx` | `reducera_nginx` | 80, 443 | 80, 443 | `nginx:1.27-alpine` |
+| API tools (profile `tools`) | `api-tools` | one-shot | — | — | built from the `tools` stage of `services/api/Dockerfile` |
+| Web tools (profile `tools`) | `web-tools` | one-shot | — | — | built from the `tools` stage of `apps/web/Dockerfile` |
+| AI tools (profile `tools`) | `ai-tools` | one-shot | — | — | built from the `deps` stage of `services/ai-api/Dockerfile` |
+| Repo tools (profile `tools`) | `repo-tools` | one-shot | — | — | `python:3.11-slim`, repository mounted read-only |
 
 ## Docker Compose Rules
 
@@ -48,6 +54,8 @@ metadata:
 - Logging driver: `json-file` with `max-size: 20m` and `max-file: 5`.
 - Production compose must declare `deploy.resources.limits` for memory and CPU.
 - Production must use image references (`image:`) not just `build:` for runtime rollback.
+- Services under the compose profile `tools` (`api-tools`, `web-tools`, `ai-tools`, `repo-tools`) are one-shot command runners, not long-running services: they use `restart: "no"`, `healthcheck: disable: true` and may bind-mount the source tree. They exist only in `docker-compose.yml`, never in `docker-compose.prod.yml`.
+- `sandbox-db` is a second PostgreSQL that exists only to run SQL written by learners in the sandbox. It has no published port, keeps its data in `tmpfs`, is reached only by `api` through `SANDBOX_DATABASE_URL` with the restricted role `sandbox_runner`, and holds no application data. It does not change the rule that `api` is the only service that touches the application database, and `ai-api` still gets no database URL.
 
 ## Dockerfile Rules
 
@@ -62,6 +70,38 @@ metadata:
 - Set `ENV PYTHONUNBUFFERED=1` and `PIP_NO_CACHE_DIR=1` for Python images.
 - Define `HEALTHCHECK` directive inside the Dockerfile, not only in compose.
 - Use `EXPOSE` to document port usage, but do not publish from Dockerfile.
+
+## Docker-Only Workflow
+
+Every command of this project runs in a container. The host needs Docker, `git` and `curl` and nothing else: no `pnpm`, `npm`, `npx`, `node`, `python`, `pip`, `uv`, `tsx`, `prisma`, `jest`, `vitest` or `pytest` on the host, and no `pnpm add` or `pnpm install` on the host (a different pnpm version rewrites the lockfile, and a dependency change then differs from what the images install).
+
+Run the tools through the `tools` profile of `docker-compose.yml` (set `POSTGRES_PORT` and `WEB_PORT` in `.env` or in the shell when the default ports are taken):
+
+| Task | Command |
+|---|---|
+| Build the tool images (after a Dockerfile or dependency change) | `docker compose --profile tools build api-tools web-tools ai-tools` |
+| API typecheck | `docker compose --profile tools run --rm api-tools pnpm exec tsc --noEmit` |
+| API tests (unit) | `docker compose --profile tools run --rm api-tools pnpm jest` |
+| API tests (database), one process | `docker compose --profile tools run --rm api-tools pnpm jest --runInBand` |
+| One API spec or name | `docker compose --profile tools run --rm api-tools pnpm jest path/to/file -t "name"` |
+| Prisma client after a schema change | `docker compose --profile tools run --rm api-tools pnpm prisma generate` |
+| New migration SQL | `docker compose --profile tools run --rm api-tools pnpm prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script` |
+| Apply migrations to the dev database | `docker compose --profile tools run --rm api-tools pnpm prisma migrate deploy` |
+| Apply migrations to the scratch database | `docker compose --profile tools run --rm api-tools sh -c 'DATABASE_URL="$TEST_DATABASE_URL" pnpm prisma migrate deploy'` |
+| Seed or run a one-off script | `docker compose --profile tools run --rm api-tools pnpm seed:topic`, `pnpm seed:concepts`, `pnpm exec tsx prisma/tmp-name.ts` |
+| Web dependencies (lockfile changed) | `docker compose --profile tools run --rm web-tools pnpm install --frozen-lockfile` |
+| Web tests | `docker compose --profile tools run --rm web-tools pnpm test` |
+| Web build | `docker compose --profile tools run --rm web-tools pnpm build`, then `docker compose build web && docker compose up -d --no-deps web` |
+| AI API tests | `docker compose --profile tools run --rm ai-tools pytest -q` |
+| Repository gates | `docker compose --profile tools run --rm repo-tools bash scripts/check-ownership-rules.sh`, `... bash infra/scripts/check-theme-sync.sh`, `... python scripts/check-compose-env.py` |
+| Rebuild and restart a service | `docker compose build api && docker compose up -d --no-deps api` |
+
+- The scratch database for tests is `reducera_ls_scratch` on the compose `postgres` service (`createdb` it with `docker compose exec postgres`, then migrate it as above). The tools containers reach it as `TEST_DATABASE_URL` on the compose network. Database tests never run against the dev database.
+- The tools containers mount the source tree (`./services/api` for `api-tools`, the whole repository for `web-tools`, `ai-tools` and `repo-tools` because tests compare files across services). Dependencies live in named volumes (`reducera_api_tools_node_modules`, `reducera_web_tools_node_modules`). After a lockfile change run the install command above; if `api-tools` dependencies change, rebuild the image and `docker volume rm reducera_api_tools_node_modules`.
+- Never edit files inside a running container; the tools containers only run commands on files that are edited on the host and mounted.
+- A temporary script (a fixture, a one-off seed) is written under `services/api/prisma/tmp-*.ts`, run with `api-tools` and deleted afterwards.
+- Verification in a real browser (Playwright MCP) runs against the Docker stack, never against a dev server started on the host.
+- Do not run `docker compose down -v`, and do not delete the named volumes of `postgres`, `redis` or `qdrant`.
 
 ## Code Rules
 
@@ -134,6 +174,7 @@ Seven decision decorators: `@Public()`, `@Roles(...)`, `@RequireOwnership(...)`,
 - Email and password only (D-26); there is no third party sign-in. Passwords are 8 to 72 characters (bcrypt cost 12). Email addresses are trimmed and lower-cased at the DTO.
 - Sign-in, password reset request and code resend answer identically whether or not the email is registered, and a login spends a password comparison even for an unknown email. `Unverified email` is only revealed after the right password.
 - One-time codes (`otp.service.ts`) are six digits, stored only as an HMAC, valid 15 minutes, allow 5 wrong tries, work once and are keyed by identifier and type. Do not log, return or store a code in clear text outside the dev mock (`OTP_DEV_MODE`).
+- The routes that take an email address are limited by Arcjet with two rules each (`v1/auth/auth-limits.ts`): a loose one per client address, because many learners share one network, and a strict one per email address, sent to Arcjet only as an HMAC. Every route has its own counter (the `scope` characteristic). The refresh route is not asked about (single use tokens, nginx `limit_req`). The key is `ARCJET_KEY`; without it the SDK fails open and nothing is limited, so the API logs a warning at boot. Values are a proposal (D-28).
 - The JWT guard checks the session row on every request, so logout, a password reset and a refresh rotation end access at once. A refresh token works once (the old session is deleted when a new pair is issued). Cookies are `HttpOnly`, `SameSite=Lax`, `Secure` in production.
 
 ### State machines
@@ -170,6 +211,15 @@ Seven decision decorators: `@Public()`, `@Roles(...)`, `@RequireOwnership(...)`,
 - Learner decisions (next concept, teaching strategy) come from `LearnerPolicyService` with typed reason codes. `LearnerStateService` is the only reader that joins mastery with the registry for the routes, the tutor and `GET /internal/learner-state`.
 - There is one mastery. The topic level EMA (`TopicMasteryRecord`) and `SkillNode` are retired: no code reads or writes them (`scripts/check-ownership-rules.sh` fails on `.topicMasteryRecord.` and `.skillNode.` outside specs) and the tables stay in the schema until the owner agrees to drop them. A topic level figure (creator eligibility, recommendations) is computed on read by `LearnerStateService.topicMastery` and `averageMastery` from `ConceptMastery`; skill node states are derived by `skillNodes`. Never derive mastery from step progress or completion.
 
+### Teaching strategy and prompt governance
+
+- The tutor never decides a strategy on its own. `GET /internal/learner-state` returns the strategy of `TeachingDecisionService` for the first concept of the request (`intent` is a closed set: `DOUBT` for chat, `NEW_LEARNING` for lesson material) and `ai-api` renders it as `teaching_strategy` plus a fixed playbook line; a value outside the closed set is dropped (`v1/tutor/strategy_playbook.py`).
+- `StrategyOutcome` is append-only and written only by `StrategyOutcomeService`, inside the grading transaction (`scripts/check-ownership-rules.sh` fails on any other writer). An assessment is credited to the latest tutor turn of the same learner in the last 24 hours whose strategy was chosen for that concept and has no outcome yet; success means the concept score rose. The policy (`teaching-policy-v2`) prefers a strategy with at least three outcomes and a 70 percent success rate, only inside the strategies that fit the mastery band, and never over remediation.
+- Every tutor turn writes an episode and a decision trace with model, token usage, latency, prompt label, routing policy version, citations and strategy. A placeholder such as `unknown-v0` means the caller did not know the value; do not add a new caller that sends one.
+- Prompt versions are written only by `PromptRegistryService` (`scripts/check-ownership-rules.sh` fails on any other writer of `promptVersion` or `optimizationRun`). The state table is `v1/optimization/prompt-state.ts`: DRAFT, EXPERIMENTAL (canary of 1 to 50 percent, stable per learner), VALIDATED (gate passed), ACTIVE (only a human `approve`). The database holds one ACTIVE and one canary per prompt, and a frozen `EvaluationDataset` cannot change. The gate reports what it does not measure as `NOT_MEASURED` and never invents a number.
+- `ai-api` resolves the template through `GET /internal/prompts/resolve`, checks the placeholder contract again, caches one minute and falls back to the builtin template (`services/api/prisma/seed-data/prompt-templates/tutor-chat.txt`, kept identical to `v1/learning/chat_template.py` by a test). A new prompt name needs its contract in `prompt-contracts.ts` and in `config/prompt_registry.py`.
+- A creator application needs `expertiseTopicId`, and the API answers 422 `MASTERY_THRESHOLD_NOT_MET` unless the topic passes the eligibility rule (every concept passed, mean mastery 0.85).
+
 ### Rewards
 
 - Every point is a `GamificationLedger` entry written by `RewardLedgerService` only (`scripts/check-ownership-rules.sh` fails on any other writer). An entry has a rule id, a rule version, a unique idempotency key derived from its cause, and is never updated (trigger); a correction is a reversal entry created through `POST /gamify/rewards/ledger/{id}/reverse` (ADMIN, audited, idempotent).
@@ -177,8 +227,10 @@ Seven decision decorators: `@Public()`, `@Roles(...)`, `@RequireOwnership(...)`,
 - An assessment is only worth points if its answer key stays private: question reads go through `forViewer` (`quiz/answer-key.ts`) and drop `correctAnswer` for everyone except ADMIN and TEACHER, and a quiz can only be read or started by the owner of the progress it belongs to or by a learner enrolled in the topic of a template quiz (`quiz-access.service.ts`). A new route that returns questions must use both.
 - Points that depend on learning (`MASTERY_PROGRESS`, `CONCEPT_PASSED`) are granted only by `RewardEngineService.onAssessment`, inside the transaction that stored the learning event, so evidence and reward commit together. Do not grant points from a controller, from step completion, from a chat message or from the AI service.
 - The ledger is projected onto `LeaderboardScore` (`g-{user}`, `t-{user}-{topic}`, `st-{user}-{subTopic}`) in the same transaction as the entry. Points granted before the ledger existed have no entry and stay as they are.
-- Reward rules are rows (`RewardRule`, immutable except `active`); `reward-rules.ts` holds only the defaults used when no row exists. A streak day is credited only by `StreakEngineService` from a passed assessment, never by login, chat or step completion; freezes are earned (one per 7 days, at most 2) and never sold. Levels come from `LevelThreshold` rows over ledger XP; stars come from `NODE_MASTERED`. Boards are per topic and opt-in; there is no global board. Values are a proposal (D-25).
+- Reward rules are rows (`RewardRule`, immutable except `active`); `reward-rules.ts` holds only the defaults used when no row exists. A streak day is credited only by `StreakEngineService` from a passed assessment (a quiz whose percent score reaches its `passingScore`, default 70; a sandbox journal that is correct and was not shown first; `AssessmentGamifyInput.passed`), never by login, chat or step completion; a graded assessment that was not passed still pays its XP and counts stars and achievements and gets the streak back through `standing` without a write; freezes are earned on a cadence set by the `STREAK_FREEZE_EARNED` rule (default one per 7 days, at most 2 held; `amount` is the days per freeze, `params.maxHeld` the number held) and never sold. Levels come from `LevelThreshold` rows over ledger XP; stars come from `NODE_MASTERED`. Boards are per topic and opt-in; there is no global board and no route reads score rows with their users (`LeaderboardsModule` has only `TopicBoardController`, pinned by `board-surface.spec.ts`). The values of D-22 and D-25 are accepted (ADR-028) and tuned on `/admin/gamify`.
+- Reward rules, level thresholds and the achievement catalog are administered as data through `admin/gamify/*` (ADMIN only, ADR-026): `RulesAdminService`, `LevelsAdminService` and `AchievementsAdminService` are the only writers of `RewardRule`, `LevelThreshold` and `Achievement`, besides the seeder (`scripts/check-ownership-rules.sh` fails on any other). Publishing a rule is a new version under an advisory lock and a `baseVersion` check, never an edit; the editable fields, their bounds and the form come from `gamify/admin/rule-catalog.ts`, which also validates, so the form cannot drift from the engine. A grant owed once per cause (`CONCEPT_PASSED`, `PATH_NODE_MASTERED`) carries `oncePerCause` and `RewardLedgerService.grant` refuses it when an earlier original entry of the same learner and concept or sub-topic exists under any rule version, reversed or not, so a new version never pays twice. A rule with every version retired is off: it pays nothing and the built-in default does not come back. An achievement's rule never changes after creation and its type is derived from the metric; a retired achievement keeps its unlocks.
 - Theme and icons are rows too: `reducera-play` is the seeded default (`pnpm seed:theme`), `GET /gamify/themes/default` is public, and the web falls back to the bundled copy of the same palette. The two JSON copies (`services/api/prisma/seed-data` and `apps/web/app/theme`) must stay byte identical (`infra/scripts/check-theme-sync.sh`).
+- A learner's own gamify theme is `UserTheme` (one row per user, ADR-027), written only by `UserThemeService` through `GET|PUT|DELETE /gamify/me/theme` and `POST /gamify/me/theme/preview`; the id comes from the session, never from the body. The palette is generated by `generateUserTheme` (`gamify/themes/user-theme-palette.ts`, deterministic, no LLM, never stored unless every contrast pair of `validateForPublish` passes). The web puts it first in the `ThemeShell` chain only while a user is signed in; icons stay the default theme's. The administrator sets only the default theme.
 
 ### Internal contract with `ai-api`
 
@@ -218,7 +270,7 @@ The ReduCera platform follows a strict service-ownership model. Each service has
 |---|---|---|---|
 | `api` (NestJS :3002) | PostgreSQL via Prisma; Redis (BullMQ queues); SSE bus; auth + authorization | PostgreSQL; Redis; `ai-api` over HTTP | LLM provider APIs directly; Qdrant client directly; any database other than its own Prisma connection |
 | `ai-api` (FastAPI :3003) | Qdrant collections (`reducera-embedding`, `reducera-memory`); LLM provider clients; Tavily client | Qdrant; LLM providers; Tavily; `api` over HTTP | Direct PostgreSQL/Prisma access; `DATABASE_URL` env var; any DB connection string |
-| `celery-worker` | inherits `ai-api` rules | same as `ai-api` | Direct PostgreSQL/Prisma access |
+| `celery-worker`, `celery-chat-worker` | inherit `ai-api` rules | same as `ai-api` | Direct PostgreSQL/Prisma access |
 | `web` (Nuxt :3000) | – | `api` and `ai-api` via Nginx | Anything else |
 | `nginx` | – | All upstream services | – |
 
@@ -264,9 +316,9 @@ If you find code that violates these rules, refactor in this order:
 - LLM calls use one OpenAI-compatible endpoint (the project uses the Flaz gateway, `https://ai.flaz.id/v1`, with a single key) through `langchain-openai`: `OPENAI_API_KEY`, `OPENAI_BASE_URL`.
 - The LLM has two modes. **Flash** (`OPENAI_MODEL_FLASH`, `OPENAI_MAX_TOKENS`, optional `OPENAI_FLASH_TEMPERATURE`) is the fast default, `pipeline.llm`: tutor streaming, summaries, chat replies, quiz generation. **Thinking** (`OPENAI_MODEL_THINKING`, `OPENAI_THINKING_MAX_TOKENS`) is a reasoning model, `pipeline.llm_thinking`: lesson content generation and learning-path planning; it never sends a temperature. `EmbeddingPipeline.llm_prompt` picks the mode from `enable_thinking`. Reasoning tokens count against the token budget, so the thinking budget is larger.
 - Model choice is measured, not guessed: see the benchmark in `docs/plans/reducera-v1-execution-plan.md` (section 3.4) and the scripts in `infra/scripts/llm-bench/`. Re-run them before changing a model.
-- Embeddings are computed remotely by Hugging Face Inference: `HF_TOKEN`, `HF_EMBEDDING_MODEL`, `HF_EMBEDDING_URL` (with a `{model}` placeholder), `EMBEDDING_DIM`. No embedding model runs inside a container.
+- Embeddings come from one of two providers, chosen by `EMBEDDING_PROVIDER` ([ADR-030](docs/decisions/ADR-030-local-embedding-provider.md)). `huggingface` (the code default) calls Hugging Face Inference: `HF_TOKEN`, `HF_EMBEDDING_MODEL`, `HF_EMBEDDING_URL` (with a `{model}` placeholder). `local` runs the same model (`LOCAL_EMBEDDING_MODEL`, default `/models/bge-m3`) on CPU inside `ai-api` and both workers from the read-only `./models` mount (`EMBEDDING_MODELS_DIR`); weights are never baked into an image and never downloaded at runtime unless `LOCAL_EMBEDDING_ALLOW_DOWNLOAD=true`. `EMBEDDING_DIM` applies to both. `LOCAL_EMBEDDING_PRELOAD=true` loads the model in the worker's main process before it forks.
 - Only `ai-api` and `celery-worker` receive these variables. Gemini is not used anywhere.
-- Changing `HF_EMBEDDING_MODEL` or `EMBEDDING_DIM` invalidates stored vectors. Point `QDRANT_COLLECTION` and `QDRANT_MEMORY_COLLECTION` at new names and re-embed; `ai-api` refuses to start when an existing collection has a different vector size.
+- Changing `HF_EMBEDDING_MODEL`, `LOCAL_EMBEDDING_MODEL` to a different model, or `EMBEDDING_DIM` invalidates stored vectors. Point `QDRANT_COLLECTION` and `QDRANT_MEMORY_COLLECTION` at new names and re-embed; `ai-api` refuses to start when an existing collection has a different vector size.
 - A developer's personal `HF_TOKEN` lives only in the git-ignored root `.env` and is removed when the work ends.
 
 ### Retrieval
@@ -306,6 +358,7 @@ Any non-empty result is a violation and must be resolved before merge.
 
 - Never run `docker compose down -v` in production without explicit confirmation.
 - Never edit files inside a running container. Edit on host then rebuild.
+- Never run a project command on the host (see "Docker-Only Workflow"). Use the `tools` profile of `docker-compose.yml`.
 - Never use `latest` tag for production images.
 - Never bypass healthcheck with `condition: service_started` for critical dependencies.
 - Never commit `.env`, `infra/nginx/certs/`, or `infra/qdrant/storage/`.
@@ -314,6 +367,7 @@ Any non-empty result is a violation and must be resolved before merge.
 
 ## Required Verification Before Claiming Complete
 
+- Typecheck, tests and gates were run through the `tools` profile ("Docker-Only Workflow"), and the report says which command and how many tests.
 - `docker compose config` returns valid YAML without errors.
 - `docker compose -f docker-compose.prod.yml config` returns valid YAML.
 - All services start and report healthy: `docker compose ps`.
@@ -333,7 +387,7 @@ Any non-empty result is a violation and must be resolved before merge.
 
 ## Web verification (Playwright MCP)
 
-Any change under `apps/web`, or any change that alters what the web renders, is verified in a real browser through the `playwright` MCP. `pnpm build` alone is not enough.
+Any change under `apps/web`, or any change that alters what the web renders, is verified in a real browser through the `playwright` MCP against the Docker stack. A web build alone is not enough.
 
 1. Start the full stack with `docker compose up -d --build` (a web-only run floods the console with `ERR_CONNECTION_REFUSED` from the missing `api`) and confirm the URL answers.
 2. Drive it with `browser_navigate`, `browser_snapshot` (prefer the accessibility snapshot for assertions), `browser_take_screenshot`, `browser_resize`, `browser_emulate_media` (`colorScheme`, `reducedMotion`), `browser_press_key`, `browser_console_messages` and `browser_network_requests`.

@@ -22,14 +22,18 @@ const row = (conceptId: string, score: number, evidenceCount: number, confidence
   lastEventAt: new Date('2026-10-09T10:00:00Z'),
 });
 
-const build = (rows: Array<ReturnType<typeof row>>) => {
+const build = (rows: Array<ReturnType<typeof row>>, enrolledTopicIds: string[] = [], catalog: ConceptView[] = concepts) => {
   const prisma = {
     conceptMastery: { findMany: jest.fn().mockResolvedValue(rows) },
+    userTopic: {
+      findMany: jest.fn().mockResolvedValue(enrolledTopicIds.map((topicId) => ({ topicId }))),
+      count: jest.fn().mockResolvedValue(enrolledTopicIds.length),
+    },
     userStep: { findFirst: jest.fn(async ({ where }: { where: { id: string; userId: string } }) => (where.id === 'us-1' && where.userId === 'user-1' ? { stepTemplateId: 'step-1' } : where.id === 'us-custom' && where.userId === 'user-1' ? { stepTemplateId: null } : null)) },
     step: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => (where.id === 'step-1' ? { lessonId: 'lesson-1' } : null)) },
   };
   const registry = {
-    listActive: jest.fn().mockResolvedValue(concepts),
+    listActive: jest.fn().mockResolvedValue(catalog),
     conceptsForLesson: jest.fn(async (lessonId: string) => (lessonId === 'lesson-1' ? { source: 'LESSON', conceptIds: ['a', 'b'] } : { source: 'NONE', conceptIds: [] })),
     topicConceptIds: jest.fn(async (topicId: string) => (topicId === 'topic-1' ? ['a', 'b'] : [])),
   };
@@ -91,6 +95,50 @@ describe('LearnerStateService', () => {
       const { service } = build([row('a', 0.8, 3), row('b', 0.8, 3), row('c', 0.8, 3)]);
 
       expect(await service.nextConcept('user-1')).toEqual({ conceptId: null, level: null, reasonCodes: ['ALL_CONCEPTS_PASSED'], concept: null });
+    });
+
+    describe('with another course in the registry', () => {
+      const otherCourse = concept('z', 1, 0);
+      const catalog = [otherCourse, ...concepts];
+
+      it('stays inside the courses the learner enrolled in even when the other course sorts first', async () => {
+        const { service, prisma } = build([row('a', 0.8, 3)], ['topic-1'], catalog);
+
+        expect(await service.nextConcept('user-1')).toMatchObject({ conceptId: 'b', reasonCodes: ['PREREQUISITES_MET'] });
+        expect(prisma.userTopic.findMany).toHaveBeenCalledWith({ where: { userId: 'user-1' }, select: { topicId: true } });
+      });
+
+      it('starts an enrolled learner at the first concept of their own course', async () => {
+        const { service } = build([], ['topic-1'], catalog);
+
+        expect(await service.nextConcept('user-1')).toMatchObject({ conceptId: 'a', reasonCodes: ['NO_EVIDENCE_START'] });
+      });
+
+      it('falls back to the whole registry for a learner who enrolled in nothing', async () => {
+        const { service } = build([], [], catalog);
+
+        expect(await service.nextConcept('user-1')).toMatchObject({ conceptId: 'z', reasonCodes: ['NO_EVIDENCE_START'] });
+      });
+
+      it('falls back to the whole registry when the enrolled course has no approved concept', async () => {
+        const { service } = build([], ['topic-without-concepts'], catalog);
+
+        expect(await service.nextConcept('user-1')).toMatchObject({ conceptId: 'z' });
+      });
+
+      it('keeps a prerequisite that no enrolled lesson teaches unmet instead of dropping it', async () => {
+        const gated = [concept('a', 1, 1), concept('b', 1, 2, ['outside']), concept('outside', 1, 9)];
+        const { service } = build([row('a', 0.8, 3)], ['topic-1'], gated);
+
+        expect(await service.nextConcept('user-1')).toMatchObject({ conceptId: 'b', reasonCodes: ['UNREACHABLE_PREREQUISITES'] });
+      });
+    });
+  });
+
+  describe('hasEnrollment', () => {
+    it('is true once the learner opened a course and false before', async () => {
+      expect(await build([], ['topic-1']).service.hasEnrollment('user-1')).toBe(true);
+      expect(await build([], []).service.hasEnrollment('user-1')).toBe(false);
     });
   });
 
@@ -227,6 +275,29 @@ describe('LearnerStateService', () => {
       const nodes = await build([]).service.skillNodes('user-1');
 
       expect(nodes.map((n) => n.state)).toEqual(['AVAILABLE', 'LOCKED', 'LOCKED']);
+    });
+
+    it('lists only the concepts of the enrolled courses', async () => {
+      const { service } = build([], ['topic-1'], [concept('z', 1, 0), ...concepts]);
+
+      const nodes = await service.skillNodes('user-1');
+
+      expect(nodes.map((n) => [n.conceptId, n.state])).toEqual([
+        ['a', 'AVAILABLE'],
+        ['b', 'LOCKED'],
+      ]);
+    });
+
+    it('keeps a concept locked when its prerequisite is taught by no enrolled lesson', async () => {
+      const gated = [concept('a', 1, 1), concept('b', 1, 2, ['outside']), concept('outside', 1, 9)];
+      const { service } = build([row('a', 0.8, 3)], ['topic-1'], gated);
+
+      const nodes = await service.skillNodes('user-1');
+
+      expect(nodes.map((n) => [n.conceptId, n.state])).toEqual([
+        ['a', 'IN_PROGRESS'],
+        ['b', 'LOCKED'],
+      ]);
     });
   });
 });

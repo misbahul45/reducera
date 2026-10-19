@@ -10,9 +10,10 @@ const applicationContent = z.object({
   expertise: z.string().max(1000).optional(),
 });
 
-export const SubmitApplicationDto = extendApi(applicationContent.strict(), {
+export const SubmitApplicationDto = extendApi(applicationContent.extend({ expertiseTopicId: z.string().uuid() }).strict(), {
   title: "SubmitTeacherApplicationDto",
   example: {
+    expertiseTopicId: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
     fullName: "Misbahul Munir",
     bio: "Expert in backend development and AI education.",
     cvUrl: "https://example.com/cv.pdf",

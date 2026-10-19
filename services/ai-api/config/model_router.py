@@ -35,6 +35,8 @@ DEFAULT_TASK_MODES: Mapping[str, str] = MappingProxyType(
         "path_planning": "thinking",
         "scenario_drafting": "thinking",
         "creator_assist": "thinking",
+        "prompt_proposal": "thinking",
+        "benchmark_judge": "thinking",
     }
 )
 
@@ -55,6 +57,23 @@ WEIGHT_CUES = 0.25
 WEIGHT_TOOLS = 0.20
 WEIGHT_CONTEXT = 0.15
 WEIGHT_HISTORY = 0.10
+
+
+def _usage_of(message: Any) -> tuple[int | None, int | None]:
+    usage = getattr(message, "usage_metadata", None)
+    if not isinstance(usage, Mapping):
+        return None, None
+    tokens_in = usage.get("input_tokens")
+    tokens_out = usage.get("output_tokens")
+    return (
+        tokens_in if isinstance(tokens_in, int) else None,
+        tokens_out if isinstance(tokens_out, int) else None,
+    )
+
+
+def _total_tokens(attempts: Sequence["Attempt"], field_name: str) -> int | None:
+    known = [getattr(a, field_name) for a in attempts if getattr(a, field_name) is not None]
+    return sum(known) if known else None
 
 
 def _ratio(value: float, saturation: float) -> float:
@@ -132,6 +151,9 @@ class Attempt:
     ok: bool
     error: str | None
     latency_ms: float
+    model: str = ""
+    tokens_in: int | None = None
+    tokens_out: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {"mode": self.mode, "ok": self.ok, "error": self.error, "latencyMs": self.latency_ms}
@@ -145,6 +167,10 @@ class RoutedResult:
     attempts: tuple[Attempt, ...]
     policy_version: str
     complexity: float
+    model: str = ""
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+    latency_ms: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -281,6 +307,10 @@ class ModelRouter:
                     attempts=tuple(attempts),
                     policy_version=policy.version,
                     complexity=decision.complexity,
+                    model=attempt.model,
+                    tokens_in=_total_tokens(attempts, "tokens_in"),
+                    tokens_out=_total_tokens(attempts, "tokens_out"),
+                    latency_ms=round(sum(a.latency_ms for a in attempts), 3),
                 )
                 self._record(decision, result.mode, attempts, ok=True)
                 return result
@@ -317,9 +347,15 @@ class ModelRouter:
         started = self._clock()
         error: str | None = None
         text = ""
+        model_name = ""
+        tokens_in: int | None = None
+        tokens_out: int | None = None
         try:
             model = self._factory(mode, task)
-            text = llm_registry.message_text(model.invoke(list(messages), **model_kwargs))
+            model_name = str(getattr(model, "model_name", None) or getattr(model, "model", None) or "")
+            message = model.invoke(list(messages), **model_kwargs)
+            tokens_in, tokens_out = _usage_of(message)
+            text = llm_registry.message_text(message)
             if not text:
                 error = "EMPTY_OUTPUT"
             elif validator is not None and not validator(text):
@@ -328,7 +364,16 @@ class ModelRouter:
             error = type(exc).__name__
         latency = round((self._clock() - started) * 1000.0, 3)
         ok = error is None
-        return Attempt(mode=mode, ok=ok, error=error, latency_ms=latency), text if ok else ""
+        attempt = Attempt(
+            mode=mode,
+            ok=ok,
+            error=error,
+            latency_ms=latency,
+            model=model_name,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+        )
+        return attempt, text if ok else ""
 
     def _record(self, decision: RoutingDecision, final_mode: str, attempts: Sequence[Attempt], *, ok: bool) -> None:
         self.outcomes.record(

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import PageHeader from '~/components/play/PageHeader.vue';
 import PlayButton from '~/components/play/PlayButton.vue';
+import ConceptPicker from '~/components/studio/ConceptPicker.vue';
 import StudioWriter from '~/components/studio/StudioWriter.vue';
 import { creatorApi } from '~/lib/api';
 import { describeApiError } from '~/lib/api-error';
@@ -20,6 +21,7 @@ const form = reactive({
   body: '',
   accessType: 'FREE' as 'FREE' | 'PAID',
   price: null as number | null,
+  conceptIds: [] as string[],
 });
 
 const saving = ref(false);
@@ -40,6 +42,7 @@ async function save() {
       title: payload.title,
       content: payload.content,
       accessType: payload.accessType,
+      ...(payload.conceptIds.length ? { conceptIds: payload.conceptIds } : {}),
       ...(payload.excerpt ? { excerpt: payload.excerpt } : {}),
       ...('price' in payload ? { price: payload.price } : {}),
     });
@@ -77,6 +80,7 @@ async function save() {
         <input v-model.number="form.price" type="number" min="1" step="1" class="rc-field" />
       </label>
     </div>
+    <ConceptPicker v-model="form.conceptIds" />
     <p class="rc-hint">Disimpan sebagai draf. Artikel terbit setelah kamu mengirimnya dan admin menyetujui.</p>
   </div>
 </template>

@@ -2,7 +2,7 @@ import { extendApi } from '@anatine/zod-openapi';
 import { ContentStatus } from '@prisma/client';
 import z from 'zod';
 import { partialWithoutDefaults } from '@/common/lib/zod-partial';
-import { AccessTypeDto, PaginationDto, PriceDto, SlugDto, UploadedImageDto } from '../marketplace/marketplace.dto';
+import { AccessTypeDto, ConceptIdsDto, PaginationDto, PriceDto, SlugDto, UploadedImageDto } from '../marketplace/marketplace.dto';
 
 const ArticleBase = z
   .object({
@@ -14,6 +14,7 @@ const ArticleBase = z
     accessType: AccessTypeDto.default('FREE'),
     price: PriceDto.optional(),
     content: z.string().min(1).max(200000),
+    conceptIds: ConceptIdsDto.optional(),
   })
   .strict();
 
@@ -40,6 +41,7 @@ export type TeacherArticleQueryDtoType = z.infer<typeof TeacherArticleQueryDto>;
 export const AdminArticleQueryDto = PaginationDto.extend({
   status: z.nativeEnum(ContentStatus).default(ContentStatus.PENDING_REVIEW),
   tenantId: z.string().uuid().optional(),
+  pendingTags: z.enum(['true', 'false']).optional(),
 });
 export type AdminArticleQueryDtoType = z.infer<typeof AdminArticleQueryDto>;
 

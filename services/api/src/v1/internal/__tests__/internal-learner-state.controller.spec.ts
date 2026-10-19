@@ -3,6 +3,7 @@ import * as request from 'supertest';
 import { InternalLearnerStateController } from '../internal-learner-state.controller';
 import { LearnerStateService } from '../../learner-model/learner-state.service';
 import { ConceptRegistryService } from '../../learner-model/concepts/concept-registry.service';
+import { TeachingDecisionService } from '../../learner-model/strategy/teaching-decision.service';
 import { InternalServiceGuard } from '@/common/authz/internal-service.guard';
 import { ActingUserGuard } from '@/common/authz/acting-user.guard';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
@@ -13,6 +14,7 @@ describe('InternalLearnerStateController', () => {
   let app: INestApplication;
   let state: { conceptStates: jest.Mock; nextConcept: jest.Mock; conceptIdsForUserStep: jest.Mock };
   let registry: { listActive: jest.Mock; approvedAliases: jest.Mock; conceptsForLesson: jest.Mock };
+  let decisions: { decide: jest.Mock };
 
   const users: Record<string, { id: string; role: string; isActive: boolean }> = {
     'student-a': { id: 'student-a', role: 'STUDENT', isActive: true },
@@ -48,6 +50,12 @@ describe('InternalLearnerStateController', () => {
       ),
     };
 
+    decisions = {
+      decide: jest.fn(async (_userId: string, input: { conceptIds: string[]; intent: string }) =>
+        input.conceptIds.length === 0 ? null : { conceptId: input.conceptIds[0], intent: input.intent, strategy: 'GUIDED_EXAMPLE', reasonCodes: ['MID_MASTERY'] },
+      ),
+    };
+
     app = await createHttpApp({
       controllers: [InternalLearnerStateController],
       rawBody: true,
@@ -57,6 +65,7 @@ describe('InternalLearnerStateController', () => {
         { provide: PrismaService, useValue: { user: { findUnique: jest.fn(async ({ where }) => users[where.id] ?? null) } } },
         { provide: LearnerStateService, useValue: state },
         { provide: ConceptRegistryService, useValue: registry },
+        { provide: TeachingDecisionService, useValue: decisions },
         ...internalAuthProviders(),
       ],
     });
@@ -151,6 +160,31 @@ describe('InternalLearnerStateController', () => {
 
       expect(state.nextConcept).toHaveBeenCalledWith('student-a');
       expect(state.nextConcept).not.toHaveBeenCalledWith('student-b');
+    });
+
+    it('chooses a teaching strategy for the first concept with the doubt intent by default', async () => {
+      const response = await get('/internal/learner-state?lessonId=lesson-1', 'student-a').expect(200);
+
+      expect(decisions.decide).toHaveBeenCalledWith('student-a', { conceptIds: ['c3', 'c4'], intent: 'DOUBT' });
+      expect(response.body.data.strategy).toMatchObject({ conceptId: 'c3', strategy: 'GUIDED_EXAMPLE', reasonCodes: ['MID_MASTERY'] });
+    });
+
+    it('passes the intent of the caller to the decision', async () => {
+      await get('/internal/learner-state?conceptId=c1&intent=NEW_LEARNING', 'student-a').expect(200);
+
+      expect(decisions.decide).toHaveBeenCalledWith('student-a', { conceptIds: ['c1'], intent: 'NEW_LEARNING' });
+    });
+
+    it('answers with no strategy when no concept is known', async () => {
+      const response = await get('/internal/learner-state', 'student-b').expect(200);
+
+      expect(response.body.data.strategy).toBeNull();
+    });
+
+    it('rejects an intent outside the closed set', async () => {
+      await get('/internal/learner-state?conceptId=c1&intent=DROP_TABLES', 'student-a').expect(400);
+
+      expect(decisions.decide).not.toHaveBeenCalled();
     });
 
     it('rejects a missing acting user, an unknown one and an invalid signature', async () => {

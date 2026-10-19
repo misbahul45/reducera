@@ -18,3 +18,9 @@ export async function resolveLearningIds(
     known.learningStyleId || (topicId && scope.userId ? ((await sources.learningStyleIdOf(scope.userId, topicId)) ?? '') : '');
   return { topicId, learningStyleId };
 }
+
+export function missingIdsProblem(ids: LearningIds): string | null {
+  if (!ids.topicId) return 'Course untuk pelajaran ini belum ditemukan. Buka lagi pelajaran dari jalur belajarmu.';
+  if (!ids.learningStyleId) return 'Gaya belajarmu belum diisi untuk course ini. Buka course-nya, jawab pertanyaan singkat tentang gaya belajarmu, lalu mulai pelajaran lagi.';
+  return null;
+}

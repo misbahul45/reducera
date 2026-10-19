@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { QueueService } from '../queue.service';
 import {
-  ContentEmbeddingJobSchema,
   KnowledgeJobSchema,
   UserStepsJobSchema,
   credentialFree,
@@ -19,15 +18,13 @@ const userStepsJob = {
 
 describe('QueueService', () => {
   let knowledge: ReturnType<typeof makeQueue>;
-  let content: ReturnType<typeof makeQueue>;
   let userSteps: ReturnType<typeof makeQueue>;
   let service: QueueService;
 
   beforeEach(() => {
     knowledge = makeQueue();
-    content = makeQueue();
     userSteps = makeQueue();
-    service = new QueueService(knowledge as any, content as any, userSteps as any);
+    service = new QueueService(knowledge as any, userSteps as any);
   });
 
   it('queues a knowledge job with identifiers only and bounded retention of failures', async () => {
@@ -50,16 +47,6 @@ describe('QueueService', () => {
     expect(userSteps.add).toHaveBeenCalledWith(
       'generate-user-steps',
       userStepsJob,
-      expect.objectContaining({ removeOnFail: { age: 604800, count: 500 }, attempts: 3 }),
-    );
-  });
-
-  it('keeps the content embedding job and its retention', async () => {
-    await service.addContentEmbeddingJob({ contentId: 'c-1', chatId: 'ch-1', textContent: 'isi' });
-
-    expect(content.add).toHaveBeenCalledWith(
-      'embed',
-      { contentId: 'c-1', chatId: 'ch-1', textContent: 'isi' },
       expect.objectContaining({ removeOnFail: { age: 604800, count: 500 }, attempts: 3 }),
     );
   });
@@ -89,7 +76,6 @@ describe('job payload schemas', () => {
   it.each([
     ['UserStepsJobSchema', UserStepsJobSchema],
     ['KnowledgeJobSchema', KnowledgeJobSchema],
-    ['ContentEmbeddingJobSchema', ContentEmbeddingJobSchema],
   ])('%s has no field that looks like a credential', (_name, schema) => {
     expect(Object.keys(schema.shape).filter((key) => /token|authorization|secret|password|cookie/i.test(key))).toEqual([]);
   });

@@ -15,7 +15,6 @@ export interface BaseSubTopic {
 
   isUnlocked:boolean;
 
-  // relations
   _count?:{
     lessons:number
   }

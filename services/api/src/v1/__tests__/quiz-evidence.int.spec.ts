@@ -6,6 +6,9 @@ import { ConceptRegistryService } from '@/v1/learner-model/concepts/concept-regi
 import { LearnerEventsService } from '@/v1/learner-model/events/learner-events.service';
 import { RewardEngineService } from '@/v1/gamify/rewards/reward-engine.service';
 import { RewardLedgerService } from '@/v1/gamify/rewards/reward-ledger.service';
+import { RewardRulesService } from '@/v1/gamify/rewards/reward-rules.service';
+import { AssessmentGamifyService } from '@/v1/gamify/assessment-gamify.service';
+import { StreakEngineService } from '@/v1/gamify/streaks/streak-engine.service';
 import { AuditService } from '@/common/authz/audit.service';
 import { PrismaService } from '@/common/config/prisma/prisma.service';
 import { REGISTRY_SUITE_LOCK, createPool, databaseUrl, describeDb, holdSuiteLock, insertUser } from '@/test-utils/pg-fixtures';
@@ -197,6 +200,57 @@ describeDb('quiz submission appends learning evidence (requires TEST_DATABASE_UR
     await expect(service.submitAttempt(body)).rejects.toThrow(/already submitted/i);
 
     expect(await prisma.learningEvent.count({ where: { userId: user } })).toBe(1);
+  });
+
+  describe('streak', () => {
+    const withStreaks = () => {
+      const ledger = new RewardLedgerService(prisma, new AuditService(prisma));
+      const gamify = new AssessmentGamifyService(
+        { onAssessment: async () => ({ stars: 0 }) } as never,
+        new StreakEngineService(ledger, new RewardRulesService()),
+        { evaluate: async () => [] } as never,
+      );
+      return new QuizAttemptsService(
+        {} as never,
+        prisma,
+        undefined,
+        undefined,
+        new QuizEvaluationService(),
+        new ConceptRegistryService(prisma),
+        events,
+        new RewardEngineService(ledger),
+        gamify,
+      );
+    };
+
+    const submitWith = async (graded: QuizAttemptsService, userId: string, quiz: { id: string; questions: Array<{ id: string }> }, choices: string[]) => {
+      const started = await graded.startAttempt({ id: userId, role: 'STUDENT' }, { quizId: quiz.id });
+      return graded.submitAttempt({ userId, attemptId: started.data.id, answers: answers(quiz, choices) });
+    };
+
+    const streakOf = (userId: string) => prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { currentStreak: true, lastStreakDate: true } });
+
+    it('counts a day only for a quiz that reaches its passing score, and reports the streak as it stands otherwise', async () => {
+      const graded = withStreaks();
+      const concept = `qe-${randomUUID().slice(0, 8)}`;
+      const { quiz, user } = await fixture([{ concept, target: 'lesson' }]);
+
+      const failed = await submitWith(graded, user, quiz, ['A', 'B']);
+      expect(failed.score).toBe(50);
+      expect(failed.gamify?.streak).toMatchObject({ current: 0, extended: false });
+      expect(await streakOf(user)).toMatchObject({ currentStreak: 0, lastStreakDate: null });
+      expect(await prisma.streakHistory.count({ where: { userId: user } })).toBe(0);
+
+      const empty = await submitWith(graded, user, quiz, ['B', 'B']);
+      expect(empty.score).toBe(0);
+      expect(await prisma.streakHistory.count({ where: { userId: user } })).toBe(0);
+
+      const passed = await submitWith(graded, user, quiz, ['A', 'A']);
+      expect(passed.score).toBe(100);
+      expect(passed.gamify?.streak).toMatchObject({ current: 1, extended: true });
+      expect(await streakOf(user)).toMatchObject({ currentStreak: 1 });
+      expect(await prisma.streakHistory.count({ where: { userId: user } })).toBe(1);
+    });
   });
 
   describe('points', () => {

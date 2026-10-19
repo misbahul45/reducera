@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canMarkRead, formatNotificationTime, notificationIcon, sortNotifications } from '~/lib/notifications';
+import { canMarkRead, formatNotificationTime, notificationAction, notificationIcon, sortNotifications } from '~/lib/notifications';
 
 const n = (id: string, overrides: Record<string, unknown> = {}) => ({
   id,
@@ -58,5 +58,16 @@ describe('notificationIcon', () => {
     expect(notificationIcon('ACHIEVEMENT')).toBe('badge');
     expect(notificationIcon('SYSTEM')).toBeNull();
     expect(notificationIcon('UNKNOWN')).toBeNull();
+  });
+});
+
+describe('notificationAction', () => {
+  it('opens the review card from a review reminder and offers nothing for other types', () => {
+    expect(notificationAction('REVIEW')).toEqual({ to: '/learn/profile/my-learning', label: 'Mulai ulasan' });
+    for (const type of ['STREAK', 'QUIZ', 'ACHIEVEMENT', 'SYSTEM', 'UNKNOWN']) expect(notificationAction(type)).toBeNull();
+  });
+
+  it('shows the bell for a review reminder because no theme icon fits', () => {
+    expect(notificationIcon('REVIEW')).toBeNull();
   });
 });
